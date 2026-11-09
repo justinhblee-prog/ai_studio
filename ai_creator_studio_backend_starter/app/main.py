@@ -254,8 +254,11 @@ async def create_job(body: CreateTryOnJob, idempotency_key: str | None = Header(
         "output_url": None, "error_code": None, "message": None,
         "payload_hash": payload_hash, "payload": payload, "provider_output_url": None,
     }
+    from app.cost_cap import CostCapExceeded
     try:
         persisted, created = repository.create(job, idempotency_key, daily_job_limit=config.GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE or None)
+    except CostCapExceeded as exc:
+        raise HTTPException(status_code=429, detail={"code": exc.code, "message": exc.message}) from exc
     except DailyJobLimitExceeded as exc:
         raise HTTPException(status_code=429, headers={"Retry-After": str(exc.retry_after_seconds)}, detail={
             "code": "DAILY_JOB_LIMIT_EXCEEDED", "message": str(exc), "limit": exc.limit, "used": exc.used}) from exc

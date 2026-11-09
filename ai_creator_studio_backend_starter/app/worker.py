@@ -28,6 +28,9 @@ async def process_one(repository=None) -> bool:
     try:
         from app import main
         provider = main.get_provider_for_job(job)
+        from app import cost_cap
+        if provider.name != cost_cap.MOCK_PROVIDER and cost_cap.kill_switch_on():
+            raise RuntimeError("AI_JOBS_DISABLED")
         started = await provider.start(job["payload"])
         request_id = started.get("request_id")
         if not request_id:
