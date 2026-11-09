@@ -592,5 +592,14 @@
     "blocker": "문서와 두 zip이 세션에 없음, D1 구현이 저장소에 없음",
     "evidence": "—",
     "today": ""
+  },
+  {
+    "id": "T67",
+    "area": "백엔드",
+    "task": "AI 비용 상한: 워크스페이스·UTC 일 단위 생성 작업 개수 상한(기본 무제한), 초과 시 429, 멱등 재생·타 워크스페이스·어제 작업 제외, SQLite·PG 원자적. mock Provider로 시험, 변이 10/10",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
   }
 ]

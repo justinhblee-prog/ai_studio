@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #8 (머지 56090a7) — L-04 업로드 권리·초상권 확인
+- **CI (head 9e2f8e7, run 42566387583)**: backend success — pytest `716 passed, 1 warning`, 실DB 단계 `76 passed, 1 warning`(failed 없음); frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10 steps passed`, `SUMMARY 6/6 rights steps passed`.
+- **완료**: 이미지 업로드의 권리·초상권 선언(서버 필드 3개, 설정 `ASSET_REQUIRE_RIGHTS_CONFIRMATION` 기본 꺼짐, `asset_provenance` 기록, UI 체크박스); 기록은 자산 삭제 후에도 유지(SQLite·PG); 기존 자산 소급 차단 없음; OpenAPI 스냅샷 재생성(옵션 필드 3개만 추가). 변이: 백엔드 10/10, 프런트 로직 5/5, 브라우저 3/3, 기록 유지 2/2 적발. 아래 §6에 동작 표.
+- **미검증**: 설계서(D2)와의 대조 — 문서 없음. UI 문구는 법무 승인 전 임시 문구. 영구 삭제(L-01) 시 이 기록 처리는 미정. "소급 차단 없음" 시험은 표적 변이 없음.
+- **차단**: 설계서 `DESIGN_PACK_20261109.md`, 법률·동의 패치 zip 2개가 세션에 없음(아래 차단 표). D1(AI 학습 동의) 구현이 이 저장소에 없음.
+
 ### 2026-11-09 · PR #7 (머지 2c39903) — 브라우저 E2E 1단계
 - **CI (head 5dc966a, run 42552138675)**: backend success — pytest `705 passed, 1 warning`, 실DB 단계 `74 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 pass/0 fail + 4 pass/0 fail, `vite build` 통과; **e2e success — GitHub에서 `SUMMARY 10/10 steps passed`**(ZIP에 `manifest.json`과 이미지 포함 확인).
 - **완료**: 출시 빌드를 헤드리스 Chromium으로 구동하는 소유자 흐름 10단계(로그인 → Workspace → 이미지 업로드 → 상품 → 포토 초안 → 로컬 이미지 처리 → 검수 승인 → 룩북 기획·조립 승인 → ZIP 다운로드); 변이 3종 적발(주소 입력란 복구는 처음에 놓쳐서 시험을 고친 뒤 적발).
@@ -64,7 +70,7 @@ T56은 수정이 아니라 비교 시험 추가였다. "수정을 되돌리면 �
 | 경합 시험 4종·Job/Outbox/알림 변이 증거 | 완료(`output_asset_link` PG 구현 없음 — 미구현으로 확인) |
 | T56 | 완료(시험 보강) |
 | L-13 출시 빌드 API 주소 고정 | 완료 (PR #5) |
-| L-04 인물 사진 업로드 권리·동의 확인 | **구현됨(PR #8 대기)** — 설계서(D2)와 대조 못 함(문서 없음). UI 문구는 법무 승인 전 임시 문구(`src/rightsConfirmationCopy.ts`) |
+| L-04 인물 사진 업로드 권리·동의 확인 | **구현·머지됨(PR #8)** — 설계서(D2)와 대조 못 함(문서 없음). UI 문구는 법무 승인 전 임시 문구(`src/rightsConfirmationCopy.ts`) |
 | L-02 프런트 동의 화면 | **막힘** — 위와 같음 |
 | 법률 패치 zip 적용 | **막힘** — 파일 없음 |
 | 랜딩 재구현(시안 ①) | 시안 파일이 저장소에 없음 — 확인 필요 |
@@ -90,3 +96,10 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **설계서와 달라도 이 구현을 유지하는 이유는 판단할 수 없다**(설계서를 못 봄). 별도 확인 테이블이 설계서의 요구라면 이 구현은 그것을 충족하지 않는다.
 - 기록 호환: 선언이 없으면 provenance가 이전과 바이트 단위로 같음(시험).
 - 변이 검증: 백엔드 10/10 적발, 프런트 로직 5/5 적발, 브라우저 3/3 적발(선언 미전송, 오류 메시지 매핑 제거, 권리 체크 무시).
+
+## 7. AI 비용 상한 (큐 11, 브랜치 cost-cap; D5와의 일치 여부는 설계서가 없어 확인 못 함)
+- 설정 `GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE`(기본 **0 = 무제한**, 호환 유지). 값이 있으면 워크스페이스당 UTC 하루 동안 **생성된 작업 수**가 한도에 도달했을 때 `POST /v1/generation-jobs`를 `429`(`DAILY_JOB_LIMIT_EXCEEDED`, `limit`·`used`, `Retry-After`=다음 UTC 자정까지 초)로 차단하고 작업·outbox를 만들지 않음. 잘못된 값(`abc`, `-1`, `2.5`)은 조용히 무제한이 되지 않고 시작 시 오류, 빈 값은 "미설정".
+- 세는 기준: 만든 시점의 **모든 작업**(취소·실패 포함 — 이미 Provider 비용이 났을 수 있어서). 같은 `Idempotency-Key` 재생은 세지도 막지도 않음. 다른 워크스페이스·어제 작업은 세지 않음.
+- 경합: SQLite는 `BEGIN IMMEDIATE`, PG는 워크스페이스별 advisory lock 안에서 세므로 동시 생성이 한도를 넘지 못함(PG 시험: 동시 10개 생성 → 정확히 3개 성공·7개 차단·작업 3개·outbox 3개).
+- 시험: `tests/test_generation_daily_cap.py` 7건(mock Provider, 외부 호출 없음) + PG 2건. 변이 10/10 적발(점검 제거, 일 경계 제거, 워크스페이스 필터 제거, 경계 오프바이원 2종, 라우트 배선 제거, 429→503, PG 잠금 제거(5회 반복), PG 일 경계 제거, PG 점검 제거).
+- **미검증/한계**: 사용자(개별) 단위 상한 없음; 금액이 아니라 작업 **개수** 상한이라 비용이 큰 모델과 작은 모델을 구분하지 않음; 크레딧 원장(`credits_ledger`)과 연동되지 않음; 프런트에 작업 생성 화면이 없어 UI 변경 없음(429는 API 클라이언트가 처리); `_impl` 호환 통로(v0.31)는 상한을 적용하지 않음(런타임은 사용하지 않음); 시간은 서버 시계(UTC) 기준.
