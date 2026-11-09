@@ -1,0 +1,2 @@
+# Optional browser capability probe only; not a runtime Viewer dependency.
+playwright==1.57.0

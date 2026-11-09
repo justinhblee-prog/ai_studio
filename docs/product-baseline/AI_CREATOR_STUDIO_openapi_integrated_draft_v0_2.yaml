@@ -1,0 +1,1417 @@
+openapi: 3.1.0
+info:
+  title: AI CREATOR STUDIO API
+  version: 0.2.0
+  description: 'Integrated OpenAPI 3.1.0 draft for AI CREATOR STUDIO core APIs. Design contract only: API prefix,
+    authentication, physical identifiers, persistence, and deployment URLs remain subject to repository audit and
+    approval.'
+servers:
+- url: https://api.example.invalid
+  description: Placeholder only; production server and API prefix are undecided.
+tags:
+- name: Projects
+- name: Assets
+- name: Quotes
+- name: GenerationJobs
+- name: Executions
+- name: Events
+- name: Outputs
+- name: Credits
+paths:
+  /assets:
+    post:
+      tags:
+      - Assets
+      operationId: createAsset
+      summary: Register an uploaded asset
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetCreateRequest'
+      responses:
+        '201':
+          description: Asset registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+  /assets/{asset_id}:
+    get:
+      tags:
+      - Assets
+      operationId: getAsset
+      summary: Retrieve an asset visible to the caller
+      parameters:
+      - $ref: '#/components/parameters/AssetId'
+      responses:
+        '200':
+          description: Asset details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+  /quotes:
+    post:
+      tags:
+      - Quotes
+      operationId: createQuote
+      summary: Calculate a generation quote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteCreateRequest'
+      responses:
+        '200':
+          description: Quote calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+  /generation-jobs:
+    post:
+      tags:
+      - GenerationJobs
+      operationId: createGenerationJob
+      summary: Create an asynchronous generation job
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCreateRequest'
+      responses:
+        '202':
+          description: Job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+    get:
+      tags:
+      - GenerationJobs
+      operationId: listGenerationJobs
+      summary: List generation jobs in a workspace
+      parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Job page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+  /generation-jobs/{job_id}:
+    get:
+      tags:
+      - GenerationJobs
+      operationId: getGenerationJob
+      summary: Retrieve a generation job
+      parameters:
+      - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+  /generation-jobs/{job_id}/cancel:
+    post:
+      tags:
+      - GenerationJobs
+      operationId: cancelGenerationJob
+      summary: Request cancellation of a generation job
+      parameters:
+      - $ref: '#/components/parameters/JobId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Cancellation request accepted; provider cancellation may be asynchronous
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+  /generation-jobs/{job_id}/outputs:
+    get:
+      tags:
+      - GenerationJobs
+      operationId: listGenerationJobOutputs
+      summary: List persisted outputs for a job
+      parameters:
+      - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Persisted outputs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+  /credits/accounts/{account_id}:
+    get:
+      tags:
+      - Credits
+      operationId: getCreditAccount
+      summary: Retrieve credit account balance
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      responses:
+        '200':
+          description: Credit account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditAccountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /projects:
+    post:
+      tags:
+      - Projects
+      operationId: createProject
+      summary: Create a project in a workspace
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    get:
+      tags:
+      - Projects
+      operationId: listProjects
+      summary: List projects visible in a workspace
+      parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Project page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /projects/{project_id}:
+    get:
+      tags:
+      - Projects
+      operationId: getProject
+      summary: Retrieve a project
+      parameters:
+      - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /generation-jobs/{job_id}/executions:
+    get:
+      tags:
+      - Executions
+      operationId: listGenerationJobExecutions
+      summary: List execution attempts
+      parameters:
+      - $ref: '#/components/parameters/JobId'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: List execution attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+  /generation-jobs/{job_id}/events:
+    get:
+      tags:
+      - Events
+      operationId: listGenerationJobEvents
+      summary: List job state and execution events
+      parameters:
+      - $ref: '#/components/parameters/JobId'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: List job state and execution events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobEventListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/PolicyRejected'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '502':
+          $ref: '#/components/responses/ProviderBadResponse'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+  /credits/accounts/{account_id}/ledger:
+    get:
+      tags:
+      - Credits
+      operationId: listCreditLedgerEntries
+      summary: List append-only credit ledger entries
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Credit ledger page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditLedgerListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Required for mutating operations that create jobs, reserve/alter credits, or request cancellation.
+        Scope, request-hash canonicalization, and TTL remain implementation decisions.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+    AssetId:
+      name: asset_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    JobId:
+      name: job_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+    ProjectId:
+      name: project_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthenticated:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Access denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Resource or idempotency conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PolicyRejected:
+      description: Request rejected by policy
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PayloadTooLarge:
+      description: Payload too large
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnsupportedMediaType:
+      description: Unsupported media type
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Unexpected internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ProviderBadResponse:
+      description: Provider returned an invalid response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: Service temporarily unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ProviderTimeout:
+      description: Provider response timed out; execution outcome may be unknown
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    Identifier:
+      type: string
+      minLength: 1
+      description: Opaque identifier; physical format TBD.
+    Timestamp:
+      type: string
+      format: date-time
+    ResponseMeta:
+      type: object
+      properties:
+        request_id:
+          type: string
+        correlation_id:
+          type: string
+        next_cursor:
+          type:
+          - string
+          - 'null'
+        has_more:
+          type: boolean
+    ErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
+        code:
+          type: string
+    ErrorBody:
+      type: object
+      required:
+      - code
+      - message
+      - retryable
+      properties:
+        code:
+          type: string
+          enum:
+          - BAD_REQUEST
+          - VALIDATION_ERROR
+          - UNAUTHENTICATED
+          - FORBIDDEN
+          - RESOURCE_NOT_FOUND
+          - RESOURCE_CONFLICT
+          - IDEMPOTENCY_CONFLICT
+          - JOB_NOT_CANCELLABLE
+          - INSUFFICIENT_CREDITS
+          - PAYLOAD_TOO_LARGE
+          - UNSUPPORTED_MEDIA_TYPE
+          - POLICY_REJECTED
+          - RATE_LIMITED
+          - INTERNAL_ERROR
+          - PROVIDER_BAD_RESPONSE
+          - SERVICE_UNAVAILABLE
+          - PROVIDER_TIMEOUT
+          - ASSET_NOT_READY
+          - ASSET_ACCESS_DENIED
+          - QUOTE_EXPIRED
+          - QUOTE_ALREADY_CONSUMED
+          - PROVIDER_AUTH_FAILED
+          - PROVIDER_CAPACITY_EXCEEDED
+          - PROVIDER_RESULT_UNKNOWN
+          - OUTPUT_PERSISTENCE_FAILED
+          - CREDIT_RESERVATION_FAILED
+          - CREDIT_RECONCILIATION_REQUIRED
+        message:
+          type: string
+        retryable:
+          type: boolean
+        retry_after_seconds:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    AssetCreateRequest:
+      type: object
+      required:
+      - workspace_id
+      - asset_type
+      - display_name
+      - upload_reference
+      properties:
+        workspace_id:
+          $ref: '#/components/schemas/Identifier'
+        project_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        asset_type:
+          type: string
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        upload_reference:
+          type: string
+          description: Short-lived upload reference; not a storage key.
+    Asset:
+      type: object
+      required:
+      - id
+      - workspace_id
+      - asset_type
+      - status
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        workspace_id:
+          $ref: '#/components/schemas/Identifier'
+        project_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        asset_type:
+          type: string
+          enum:
+          - IMAGE
+          - VIDEO
+          - MODEL_3D
+          - DOCUMENT
+          - OTHER
+        display_name:
+          type: string
+        status:
+          type: string
+          enum:
+          - PENDING
+          - READY
+          - REJECTED
+          - DELETED
+          description: Asset processing and availability state.
+        current_version_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    AssetResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Asset'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    QuoteCreateRequest:
+      type: object
+      required:
+      - workspace_id
+      - feature_code
+      - feature_input
+      properties:
+        workspace_id:
+          $ref: '#/components/schemas/Identifier'
+        feature_code:
+          type: string
+          enum:
+          - TRY_ON
+          - PHOTO
+          - LOOKBOOK
+        feature_input:
+          oneOf:
+          - $ref: '#/components/schemas/TryOnInput'
+          - $ref: '#/components/schemas/PhotoInput'
+          - $ref: '#/components/schemas/LookbookInput'
+        routing:
+          $ref: '#/components/schemas/RoutingRequest'
+    Quote:
+      type: object
+      required:
+      - id
+      - workspace_id
+      - feature_code
+      - estimated_credits
+      - expires_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        workspace_id:
+          $ref: '#/components/schemas/Identifier'
+        feature_code:
+          type: string
+        estimated_credits:
+          type: integer
+          minimum: 0
+        expires_at:
+          $ref: '#/components/schemas/Timestamp'
+    QuoteResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Quote'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    RoutingRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum:
+          - AUTO
+          - MANUAL
+          default: AUTO
+        provider_id:
+          type:
+          - string
+          - 'null'
+        model_id:
+          type:
+          - string
+          - 'null'
+      description: MANUAL routing must not automatically fall back. AUTO fallback is permitted only under an approved
+        capability/policy decision.
+    TryOnInput:
+      type: object
+      required:
+      - source_asset_id
+      - person_asset_id
+      properties:
+        source_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        person_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        garment_category:
+          type: string
+        preserve_person_identity:
+          type: boolean
+          default: true
+        preserve_garment_details:
+          type: boolean
+          default: true
+        output_count:
+          type: integer
+          minimum: 1
+          maximum: 10
+    PhotoInput:
+      type: object
+      required:
+      - source_asset_id
+      - operation
+      properties:
+        source_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        operation:
+          type: string
+          enum:
+          - ENHANCE
+          - BACKGROUND
+          - LIGHTING
+          - RETOUCH
+          - COMPOSE
+        preserve_identity:
+          type: boolean
+        preserve_product_geometry:
+          type: boolean
+        preserve_text_and_logo:
+          type: boolean
+        target_style:
+          type: string
+        output_format:
+          type: string
+          enum:
+          - PNG
+          - JPEG
+          - WEBP
+    JobCreateRequest:
+      type: object
+      required:
+      - workspace_id
+      - feature_code
+      - quote_id
+      - feature_input
+      properties:
+        workspace_id:
+          $ref: '#/components/schemas/Identifier'
+        project_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        feature_code:
+          type: string
+          enum:
+          - TRY_ON
+          - PHOTO
+          - LOOKBOOK
+        quote_id:
+          $ref: '#/components/schemas/Identifier'
+        identity_profile_id:
+          type:
+          - string
+          - 'null'
+        brand_profile_id:
+          type:
+          - string
+          - 'null'
+        routing:
+          $ref: '#/components/schemas/RoutingRequest'
+        feature_input:
+          oneOf:
+          - $ref: '#/components/schemas/TryOnInput'
+          - $ref: '#/components/schemas/PhotoInput'
+          - $ref: '#/components/schemas/LookbookInput'
+          description: Feature-specific input. LOOKBOOK schema is a draft and requires product review.
+    JobStatus:
+      type: string
+      enum:
+      - QUEUED
+      - RESERVED
+      - RUNNING
+      - CANCEL_REQUESTED
+      - SUCCEEDED
+      - FAILED
+      - CANCELED
+      - REQUIRES_RECONCILIATION
+    GenerationJob:
+      type: object
+      required:
+      - id
+      - workspace_id
+      - feature_code
+      - status
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        workspace_id:
+          $ref: '#/components/schemas/Identifier'
+        feature_code:
+          type: string
+        status:
+          $ref: '#/components/schemas/JobStatus'
+          description: User-facing job state. Provider attempt state is represented separately by JobExecution.
+        progress:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+          maximum: 100
+        error_code:
+          type:
+          - string
+          - 'null'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        project_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        quote_id:
+          $ref: '#/components/schemas/Identifier'
+        current_execution_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        cancel_requested_at:
+          $ref: '#/components/schemas/NullableTimestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    JobResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/GenerationJob'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    JobListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GenerationJob'
+        meta:
+          allOf:
+          - $ref: '#/components/schemas/ResponseMeta'
+          - type: object
+            properties:
+              next_cursor:
+                type:
+                - string
+                - 'null'
+              has_more:
+                type: boolean
+    Output:
+      type: object
+      required:
+      - id
+      - job_id
+      - asset_id
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        job_id:
+          $ref: '#/components/schemas/Identifier'
+        asset_id:
+          $ref: '#/components/schemas/Identifier'
+        asset_version_id:
+          $ref: '#/components/schemas/Identifier'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        output_type:
+          type: string
+          enum:
+          - IMAGE
+          - VIDEO
+          - MODEL_3D
+          - OTHER
+        mime_type:
+          type: string
+        checksum_sha256:
+          type: string
+        size_bytes:
+          type: integer
+          minimum: 0
+        provenance_record_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+      description: Persisted output. A job must not enter SUCCEEDED until the output object and its database references
+        are durable and verified.
+    OutputListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Output'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    CreditAccount:
+      type: object
+      required:
+      - id
+      - available_balance
+      - reserved_balance
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        available_balance:
+          type: integer
+        reserved_balance:
+          type: integer
+          minimum: 0
+        currency_or_unit:
+          type: string
+          description: Credit unit label; commercial denomination is TBD.
+    CreditAccountResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/CreditAccount'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    NullableIdentifier:
+      type:
+      - string
+      - 'null'
+      minLength: 1
+      description: Nullable opaque identifier; physical format TBD.
+    NullableTimestamp:
+      type:
+      - string
+      - 'null'
+      format: date-time
+    ProjectCreateRequest:
+      type: object
+      required:
+      - workspace_id
+      - name
+      properties:
+        workspace_id:
+          $ref: '#/components/schemas/Identifier'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
+        external_reference:
+          $ref: '#/components/schemas/NullableIdentifier'
+    Project:
+      type: object
+      required:
+      - id
+      - workspace_id
+      - name
+      - status
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        workspace_id:
+          $ref: '#/components/schemas/Identifier'
+        name:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - ARCHIVED
+          - DELETED
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    ProjectResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Project'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ProjectListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    LookbookInput:
+      type: object
+      required:
+      - product_asset_ids
+      properties:
+        product_asset_ids:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Identifier'
+        person_asset_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        identity_profile_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        brand_profile_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        scene_preset:
+          type:
+          - string
+          - 'null'
+        output_count:
+          type: integer
+          minimum: 1
+          maximum: 20
+    JobExecution:
+      type: object
+      required:
+      - id
+      - job_id
+      - attempt_number
+      - status
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        job_id:
+          $ref: '#/components/schemas/Identifier'
+        provider_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        model_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        attempt_number:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum:
+          - PENDING
+          - SUBMITTED
+          - RUNNING
+          - SUCCEEDED
+          - FAILED
+          - CANCELED
+          - UNKNOWN
+          - REQUIRES_RECONCILIATION
+        provider_request_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        started_at:
+          $ref: '#/components/schemas/NullableTimestamp'
+        finished_at:
+          $ref: '#/components/schemas/NullableTimestamp'
+        error_code:
+          $ref: '#/components/schemas/NullableIdentifier'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    ExecutionListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobExecution'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    JobEvent:
+      type: object
+      required:
+      - id
+      - job_id
+      - event_type
+      - occurred_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        job_id:
+          $ref: '#/components/schemas/Identifier'
+        execution_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        event_type:
+          type: string
+        sequence:
+          type: integer
+          minimum: 1
+        occurred_at:
+          $ref: '#/components/schemas/Timestamp'
+        data:
+          type: object
+          additionalProperties: true
+          description: Allow-listed, non-secret event data only.
+    JobEventListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobEvent'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    CreditLedgerEntry:
+      type: object
+      required:
+      - id
+      - account_id
+      - entry_type
+      - amount
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        account_id:
+          $ref: '#/components/schemas/Identifier'
+        job_id:
+          $ref: '#/components/schemas/NullableIdentifier'
+        entry_type:
+          type: string
+          enum:
+          - RESERVE
+          - CAPTURE
+          - RELEASE
+          - REFUND
+          - ADJUST
+        amount:
+          type: integer
+          description: Signed delta or positive magnitude convention must be finalized in implementation ADR.
+        idempotency_reference:
+          $ref: '#/components/schemas/NullableIdentifier'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+      description: Append-only ledger transaction. Existing entries are never edited or deleted; corrections use
+        compensating entries.
+    CreditLedgerListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditLedgerEntry'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+x-deferred-decisions:
+- id: ADR-API-001
+  topic: API prefix (/api/v1 vs /v1)
+  status: NEEDS_REPO_AUDIT
+- id: ADR-TEN-001
+  topic: Organization/Membership/Workspace authorization mapping
+  status: NEEDS_REPO_AUDIT
+- id: ADR-SEC-001
+  topic: Authentication scheme and tenant enforcement implementation
+  status: NEEDS_REPO_AUDIT
+- id: API-OPENAPI-001
+  topic: OpenAPI 3.1.x generator/client compatibility
+  status: NEEDS_TOOLCHAIN_VALIDATION
+- id: API-ID-001
+  topic: Physical identifier format
+  status: UNDECIDED
+- id: API-EVENT-001
+  topic: Polling vs SSE/WebSocket delivery
+  status: UNDECIDED

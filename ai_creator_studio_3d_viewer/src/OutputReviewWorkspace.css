@@ -1,0 +1,12 @@
+.acs-output-review{display:grid;gap:14px;color:var(--acs-text,#20242b);font:inherit}
+.acs-output-review>header,.acs-output-review-heading,.acs-output-review-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.acs-output-review>header>div{display:grid;gap:3px}.acs-output-review>header span,.acs-output-review-item>p,.acs-output-review-notice,.acs-output-review-terminal{color:var(--acs-muted,#68717d);font-size:.9rem}
+.acs-output-review button{border:1px solid var(--acs-border,#cbd1d8);border-radius:8px;padding:8px 12px;background:var(--acs-surface,#fff);color:inherit;cursor:pointer}
+.acs-output-review button:disabled{opacity:.45;cursor:not-allowed}.acs-output-review-notice{padding:10px 12px;border-left:3px solid var(--acs-border,#cbd1d8);background:var(--acs-subtle,#f5f6f7)}
+.acs-output-review-error{color:#a32121}.acs-output-review-item{border:1px solid var(--acs-border,#d8dde3);border-radius:10px;padding:14px;display:grid;gap:9px;min-width:0}
+.acs-output-review-heading strong{overflow-wrap:anywhere}.acs-output-review-heading span{font-size:.82rem;border-radius:999px;padding:3px 9px;background:var(--acs-subtle,#f1f3f5)}
+.acs-output-review-item dl{display:grid;gap:6px;margin:0}.acs-output-review-item dl div{display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1fr);gap:10px}.acs-output-review-item dt{color:var(--acs-muted,#68717d)}.acs-output-review-item dd{margin:0;overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:.82rem}
+.acs-output-review-history{margin:0;padding-left:20px;display:grid;gap:6px;font-size:.86rem}.acs-output-review-history p{margin:3px 0;color:var(--acs-muted,#68717d)}
+.acs-output-review-comment{display:grid;gap:6px}.acs-output-review-comment input{border:1px solid var(--acs-border,#cbd1d8);border-radius:8px;padding:10px;font:inherit}.acs-output-review-manifest{max-height:360px;overflow:auto;padding:12px;background:var(--acs-subtle,#f5f6f7);border-radius:8px;font-size:.78rem}
+
+.acs-output-review-preview{display:block;width:100%;max-height:520px;object-fit:contain;background:var(--acs-subtle,#f5f6f7);border:1px solid var(--acs-border,#d8dde3);border-radius:8px}

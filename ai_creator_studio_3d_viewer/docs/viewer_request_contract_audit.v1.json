@@ -1,0 +1,331 @@
+{
+  "source_files": 8,
+  "json_body_calls_checked": 15,
+  "enum_checks": [
+    {
+      "file": "PhotoDraftWorkspace.tsx",
+      "field": "operation",
+      "type": "PhotoOperation",
+      "viewer_values": [
+        "BACKGROUND",
+        "COMPOSE",
+        "ENHANCE",
+        "LIGHTING",
+        "RETOUCH"
+      ],
+      "api_values": [
+        "BACKGROUND",
+        "COMPOSE",
+        "ENHANCE",
+        "LIGHTING",
+        "RETOUCH"
+      ]
+    },
+    {
+      "file": "PhotoDraftWorkspace.tsx",
+      "field": "output_format",
+      "type": "OutputFormat",
+      "viewer_values": [
+        "JPEG",
+        "PNG",
+        "WEBP"
+      ],
+      "api_values": [
+        "JPEG",
+        "PNG",
+        "WEBP"
+      ]
+    }
+  ],
+  "skipped": [],
+  "findings": [],
+  "checked": [
+    {
+      "file": "LookbookDraftWorkspace.tsx",
+      "line": 189,
+      "method": "post",
+      "path": "/v1/lookbook-drafts",
+      "keys": [
+        "workspace_id",
+        "title",
+        "project_id",
+        "character_id",
+        "product_asset_ids",
+        "product_ids",
+        "product_variant_ids",
+        "person_asset_id",
+        "scene_preset",
+        "output_count"
+      ],
+      "operation": "/v1/lookbook-drafts",
+      "operation_candidates": [
+        "/v1/lookbook-drafts"
+      ],
+      "schema": "LookbookDraftInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "LookbookDraftWorkspace.tsx",
+      "line": 219,
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/{dynamic}",
+      "keys": [
+        "comment"
+      ],
+      "operation": "/v1/lookbook-drafts/{draft_id}/approve",
+      "operation_candidates": [
+        "/v1/lookbook-drafts/{draft_id}/approve"
+      ],
+      "schema": "ReviewDecisionInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "LookbookDraftWorkspace.tsx",
+      "line": 335,
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/outputs",
+      "keys": [
+        "photo_run_id",
+        "product_variant_id",
+        "page_order",
+        "caption"
+      ],
+      "operation": "/v1/lookbook-drafts/{draft_id}/outputs",
+      "operation_candidates": [
+        "/v1/lookbook-drafts/{draft_id}/outputs"
+      ],
+      "schema": "LookbookOutputAttachInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "LookbookDraftWorkspace.tsx",
+      "line": 367,
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/outputs/{dynamic}",
+      "keys": [
+        "comment"
+      ],
+      "operation": "/v1/lookbook-drafts/{draft_id}/outputs/approve",
+      "operation_candidates": [
+        "/v1/lookbook-drafts/{draft_id}/outputs/approve"
+      ],
+      "schema": "LookbookAssemblyReviewInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "OutputReviewWorkspace.tsx",
+      "line": 218,
+      "method": "post",
+      "path": "/v1/generation-jobs/{param}/outputs/{param}/review/{dynamic}",
+      "keys": [
+        "comment"
+      ],
+      "operation": "/v1/generation-jobs/{job_id}/outputs/{output_id}/review/approve",
+      "operation_candidates": [
+        "/v1/generation-jobs/{job_id}/outputs/{output_id}/review/approve"
+      ],
+      "schema": "OutputReviewInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "PhotoDraftWorkspace.tsx",
+      "line": 186,
+      "method": "post",
+      "path": "/v1/photo-drafts",
+      "keys": [
+        "workspace_id",
+        "source_asset_id",
+        "operation",
+        "preserve_identity",
+        "preserve_product_geometry",
+        "preserve_text_and_logo",
+        "target_style",
+        "prompt",
+        "output_format",
+        "output_count"
+      ],
+      "operation": "/v1/photo-drafts",
+      "operation_candidates": [
+        "/v1/photo-drafts"
+      ],
+      "schema": "PhotoDraftInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "PhotoDraftWorkspace.tsx",
+      "line": 274,
+      "method": "post",
+      "path": "/v1/photo-drafts/{param}/runs/{param}/review/{dynamic}",
+      "keys": [
+        "comment"
+      ],
+      "operation": "/v1/photo-drafts/{draft_id}/runs/{run_id}/review/approve",
+      "operation_candidates": [
+        "/v1/photo-drafts/{draft_id}/runs/{run_id}/review/approve"
+      ],
+      "schema": "PhotoOutputReviewInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "ProductCatalogWorkspace.tsx",
+      "line": 120,
+      "method": "put",
+      "path": "/v1/products/{param}",
+      "keys": [
+        "workspace_id",
+        "sku",
+        "name",
+        "description",
+        "category",
+        "image_asset_ids"
+      ],
+      "operation": "/v1/products/{product_id}",
+      "operation_candidates": [
+        "/v1/products/{product_id}"
+      ],
+      "schema": "ProductInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "ProductCatalogWorkspace.tsx",
+      "line": 124,
+      "method": "post",
+      "path": "/v1/products",
+      "keys": [
+        "workspace_id",
+        "sku",
+        "name",
+        "description",
+        "category",
+        "image_asset_ids"
+      ],
+      "operation": "/v1/products",
+      "operation_candidates": [
+        "/v1/products"
+      ],
+      "schema": "ProductInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "ProductCatalogWorkspace.tsx",
+      "line": 213,
+      "method": "put",
+      "path": "/v1/products/{param}/variants/{param}",
+      "keys": [
+        "workspace_id",
+        "sku",
+        "option_values",
+        "image_asset_ids"
+      ],
+      "operation": "/v1/products/{product_id}/variants/{variant_id}",
+      "operation_candidates": [
+        "/v1/products/{product_id}/variants/{variant_id}"
+      ],
+      "schema": "ProductVariantInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "ProductCatalogWorkspace.tsx",
+      "line": 217,
+      "method": "post",
+      "path": "/v1/products/{param}/variants",
+      "keys": [
+        "workspace_id",
+        "sku",
+        "option_values",
+        "image_asset_ids"
+      ],
+      "operation": "/v1/products/{product_id}/variants",
+      "operation_candidates": [
+        "/v1/products/{product_id}/variants"
+      ],
+      "schema": "ProductVariantInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "ProjectProductAssignmentWorkspace.tsx",
+      "line": 130,
+      "method": "put",
+      "path": "/v1/projects/{param}/products",
+      "keys": [
+        "product_ids"
+      ],
+      "operation": "/v1/projects/{project_id}/products",
+      "operation_candidates": [
+        "/v1/projects/{project_id}/products"
+      ],
+      "schema": "ProjectProductsInput",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "ProjectWorkspace.tsx",
+      "line": 96,
+      "method": "put",
+      "path": "/v1/projects/{param}",
+      "keys": [
+        "name",
+        "project_type",
+        "status",
+        "description"
+      ],
+      "operation": "/v1/projects/{project_id}",
+      "operation_candidates": [
+        "/v1/projects/{project_id}"
+      ],
+      "schema": "ProjectUpdate",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "ProjectWorkspace.tsx",
+      "line": 100,
+      "method": "post",
+      "path": "/v1/projects",
+      "keys": [
+        "workspace_id",
+        "name",
+        "project_type",
+        "description",
+        "external_reference"
+      ],
+      "operation": "/v1/projects",
+      "operation_candidates": [
+        "/v1/projects"
+      ],
+      "schema": "ProjectCreate",
+      "unknown": [],
+      "missing_required": []
+    },
+    {
+      "file": "ProjectWorkspace.tsx",
+      "line": 120,
+      "method": "put",
+      "path": "/v1/projects/{param}",
+      "keys": [
+        "name",
+        "project_type",
+        "status",
+        "description"
+      ],
+      "operation": "/v1/projects/{project_id}",
+      "operation_candidates": [
+        "/v1/projects/{project_id}"
+      ],
+      "schema": "ProjectUpdate",
+      "unknown": [],
+      "missing_required": []
+    }
+  ]
+}

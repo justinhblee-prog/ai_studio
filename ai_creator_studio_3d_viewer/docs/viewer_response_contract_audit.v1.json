@@ -1,0 +1,414 @@
+{
+  "viewer_source_files": 8,
+  "viewer_call_sites": 63,
+  "unique_endpoints": 52,
+  "json_success_response_contracts": 51,
+  "distinct_response_models": 28,
+  "response_models": [
+    "AssetListResponse",
+    "AssetPreviewUrlResponse",
+    "AssetRecordResponse",
+    "AssetVersionListResponse",
+    "AssetVersionMutationResponse",
+    "CharacterListResponse",
+    "EventListResponse",
+    "GeneratedOutputListResponse",
+    "GeneratedOutputReviewResponse",
+    "LookbookAssemblyReviewResponse",
+    "LookbookDraftListResponse",
+    "LookbookDraftResponse",
+    "LookbookOutputListResponse",
+    "LookbookOutputResponse",
+    "LookbookPackageExportResponse",
+    "LookbookPlanManifestResponse",
+    "ManifestExportResponse",
+    "PhotoDraftListResponse",
+    "PhotoDraftResponse",
+    "PhotoLocalProcessingResponse",
+    "PhotoOutputReviewResponse",
+    "PhotoRunListResponse",
+    "ProductListResponse",
+    "ProductResponse",
+    "ProductVariantResponse",
+    "ProjectListResponse",
+    "ProjectProductListResponse",
+    "ProjectResponse"
+  ],
+  "no_json_body_endpoints": [
+    {
+      "method": "delete",
+      "path": "/v1/assets/{param}",
+      "success_statuses": [
+        "204"
+      ]
+    }
+  ],
+  "missing_routes": [],
+  "missing_response_schemas": [],
+  "unresolved_dynamic_segments": [],
+  "endpoints": [
+    {
+      "method": "delete",
+      "path": "/v1/assets/{param}",
+      "response": "no-json-body"
+    },
+    {
+      "method": "get",
+      "path": "/v1/assets",
+      "response_models": [
+        "AssetListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/assets/{param}/versions",
+      "response_models": [
+        "AssetVersionListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/generation-jobs/{param}/outputs",
+      "response_models": [
+        "GeneratedOutputListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/generation-jobs/{param}/outputs/{param}/review",
+      "response_models": [
+        "GeneratedOutputReviewResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/lookbook-drafts",
+      "response_models": [
+        "LookbookDraftListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/lookbook-drafts/{param}/manifest",
+      "response_models": [
+        "LookbookPlanManifestResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/lookbook-drafts/{param}/outputs",
+      "response_models": [
+        "LookbookOutputListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/lookbook-drafts/{param}/outputs/review",
+      "response_models": [
+        "LookbookAssemblyReviewResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/photo-drafts",
+      "response_models": [
+        "PhotoDraftListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/photo-drafts/{param}/runs",
+      "response_models": [
+        "PhotoRunListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/products",
+      "response_models": [
+        "ProductListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/projects",
+      "response_models": [
+        "ProjectListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/projects/{param}/product-events",
+      "response_models": [
+        "EventListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/projects/{param}/products",
+      "response_models": [
+        "ProjectProductListResponse"
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/v1/workspaces/{param}/characters",
+      "response_models": [
+        "CharacterListResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/assets",
+      "response_models": [
+        "AssetRecordResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/assets/images",
+      "response_models": [
+        "AssetRecordResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/assets/{param}/preview-url",
+      "response_models": [
+        "AssetPreviewUrlResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/assets/{param}/versions/{param}/preview-url",
+      "response_models": [
+        "AssetPreviewUrlResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/assets/{param}/versions/{param}/restore",
+      "response_models": [
+        "AssetVersionMutationResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/generation-jobs/{param}/outputs/export-manifest",
+      "response_models": [
+        "ManifestExportResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/generation-jobs/{param}/outputs/{param}/review/approve",
+      "response_models": [
+        "GeneratedOutputReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/generation-jobs/{param}/outputs/{param}/review/reject",
+      "response_models": [
+        "GeneratedOutputReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/generation-jobs/{param}/outputs/{param}/review/request-changes",
+      "response_models": [
+        "GeneratedOutputReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts",
+      "response_models": [
+        "LookbookDraftResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/approve",
+      "response_models": [
+        "LookbookDraftResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/archive",
+      "response_models": [
+        "LookbookDraftResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/outputs",
+      "response_models": [
+        "LookbookOutputResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/outputs/approve",
+      "response_models": [
+        "LookbookAssemblyReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/outputs/manifest",
+      "response_models": [
+        "ManifestExportResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/outputs/package-export",
+      "response_models": [
+        "LookbookPackageExportResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/outputs/reject",
+      "response_models": [
+        "LookbookAssemblyReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/outputs/submit",
+      "response_models": [
+        "LookbookAssemblyReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/request-changes",
+      "response_models": [
+        "LookbookDraftResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/lookbook-drafts/{param}/submit",
+      "response_models": [
+        "LookbookDraftResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/photo-drafts",
+      "response_models": [
+        "PhotoDraftResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/photo-drafts/{param}/archive",
+      "response_models": [
+        "PhotoDraftResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/photo-drafts/{param}/process-local",
+      "response_models": [
+        "PhotoLocalProcessingResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/photo-drafts/{param}/runs/{param}/export-manifest",
+      "response_models": [
+        "ManifestExportResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/photo-drafts/{param}/runs/{param}/review/approve",
+      "response_models": [
+        "PhotoOutputReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/photo-drafts/{param}/runs/{param}/review/reject",
+      "response_models": [
+        "PhotoOutputReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/photo-drafts/{param}/runs/{param}/review/request-changes",
+      "response_models": [
+        "PhotoOutputReviewResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/products",
+      "response_models": [
+        "ProductResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/products/{param}/archive",
+      "response_models": [
+        "ProductResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/products/{param}/variants",
+      "response_models": [
+        "ProductVariantResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/products/{param}/variants/{param}/archive",
+      "response_models": [
+        "ProductVariantResponse"
+      ]
+    },
+    {
+      "method": "post",
+      "path": "/v1/projects",
+      "response_models": [
+        "ProjectResponse"
+      ]
+    },
+    {
+      "method": "put",
+      "path": "/v1/products/{param}",
+      "response_models": [
+        "ProductResponse"
+      ]
+    },
+    {
+      "method": "put",
+      "path": "/v1/products/{param}/variants/{param}",
+      "response_models": [
+        "ProductVariantResponse"
+      ]
+    },
+    {
+      "method": "put",
+      "path": "/v1/projects/{param}",
+      "response_models": [
+        "ProjectResponse"
+      ]
+    },
+    {
+      "method": "put",
+      "path": "/v1/projects/{param}/products",
+      "response_models": [
+        "ProjectProductListResponse"
+      ]
+    }
+  ],
+  "scope_note": "Static Viewer source/OpenAPI contract audit; does not prove runtime payload semantics, TypeScript compilation, or browser execution."
+}

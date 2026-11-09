@@ -1,0 +1,15 @@
+AI CREATOR STUDIO BUILD-00161
+
+Based on BUILD-00160. Includes Backend Starter and 3D Viewer source plus all historical project documentation.
+
+Primary handoff: CURRENT_HANDOFF_BUILD-00161.md
+Canonical handoff: CURRENT_HANDOFF.md
+Release notes: BUILD-00161_RELEASE_NOTES.md
+Verification: BUILD-00161_VERIFICATION.md
+Roadmap: ROADMAP_BUILD-00157.md
+Viewer: ai_creator_studio_3d_viewer/
+Backend: ai_creator_studio_backend_starter/
+
+BUILD-00161 hardens WebGL context loss handling, listener registration rollback, and listener teardown failure isolation. The WebGL lifecycle suite has 37 assertions.
+
+All dependency-free Viewer JS/Python tests and the 367-test backend suite passed. Actual Three.js integration and semantic TypeScript checking remain blocked because required packages are absent and npm network/cache access is unavailable. React Viewer E2E, actual renderer context recovery, and GPU memory stress remain unverified.

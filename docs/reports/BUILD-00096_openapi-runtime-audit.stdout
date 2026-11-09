@@ -1,0 +1,73 @@
+{
+  "prefix_normalized": "/v1",
+  "spec_path_count": 13,
+  "runtime_path_count": 43,
+  "spec_only_paths": [
+    "/credits/accounts/{account_id}",
+    "/credits/accounts/{account_id}/ledger",
+    "/generation-jobs/{job_id}/executions",
+    "/generation-jobs/{job_id}/outputs",
+    "/quotes"
+  ],
+  "runtime_only_paths": [
+    "/assets/images",
+    "/assets/integrity",
+    "/assets/{asset_id}/preview",
+    "/assets/{asset_id}/preview-url",
+    "/assets/{asset_id}/provenance",
+    "/assets/{asset_id}/relations",
+    "/assets/{asset_id}/versions",
+    "/assets/{asset_id}/versions/{version_id}/restore",
+    "/engines/capabilities",
+    "/engines/models",
+    "/generation-jobs/{job_id}/output",
+    "/generation-jobs/{job_id}/reconciliation",
+    "/health",
+    "/internal/ops/alerts",
+    "/internal/ops/metrics",
+    "/internal/ops/poll-tasks",
+    "/internal/ops/poll-tasks/{task_id}/retry",
+    "/internal/ops/provider-registry",
+    "/internal/ops/workers",
+    "/lookbook-drafts",
+    "/lookbook-drafts/{draft_id}",
+    "/lookbook-drafts/{draft_id}/archive",
+    "/lookbook-drafts/{draft_id}/events",
+    "/photo-drafts",
+    "/photo-drafts/{draft_id}",
+    "/photo-drafts/{draft_id}/archive",
+    "/photo-drafts/{draft_id}/events",
+    "/products",
+    "/products/{product_id}",
+    "/products/{product_id}/archive",
+    "/products/{product_id}/events",
+    "/workspaces",
+    "/workspaces/{workspace_id}/characters",
+    "/workspaces/{workspace_id}/characters/{character_id}",
+    "/workspaces/{workspace_id}/members"
+  ],
+  "method_gaps": [
+    {
+      "path": "/assets",
+      "missing_runtime_methods": [],
+      "undocumented_runtime_methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/assets/{asset_id}",
+      "missing_runtime_methods": [],
+      "undocumented_runtime_methods": [
+        "delete"
+      ]
+    },
+    {
+      "path": "/projects/{project_id}",
+      "missing_runtime_methods": [],
+      "undocumented_runtime_methods": [
+        "put"
+      ]
+    }
+  ],
+  "exact_match": false
+}

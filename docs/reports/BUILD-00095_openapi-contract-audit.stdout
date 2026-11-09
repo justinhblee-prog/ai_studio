@@ -1,0 +1,706 @@
+{
+  "prefix_normalized": "/v1",
+  "design_operations_compared": 15,
+  "operations_with_contract_drift": 10,
+  "unmatched_design_operations": [
+    {
+      "path": "/credits/accounts/{account_id}",
+      "method": "get",
+      "reason": "missing_runtime_operation"
+    },
+    {
+      "path": "/credits/accounts/{account_id}/ledger",
+      "method": "get",
+      "reason": "missing_runtime_operation"
+    },
+    {
+      "path": "/generation-jobs/{job_id}/executions",
+      "method": "get",
+      "reason": "missing_runtime_operation"
+    },
+    {
+      "path": "/generation-jobs/{job_id}/outputs",
+      "method": "get",
+      "reason": "missing_runtime_operation"
+    },
+    {
+      "path": "/quotes",
+      "method": "post",
+      "reason": "missing_runtime_operation"
+    }
+  ],
+  "contract_drift": [
+    {
+      "path": "/assets",
+      "method": "post",
+      "operation_id": {
+        "design": "createAsset",
+        "runtime": "upload_asset_v1_assets_post"
+      },
+      "issues": [
+        "request_schema_shape_mismatch",
+        "success_response_schema_or_status_mismatch",
+        "parameter_contract_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": {
+        "type": "object",
+        "properties": [
+          "asset_type",
+          "display_name",
+          "project_id",
+          "upload_reference",
+          "workspace_id"
+        ],
+        "required": [
+          "asset_type",
+          "display_name",
+          "upload_reference",
+          "workspace_id"
+        ]
+      },
+      "runtime_request": null,
+      "design_success_responses": {
+        "201": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "201": {
+          "type": null,
+          "properties": [],
+          "required": []
+        }
+      },
+      "design_parameters": [
+        [
+          "header",
+          "Idempotency-Key",
+          true
+        ]
+      ],
+      "runtime_parameters": []
+    },
+    {
+      "path": "/assets/{asset_id}",
+      "method": "get",
+      "operation_id": {
+        "design": "getAsset",
+        "runtime": "asset_detail_v1_assets__asset_id__get"
+      },
+      "issues": [
+        "success_response_schema_or_status_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": null,
+      "runtime_request": null,
+      "design_success_responses": {
+        "200": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "200": {
+          "type": null,
+          "properties": [],
+          "required": []
+        }
+      },
+      "design_parameters": [
+        [
+          "path",
+          "asset_id",
+          true
+        ]
+      ],
+      "runtime_parameters": [
+        [
+          "path",
+          "asset_id",
+          true
+        ]
+      ]
+    },
+    {
+      "path": "/generation-jobs",
+      "method": "get",
+      "operation_id": {
+        "design": "listGenerationJobs",
+        "runtime": "list_generation_jobs_v1_generation_jobs_get"
+      },
+      "issues": [
+        "success_response_schema_or_status_mismatch",
+        "parameter_contract_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": null,
+      "runtime_request": null,
+      "design_success_responses": {
+        "200": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "200": {
+          "type": "array",
+          "properties": [],
+          "required": [],
+          "items": {
+            "type": "object",
+            "properties": [
+              "error_code",
+              "job_id",
+              "message",
+              "model",
+              "output_url",
+              "provider",
+              "provider_request_id",
+              "status"
+            ],
+            "required": [
+              "job_id",
+              "provider",
+              "status"
+            ]
+          }
+        }
+      },
+      "design_parameters": [
+        [
+          "query",
+          "cursor",
+          false
+        ],
+        [
+          "query",
+          "limit",
+          false
+        ],
+        [
+          "query",
+          "workspace_id",
+          true
+        ]
+      ],
+      "runtime_parameters": [
+        [
+          "query",
+          "limit",
+          false
+        ],
+        [
+          "query",
+          "offset",
+          false
+        ],
+        [
+          "query",
+          "workspace_id",
+          true
+        ]
+      ]
+    },
+    {
+      "path": "/generation-jobs",
+      "method": "post",
+      "operation_id": {
+        "design": "createGenerationJob",
+        "runtime": "create_job_v1_generation_jobs_post"
+      },
+      "issues": [
+        "request_schema_shape_mismatch",
+        "success_response_schema_or_status_mismatch",
+        "parameter_contract_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": {
+        "type": "object",
+        "properties": [
+          "brand_profile_id",
+          "feature_code",
+          "feature_input",
+          "identity_profile_id",
+          "project_id",
+          "quote_id",
+          "routing",
+          "workspace_id"
+        ],
+        "required": [
+          "feature_code",
+          "feature_input",
+          "quote_id",
+          "workspace_id"
+        ]
+      },
+      "runtime_request": {
+        "type": "object",
+        "properties": [
+          "category",
+          "garment_image_url",
+          "mode",
+          "model_image_url",
+          "output_format",
+          "prompt",
+          "resolution",
+          "workspace_id"
+        ],
+        "required": [
+          "garment_image_url",
+          "model_image_url",
+          "workspace_id"
+        ]
+      },
+      "design_success_responses": {
+        "202": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "202": {
+          "type": "object",
+          "properties": [
+            "error_code",
+            "job_id",
+            "message",
+            "model",
+            "output_url",
+            "provider",
+            "provider_request_id",
+            "status"
+          ],
+          "required": [
+            "job_id",
+            "provider",
+            "status"
+          ]
+        }
+      },
+      "design_parameters": [
+        [
+          "header",
+          "Idempotency-Key",
+          true
+        ]
+      ],
+      "runtime_parameters": [
+        [
+          "header",
+          "Idempotency-Key",
+          false
+        ]
+      ]
+    },
+    {
+      "path": "/generation-jobs/{job_id}",
+      "method": "get",
+      "operation_id": {
+        "design": "getGenerationJob",
+        "runtime": "get_job_v1_generation_jobs__job_id__get"
+      },
+      "issues": [
+        "success_response_schema_or_status_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": null,
+      "runtime_request": null,
+      "design_success_responses": {
+        "200": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "200": {
+          "type": "object",
+          "properties": [
+            "error_code",
+            "job_id",
+            "message",
+            "model",
+            "output_url",
+            "provider",
+            "provider_request_id",
+            "status"
+          ],
+          "required": [
+            "job_id",
+            "provider",
+            "status"
+          ]
+        }
+      },
+      "design_parameters": [
+        [
+          "path",
+          "job_id",
+          true
+        ]
+      ],
+      "runtime_parameters": [
+        [
+          "path",
+          "job_id",
+          true
+        ]
+      ]
+    },
+    {
+      "path": "/generation-jobs/{job_id}/cancel",
+      "method": "post",
+      "operation_id": {
+        "design": "cancelGenerationJob",
+        "runtime": "cancel_generation_job_v1_generation_jobs__job_id__cancel_post"
+      },
+      "issues": [
+        "request_schema_shape_mismatch",
+        "success_response_schema_or_status_mismatch",
+        "parameter_contract_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": null,
+      "runtime_request": {
+        "type": null,
+        "properties": [],
+        "required": [],
+        "variants": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": [
+                "reason"
+              ],
+              "required": []
+            },
+            {
+              "type": "null",
+              "properties": [],
+              "required": []
+            }
+          ]
+        }
+      },
+      "design_success_responses": {
+        "202": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "200": {
+          "type": "object",
+          "properties": [
+            "error_code",
+            "job_id",
+            "message",
+            "model",
+            "output_url",
+            "provider",
+            "provider_request_id",
+            "status"
+          ],
+          "required": [
+            "job_id",
+            "provider",
+            "status"
+          ]
+        }
+      },
+      "design_parameters": [
+        [
+          "header",
+          "Idempotency-Key",
+          true
+        ],
+        [
+          "path",
+          "job_id",
+          true
+        ]
+      ],
+      "runtime_parameters": [
+        [
+          "path",
+          "job_id",
+          true
+        ]
+      ]
+    },
+    {
+      "path": "/generation-jobs/{job_id}/events",
+      "method": "get",
+      "operation_id": {
+        "design": "listGenerationJobEvents",
+        "runtime": "get_job_events_v1_generation_jobs__job_id__events_get"
+      },
+      "issues": [
+        "success_response_schema_or_status_mismatch",
+        "parameter_contract_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": null,
+      "runtime_request": null,
+      "design_success_responses": {
+        "200": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "200": {
+          "type": null,
+          "properties": [],
+          "required": []
+        }
+      },
+      "design_parameters": [
+        [
+          "path",
+          "job_id",
+          true
+        ],
+        [
+          "query",
+          "cursor",
+          false
+        ],
+        [
+          "query",
+          "limit",
+          false
+        ]
+      ],
+      "runtime_parameters": [
+        [
+          "path",
+          "job_id",
+          true
+        ]
+      ]
+    },
+    {
+      "path": "/projects",
+      "method": "get",
+      "operation_id": {
+        "design": "listProjects",
+        "runtime": "list_projects_v1_projects_get"
+      },
+      "issues": [
+        "success_response_schema_or_status_mismatch",
+        "parameter_contract_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": null,
+      "runtime_request": null,
+      "design_success_responses": {
+        "200": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "200": {
+          "type": null,
+          "properties": [],
+          "required": []
+        }
+      },
+      "design_parameters": [
+        [
+          "query",
+          "cursor",
+          false
+        ],
+        [
+          "query",
+          "limit",
+          false
+        ],
+        [
+          "query",
+          "workspace_id",
+          true
+        ]
+      ],
+      "runtime_parameters": [
+        [
+          "query",
+          "status",
+          false
+        ],
+        [
+          "query",
+          "workspace_id",
+          true
+        ]
+      ]
+    },
+    {
+      "path": "/projects",
+      "method": "post",
+      "operation_id": {
+        "design": "createProject",
+        "runtime": "create_project_v1_projects_post"
+      },
+      "issues": [
+        "request_schema_shape_mismatch",
+        "success_response_schema_or_status_mismatch",
+        "parameter_contract_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": {
+        "type": "object",
+        "properties": [
+          "description",
+          "external_reference",
+          "name",
+          "workspace_id"
+        ],
+        "required": [
+          "name",
+          "workspace_id"
+        ]
+      },
+      "runtime_request": {
+        "type": "object",
+        "properties": [
+          "description",
+          "external_reference",
+          "name",
+          "project_type",
+          "workspace_id"
+        ],
+        "required": [
+          "name",
+          "workspace_id"
+        ]
+      },
+      "design_success_responses": {
+        "201": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "201": {
+          "type": null,
+          "properties": [],
+          "required": []
+        }
+      },
+      "design_parameters": [
+        [
+          "header",
+          "Idempotency-Key",
+          true
+        ]
+      ],
+      "runtime_parameters": []
+    },
+    {
+      "path": "/projects/{project_id}",
+      "method": "get",
+      "operation_id": {
+        "design": "getProject",
+        "runtime": "get_project_v1_projects__project_id__get"
+      },
+      "issues": [
+        "success_response_schema_or_status_mismatch",
+        "operation_id_mismatch"
+      ],
+      "design_request": null,
+      "runtime_request": null,
+      "design_success_responses": {
+        "200": {
+          "type": "object",
+          "properties": [
+            "data",
+            "meta"
+          ],
+          "required": [
+            "data"
+          ]
+        }
+      },
+      "runtime_success_responses": {
+        "200": {
+          "type": null,
+          "properties": [],
+          "required": []
+        }
+      },
+      "design_parameters": [
+        [
+          "path",
+          "project_id",
+          true
+        ]
+      ],
+      "runtime_parameters": [
+        [
+          "path",
+          "project_id",
+          true
+        ]
+      ]
+    }
+  ],
+  "scope_note": "Structural OpenAPI comparison only; no semantic validation or runtime payload conformance is implied."
+}

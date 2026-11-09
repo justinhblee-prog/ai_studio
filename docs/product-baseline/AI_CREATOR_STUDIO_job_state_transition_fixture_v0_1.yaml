@@ -1,0 +1,162 @@
+version: 0.1.0
+status: design_fixture_not_runtime_configuration
+source_documents:
+  - AI_CREATOR_STUDIO_openapi_draft_v0_1.yaml
+  - AI_CREATOR_STUDIO_backend_implementation_blueprint_v0_1.md
+  - AI_CREATOR_STUDIO_backend_contract_test_vectors_v0_1.md
+states:
+  QUEUED:
+    terminal: false
+    description: Job and outbox event committed; waiting for worker claim.
+  RESERVED:
+    terminal: false
+    description: Credit reservation exists and execution has been claimed.
+  RUNNING:
+    terminal: false
+    description: Provider execution is in progress.
+  CANCEL_REQUESTED:
+    terminal: false
+    description: Cancellation requested; provider outcome is not yet settled.
+  SUCCEEDED:
+    terminal: true
+    description: Outputs persisted and validated; credit capture committed.
+  FAILED:
+    terminal: true
+    description: Failure is final; reservation compensation is complete.
+  CANCELED:
+    terminal: true
+    description: Cancellation is confirmed; reservation release/settlement is complete.
+  REQUIRES_RECONCILIATION:
+    terminal: false
+    description: Provider, output persistence, or credit outcome requires reconciliation.
+transitions:
+  - from: QUEUED
+    to: RESERVED
+    trigger: worker_claim
+    guards: [tenant_scope_valid, quote_consumed_by_job, reservation_exists, execution_claim_atomic]
+    effects: [append_transition_event]
+    qa: [T-05, CT-05]
+  - from: QUEUED
+    to: CANCELED
+    trigger: cancel_before_execution_claim
+    guards: [no_provider_execution_started]
+    effects: [append_transition_event]
+    qa: [T-10]
+  - from: RESERVED
+    to: RUNNING
+    trigger: provider_submit_start
+    guards: [reservation_valid, assets_ready, provider_route_allowed]
+    effects: [persist_execution_attempt_before_external_call]
+    qa: [T-07, T-12]
+  - from: RESERVED
+    to: CANCELED
+    trigger: cancel_before_provider_submit
+    guards: [provider_submit_not_started, reservation_exists]
+    effects: [credit_release_once, append_transition_event]
+    qa: [T-10, CT-07]
+  - from: RUNNING
+    to: SUCCEEDED
+    trigger: output_and_capture_committed
+    guards: [all_outputs_persisted, output_references_valid, credit_capture_committed]
+    effects: [append_transition_event, publish_completion_outbox]
+    qa: [T-07, T-14, CT-10]
+  - from: RUNNING
+    to: FAILED
+    trigger: definitive_failure_finalized
+    guards: [retry_policy_exhausted_or_nonretryable, credit_compensation_committed]
+    effects: [append_transition_event]
+    qa: [T-12, CT-04]
+  - from: RUNNING
+    to: CANCEL_REQUESTED
+    trigger: cancel_request_accepted
+    guards: [job_is_cancellable]
+    effects: [persist_cancel_command, append_transition_event]
+    qa: [T-10]
+  - from: RUNNING
+    to: REQUIRES_RECONCILIATION
+    trigger: provider_outcome_unknown
+    guards: [provider_result_not_determinable]
+    effects: [block_automatic_resubmit, enqueue_reconciliation]
+    qa: [T-09]
+  - from: CANCEL_REQUESTED
+    to: CANCELED
+    trigger: provider_cancel_or_nonexecution_confirmed
+    guards: [provider_execution_stopped_or_never_started, credit_release_or_settlement_committed]
+    effects: [append_transition_event]
+    qa: [T-10, CT-07]
+  - from: CANCEL_REQUESTED
+    to: SUCCEEDED
+    trigger: success_wins_cancel_race
+    guards: [provider_success_confirmed, outputs_persisted, credit_capture_committed]
+    effects: [append_transition_event, record_cancel_race_outcome]
+    qa: [T-10, T-07]
+  - from: CANCEL_REQUESTED
+    to: REQUIRES_RECONCILIATION
+    trigger: cancel_and_provider_outcome_unknown
+    guards: [provider_state_unresolved]
+    effects: [block_automatic_resubmit, enqueue_reconciliation]
+    qa: [T-09, T-10]
+  - from: REQUIRES_RECONCILIATION
+    to: SUCCEEDED
+    trigger: reconcile_provider_success
+    guards: [provider_success_confirmed, outputs_persisted, credit_capture_committed]
+    effects: [append_transition_event, close_reconciliation_case]
+    qa: [T-09, T-14]
+  - from: REQUIRES_RECONCILIATION
+    to: FAILED
+    trigger: reconcile_definitive_failure
+    guards: [provider_failure_confirmed, credit_release_or_refund_committed]
+    effects: [append_transition_event, close_reconciliation_case]
+    qa: [T-09, T-12]
+  - from: REQUIRES_RECONCILIATION
+    to: CANCELED
+    trigger: reconcile_nonexecution_or_cancel
+    guards: [nonexecution_or_cancel_confirmed, credit_release_committed]
+    effects: [append_transition_event, close_reconciliation_case]
+    qa: [T-09, T-10]
+forbidden_transitions:
+  - [SUCCEEDED, RUNNING]
+  - [SUCCEEDED, FAILED]
+  - [SUCCEEDED, CANCELED]
+  - [FAILED, RUNNING]
+  - [FAILED, SUCCEEDED]
+  - [CANCELED, RUNNING]
+  - [CANCELED, SUCCEEDED]
+invariants:
+  - id: INV-01
+    rule: Provider execution cannot begin before credit reservation is committed.
+  - id: INV-02
+    rule: A Job cannot become SUCCEEDED until every required Output is persisted and validated.
+  - id: INV-03
+    rule: A Job cannot become SUCCEEDED until the corresponding credit CAPTURE is committed.
+  - id: INV-04
+    rule: One reservation cannot be both CAPTURED and RELEASED.
+  - id: INV-05
+    rule: Provider outcome UNKNOWN blocks automatic resubmission until reconciliation or provider idempotency guarantees make retry safe.
+  - id: INV-06
+    rule: Every state transition is conditional/atomic and has an immutable transition record.
+  - id: INV-07
+    rule: Terminal Job states are immutable; a retry creates a new Execution attempt and does not rewind Job status.
+  - id: INV-08
+    rule: Tenant and workspace authorization is checked before every read and state-changing command.
+concurrency_cases:
+  - id: RACE-01
+    name: cancel_vs_provider_success
+    winner_policy: whichever terminalizing transaction first satisfies all guards; the other observes terminal/current state and cannot overwrite it
+    expected: exactly_one_terminal_outcome
+  - id: RACE-02
+    name: duplicate_worker_delivery
+    winner_policy: atomic execution claim by event_id/execution_id
+    expected: one_effective_provider_submission
+  - id: RACE-03
+    name: capture_vs_release
+    winner_policy: unique reservation settlement constraint
+    expected: exactly_one_settlement_event
+  - id: RACE-04
+    name: simultaneous_job_state_update
+    winner_policy: compare_and_set_or_row_lock
+    expected: one_transition_commit
+notes:
+  - This fixture is a design artifact and is not wired into application runtime.
+  - Internal Execution state is intentionally not enumerated here; it remains a separate state machine to be specified.
+  - Public API status mapping for REQUIRES_RECONCILIATION remains an open decision.

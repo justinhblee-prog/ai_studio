@@ -1,0 +1,32 @@
+{
+  "name": "ai-creator-studio-web",
+  "version": "0.7.1",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test:source": "node scripts/validate_typescript_syntax.cjs && python scripts/validate_package_integrity.py && python scripts/validate_source.py && python scripts/test_public_landing_contract.py && node src/app/supabaseAuth.test.mjs",
+    "test:auth": "node src/app/supabaseAuth.test.mjs"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/three": "^0.180.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.8.0",
+    "vite": "^6.1.0"
+  }
+}
