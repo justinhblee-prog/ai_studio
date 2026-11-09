@@ -132,3 +132,39 @@ export const apiCall = async (stack, token, path, init = {}) => {
   const res = await fetch(stack.apiUrl + path, { ...init, headers: { Authorization: `Bearer ${token}`, ...(init.headers || {}) } });
   return { status: res.status, body: await res.json().catch(() => null) };
 };
+
+// Owner-side setup through the API: workspace with members, one image, a photo draft and one processed run.
+export async function seedSharedWorkspace(stack, { withRun = true } = {}) {
+  const j = (token, path, init = {}) => apiCall(stack, token, path, { ...init, headers: { 'Content-Type': 'application/json', ...(init.headers || {}) } });
+  const workspace = 'ws_roles' + Math.random().toString(16).slice(2, 10);
+  let r = await j(USERS.owner.token, '/v1/workspaces', { method: 'POST', body: JSON.stringify({ workspace_id: workspace }) });
+  if (r.status !== 201) throw new Error('workspace seed failed ' + r.status);
+  for (const [who, role] of [[USERS.editor, 'editor'], [USERS.viewer, 'viewer']]) {
+    r = await j(USERS.owner.token, `/v1/workspaces/${workspace}/members`, { method: 'POST', body: JSON.stringify({ user_id: who.id, role }) });
+    if (r.status !== 201) throw new Error(`member seed failed for ${role}: ${r.status} ${JSON.stringify(r.body)}`);
+  }
+  const form = new FormData(); form.set('workspace_id', workspace);
+  form.set('file', new Blob([makePng(48, 32, [30, 140, 60])], { type: 'image/png' }), 'seed.png');
+  const up = await fetch(stack.apiUrl + '/v1/assets/images', { method: 'POST', headers: { Authorization: `Bearer ${USERS.owner.token}` }, body: form });
+  if (up.status !== 201) throw new Error('image seed failed ' + up.status);
+  const asset = await up.json();
+  const out = { workspace, assetId: asset.asset_id };
+  if (withRun) {
+    r = await j(USERS.owner.token, '/v1/photo-drafts', { method: 'POST', body: JSON.stringify({ workspace_id: workspace, source_asset_id: asset.asset_id, operation: 'ENHANCE', preserve_identity: true, preserve_product_geometry: true, preserve_text_and_logo: true, output_format: 'PNG', output_count: 1 }) });
+    if (r.status !== 201) throw new Error('draft seed failed ' + r.status + JSON.stringify(r.body));
+    out.draftId = r.body.draft_id;
+    r = await j(USERS.owner.token, `/v1/photo-drafts/${out.draftId}/process-local?workspace_id=${workspace}`, { method: 'POST', headers: { 'Idempotency-Key': 'seed-' + workspace }, body: JSON.stringify({}) });
+    if (r.status !== 200) throw new Error('process seed failed ' + r.status + JSON.stringify(r.body));
+    const runs = await j(USERS.owner.token, `/v1/photo-drafts/${out.draftId}/runs?workspace_id=${workspace}`);
+    out.runId = (runs.body.items || runs.body.runs)[0].run_id;
+  }
+  return out;
+}
+
+export async function newUserPage(browser, who, { viewport } = {}) {
+  const context = await browser.newContext({ acceptDownloads: true, ...(viewport ? { viewport } : {}) });
+  await mockSupabase(context, who);
+  const page = await context.newPage();
+  page.on('dialog', d => d.accept());
+  return { context, page };
+}
