@@ -35,6 +35,6 @@ tests use) and the real provider path is not exercised.
 
 `account_flow.mjs` runs four API-level flows against the real backend over HTTP (no browser page, because none of these has a screen yet): legal acceptance (current vs stale version), deletion requests (create, replay, list, cancel, privacy between users, owner-only workspace scope), and the Character reference guard on asset deletion. It does not prove any screen exists.
 
-`layout_flow.mjs` visits seven screens at ten viewport widths (360-1280 px) and fails if any page is wider than the viewport. The 3D studio
+`layout_flow.mjs` visits seven screens at ten viewport widths (360-1280 px) and fails if any page is wider than the viewport. It also checks the settings panel with the account section and the legal acceptance gate at the same ten widths (13 checks in total). The 3D studio
 (WebGL) and the job review screen (needs a job) are not covered; the bottom navigation bar of phone widths scrolls sideways on purpose and is
 not counted (only the page's own scroll width is).

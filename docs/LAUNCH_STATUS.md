@@ -4,6 +4,18 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #33 (머지 032bb2b) — E2E 시험의 경합 하나 수정 (`pilot_flow` 초안 저장)
+- **CI (head 7375e00, run 42625907062)**: backend success — pytest `848 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, `5/5 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **배경**: PR #32의 CI e2e가 이 단계에서 한 번 실패(`0 !== 1`) — 제품 결함이 아니라 시험의 경합(목록 대기 ≠ 저장 요청 완료 대기). POST를 600 ms 지연시켜 재현, 응답을 기다리도록 수정하고 같은 지연으로 통과 확인.
+- **미검증**: 같은 모양의 다른 단계는 전수 점검하지 않음(실제로 실패한 한 곳만 수정).
+- **차단**: 없음.
+
+### 2026-11-09 · PR #31 (머지 2e8d8a1) — 서버의 동의 강제 (`LEGAL_REQUIRE_ACCEPTANCE`)
+- **CI (head 9e872f3, run 42624754322)**: backend success — pytest `848 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, `5/5 legal screen`(서버를 강제 모드로 띄움), `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 설정을 켜면 동의 안 한 사용자의 API 호출이 403 `LEGAL_ACCEPTANCE_REQUIRED`(동의·철회·삭제 요청·`/internal/` 제외). 프런트는 동의 확인 뒤에 워크스페이스를 불러오거나 만든다. 변이 7종 적발.
+- **미검증**: 운영에서 켤지는 결정 필요(**기본 꺼짐**), 요청당 SQLite 질의 1회의 부하, 켠 상태의 전체 E2E, PostgreSQL.
+- **차단**: 없음.
+
 ### 2026-11-09 · PR #30 (머지 5300688) — 동의 화면·삭제 요청 화면 (L-02 프런트 / L-01 화면)
 - **CI (head 2557512, run 42623611639)**: backend success — pytest `842 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 통과(`legalApi.test.mjs` 5건 포함), `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, **`5/5 legal screen`**, `4/4 account flow`; 의존성 점검 워크플로의 `python`·`node` 잡도 success. 로그에 `failed` 없음.
 - **완료**: 필수 문서 3개에 모두 체크해야 스튜디오가 열리는 게이트, 선택 항목(AI 학습, 기본 해제), 설정에서 철회·계정 삭제 요청·취소. 화면 변이 6종 적발.
@@ -304,7 +316,7 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **실패 시 닫힘**: 동의 상태 조회가 실패하면 연결 전체가 실패하고 화면이 열리지 않는다(동의된 것으로 취급하지 않음).
 - **시험**: `legalApi.test.mjs` 5건(실제 호출 본문·토큰·버전, 게이트 판정), 브라우저 E2E `legal_flow.mjs` 5단계(게이트 뒤에 스튜디오가 그려지지 않음, 필수 3개 모두 필요, 선택은 기본 해제, 선택 체크 시 기록·설정에서 철회, 삭제 요청 생성·취소와 워크스페이스 유지, 거부 후 로그아웃은 아무것도 기록하지 않음). 다른 E2E 흐름은 `loginThroughUi`가 같은 게이트를 화면으로 통과한다(그래서 모든 흐름이 게이트를 지난다). 기존 `pilot_flow`의 "설정 패널 입력 3개" 확인은 연결 정보 입력만 세도록 좁혔다(새 계정 패널이 입력을 더 가지므로; 목적은 API 주소 입력이 없음을 보는 것).
 - **변이 검증**: 화면 쪽 6종 모두 적발 — 게이트 우회(E2E 1단계), 필수 중 하나만 체크해도 활성화(E2E 1단계), 선택 항목 기본 체크(E2E 1단계), 선택을 항상 전송(E2E 2단계), 조회 실패를 '열림'으로 판정(단위), 필요한 것 전부 전송(단위). 첫 시도의 게이트 우회 변이는 빌드가 실패해 옛 번들로 돌아 **무효**였고 다시 했다.
-- **미검증·한계**: **화면 차단일 뿐 서버가 강제하지 않는다** — 토큰으로 API를 직접 호출하면 동의 없이 쓸 수 있다(서버 강제는 별도 결정 필요). **문서 본문이 앱에 없다**(초안 버전 번호만 표시; 본문을 어디서 보여 줄지는 정해지지 않았고 임의로 채우지 않았다). 문서 버전이 올라간 뒤 재동의 흐름은 서버 시험만 있고 이 화면의 E2E는 없다. 모바일 폭에서 게이트 화면의 레이아웃은 반응형 시험 대상에 넣지 않았다. 동의 문구 자체는 법무 승인 전 임시 문구.
+- **미검증·한계**: **화면 차단일 뿐 서버가 강제하지 않는다** — 토큰으로 API를 직접 호출하면 동의 없이 쓸 수 있다(서버 강제는 별도 결정 필요). **문서 본문이 앱에 없다**(초안 버전 번호만 표시; 본문을 어디서 보여 줄지는 정해지지 않았고 임의로 채우지 않았다). 문서 버전이 올라간 뒤 재동의 흐름은 서버 시험만 있고 이 화면의 E2E는 없다. 모바일 폭에서 게이트 화면의 레이아웃은 PR #30 시점엔 반응형 시험 대상이 아니었고, **이후 `layout_flow`에 설정(계정 패널)과 게이트를 열 개 폭(360~1280 px)으로 추가**(13/13; 각각 `min-width` 변이로 실패함을 확인, 가로 넘침 없음). 동의 문구 자체는 법무 승인 전 임시 문구.
 
 ## 16. 서버의 동의 강제 (`LEGAL_REQUIRE_ACCEPTANCE`, 브랜치 feat-legal-enforce)
 - **구현**: 설정이 켜지면 인증된 사용자가 현재 문서 버전에 모두 동의하지 않았을 때 `/v1/auth/me`, `/v1/me/legal-status`, `/v1/me/legal-acceptances`, `/v1/me/consents`, `/v1/me/deletion-requests`, `/internal/`를 뺀 모든 경로가 **403 `LEGAL_ACCEPTANCE_REQUIRED`**. 모든 라우트가 `current_user`를 거치므로 한곳(`app/assets/routes.py`)에서 처리. **기본은 꺼짐**(기존 클라이언트 호환). 인증이 먼저(401이 403보다 앞). 문서 버전이 올라가면 다시 닫히고 재동의 뒤 열린다.

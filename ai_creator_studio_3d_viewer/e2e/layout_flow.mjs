@@ -30,8 +30,31 @@ try {
       assert.deepEqual(wide, [], 'horizontal overflow on: ' + wide.join('; '));
     });
   }
+  const overflowAt = async (pg, label) => {
+    const wide = [];
+    for (const width of WIDTHS) {
+      await pg.setViewportSize({ width, height: 800 });
+      await pg.waitForTimeout(150);
+      const m = await pg.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
+      if (m.scroll > m.inner + 1) wide.push(`${width}px: ${m.scroll}px`);
+    }
+    assert.deepEqual(wide, [], `horizontal overflow on ${label}: ` + wide.join('; '));
+  };
+  await run('the settings panel with the account section is not wider than the viewport at any width', async () => {
+    await page.getByRole('button', { name: /설정/ }).click();
+    await page.locator('.account-panel').waitFor();
+    await overflowAt(page, 'settings + account panel');
+    await page.getByRole('button', { name: /설정/ }).click();
+  });
+  await run('the legal acceptance gate is not wider than the viewport at any width', async () => {
+    const fresh = await newUserPage(browser, USERS.editor, { viewport: { width: 1280, height: 800 } });
+    await loginThroughUi(fresh.page, stack.webUrl, USERS.editor, { acceptLegal: false });
+    await fresh.page.locator('.legal-gate').waitFor();
+    await overflowAt(fresh.page, 'legal gate');
+    await fresh.context.close();
+  });
   await context.close();
-  console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} layout checks passed (${WIDTHS.length} widths x ${SCREENS.length} screens)`);
+  console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} layout checks passed (${WIDTHS.length} widths x ${SCREENS.length} screens + settings account panel + legal gate)`);
 } catch (error) { if (!(error && String(error.message).includes('horizontal overflow'))) console.log('ERROR ' + (error && error.stack || error).toString().slice(0, 600)); failed = true; }
 finally { await browser.close(); await stack.stop(); }
 process.exit(failed ? 1 : 0);
