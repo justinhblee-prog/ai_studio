@@ -30,3 +30,7 @@ Supabase Auth is mocked as in the other flows.
 `disclosure_flow.mjs` (L-07) checks the AI-generated label of provider job outputs in the review screen and in the internal manifest.
 **The mock provider never produces an image, so the finished job output is seeded** (`seed_job_output.py`, the same method the backend unit
 tests use) and the real provider path is not exercised.
+
+`layout_flow.mjs` visits seven screens at ten viewport widths (360-1280 px) and fails if any page is wider than the viewport. The 3D studio
+(WebGL) and the job review screen (needs a job) are not covered; the bottom navigation bar of phone widths scrolls sideways on purpose and is
+not counted (only the page's own scroll width is).
