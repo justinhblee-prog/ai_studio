@@ -677,8 +677,8 @@
   {
     "id": "T76",
     "area": "보안",
-    "task": "의존성 취약점 점검(npm audit 0건, pip-audit): Pillow 13·pytest 9로 상향해 pillow 39건·pytest 1건 해결, starlette 7건은 FastAPI 업그레이드 필요(별도 PR)",
-    "status": "진행중",
+    "task": "의존성 취약점 점검: npm audit 0건, pip-audit 알려진 취약점 없음(pillow 13·pytest 9·FastAPI 0.162.2/Starlette 1.10). 보안 표면 시험의 맹점(감싼 라우터 건너뜀) 수정, 변이 4/4, 주간 자동 점검 워크플로",
+    "status": "완료",
     "blocker": "",
     "evidence": "직접 확인",
     "today": "V"
