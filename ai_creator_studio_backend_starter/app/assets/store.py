@@ -96,8 +96,8 @@ def initialize() -> None:
             details_json TEXT NOT NULL, created_at TEXT NOT NULL
         )""")
         db.execute("CREATE INDEX IF NOT EXISTS idx_asset_provenance_asset ON asset_provenance(asset_id, created_at DESC)")
-        # D2: one row per image whose uploader confirmed the rights. No foreign key: the record outlives the asset (assets are
-        # soft-deleted); deleting the asset replaces user_id with 'deleted-user' so the record stays without identifying anyone.
+        # D2: one row per image whose uploader confirmed the rights. Deleting the asset deletes its row; if the asset stays
+        # (shared workspace) an account purge replaces user_id with 'deleted-user' (see scripts/purge_requests.py).
         db.execute("""CREATE TABLE IF NOT EXISTS upload_rights_confirmations (
             asset_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, user_id TEXT NOT NULL,
             depicts_person INTEGER NOT NULL, likeness_consent INTEGER NOT NULL,
@@ -418,8 +418,8 @@ def delete_asset(asset_id: str, workspace_id: str, actor_id: str = "system") -> 
         keys = {row["storage_key"], *(item["storage_key"] for item in version_rows)}
         now = datetime.now(timezone.utc).isoformat()
         db.execute("UPDATE assets SET deleted_at=? WHERE asset_id=? AND workspace_id=?", (now, asset_id, workspace_id))
-        # D2: keep the rights record after the asset is gone, but without naming the uploader.
-        db.execute("UPDATE upload_rights_confirmations SET user_id='deleted-user' WHERE asset_id=? AND workspace_id=?", (asset_id, workspace_id))
+        # D2 / 30-day deletion decision: when the asset is deleted its rights record is deleted with it.
+        db.execute("DELETE FROM upload_rights_confirmations WHERE asset_id=? AND workspace_id=?", (asset_id, workspace_id))
         db.execute("INSERT INTO asset_provenance(provenance_id, workspace_id, asset_id, version_number, event_type, actor_id, details_json, created_at) VALUES(?,?,?,?,?,?,?,?)",
                    ("ap_" + uuid.uuid4().hex, workspace_id, asset_id, None, "asset.deleted", actor_id, '{"source":"user_delete"}', now))
     root = config.ASSET_STORAGE_DIR.resolve()
