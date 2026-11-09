@@ -10,3 +10,5 @@
 .acs-output-review-comment{display:grid;gap:6px}.acs-output-review-comment input{border:1px solid var(--acs-border,#cbd1d8);border-radius:8px;padding:10px;font:inherit}.acs-output-review-manifest{max-height:360px;overflow:auto;padding:12px;background:var(--acs-subtle,#f5f6f7);border-radius:8px;font-size:.78rem}
 
 .acs-output-review-preview{display:block;width:100%;max-height:520px;object-fit:contain;background:var(--acs-subtle,#f5f6f7);border:1px solid var(--acs-border,#d8dde3);border-radius:8px}
+
+.acs-ai-label{display:inline-block;margin:4px 0;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}.acs-ai-label-ai{background:#fde8d4;color:#7a3b00}.acs-ai-label-non-ai{background:#e2eefb;color:#1d4a7a}.acs-ai-label-unknown{background:#eee;color:#444}

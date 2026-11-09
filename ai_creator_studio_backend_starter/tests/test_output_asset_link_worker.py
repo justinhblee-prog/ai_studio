@@ -318,3 +318,54 @@ def test_output_asset_link_failure_rejects_invalid_owner_before_storage(monkeypa
     monkeypatch.setattr(repository, "initialize", lambda: pytest.fail("storage touched before validation"))
     with pytest.raises(ValueError):
         repository.record_failure("link-1", " ", error="failure")
+
+
+# ---- L-07: AI generated disclosure on provider job outputs -------------------------------------------------------
+
+def _link_and_approve(job_id):
+    """Link the verified AssetVersion, approve the output and export the internal manifest."""
+    output_id = client.get(f"/v1/generation-jobs/{job_id}/outputs", headers=auth()).json()["data"][0]["id"]
+    assert process_one(worker_id="disclosure-worker") is True
+    approved = client.post(f"/v1/generation-jobs/{job_id}/outputs/{output_id}/review/approve", headers=auth(), json={"comment": "ok"})
+    assert approved.status_code == 200, approved.text
+    exported = client.post(f"/v1/generation-jobs/{job_id}/outputs/export-manifest", headers=auth())
+    assert exported.status_code == 200, exported.text
+    return output_id, exported.json()["manifest"]
+
+
+def _set_provider(job_id, provider, model):
+    with job_repository._connect() as db:
+        db.execute("UPDATE generation_jobs SET provider=?, model=? WHERE job_id=?", (provider, model, job_id))
+
+
+def _disclosure_view(job_id, output_id):
+    listing = client.get(f"/v1/generation-jobs/{job_id}/outputs", headers=auth()).json()["data"][0]
+    review = client.get(f"/v1/generation-jobs/{job_id}/outputs/{output_id}/review", headers=auth()).json()["output"]
+    return listing, review
+
+
+def test_mock_provider_outputs_are_not_labelled_as_ai_generated(linked_output_env):
+    job_id = linked_output_env["job_id"]
+    output_id, manifest = _link_and_approve(job_id)
+    listing, review = _disclosure_view(job_id, output_id)
+    assert listing["is_ai_generated"] is False and listing["provider"] == "mock"
+    assert review["is_ai_generated"] is False
+    assert manifest["is_ai_generated"] is False and [o["is_ai_generated"] for o in manifest["outputs"]] == [False]
+
+
+@pytest.mark.parametrize("provider,model", [("fashn", "tryon-v1.6"), ("some-new-provider", "x"), ("", None)])
+def test_real_unknown_and_missing_providers_are_labelled_as_ai_generated(linked_output_env, provider, model):
+    job_id = linked_output_env["job_id"]
+    _set_provider(job_id, provider, model)
+    output_id, manifest = _link_and_approve(job_id)
+    listing, review = _disclosure_view(job_id, output_id)
+    assert listing["is_ai_generated"] is True and review["is_ai_generated"] is True
+    assert manifest["is_ai_generated"] is True and [o["is_ai_generated"] for o in manifest["outputs"]] == [True]
+    assert listing["provider"] == provider
+
+
+def test_disclosure_helper_defaults_to_disclosing():
+    from app.ai_disclosure import is_ai_generated_provider
+    assert is_ai_generated_provider("mock") is False and is_ai_generated_provider(" MOCK ") is False
+    for value in ("fashn", "Fashn", "other", "", None, "   "):
+        assert is_ai_generated_provider(value) is True, value
