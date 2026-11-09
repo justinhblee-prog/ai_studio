@@ -1,0 +1,37 @@
+// Responsive layout: no screen may be wider than the viewport (a page that scrolls sideways is broken on phones and tablets).
+// Real: web bundle, backend, SQLite. Mocked: Supabase Auth. The 3D studio (WebGL) and the job review screen (needs a job) are not covered.
+import assert from 'node:assert/strict';
+import { startStack, chromium, loginThroughUi, gotoPage, newUserPage, seedSharedWorkspace, makeRunner, USERS } from './harness.mjs';
+
+const WIDTHS = [360, 390, 700, 701, 768, 840, 900, 901, 1024, 1280];
+const SCREENS = ['대시보드', '프로젝트 관리', '에셋 라이브러리', '상품 카탈로그', '프로젝트·상품 연결', '포토 스튜디오', '룩북 스튜디오'];
+
+const stack = await startStack();
+const browser = await chromium.launch();
+let failed = false;
+try {
+  const seed = await seedSharedWorkspace(stack);  // gives the lists real content (long ids)
+  const { context, page } = await newUserPage(browser, USERS.owner, { viewport: { width: 1280, height: 800 } });
+  const { run, results } = makeRunner(page, stack);
+  await run('login and select the seeded workspace', async () => {
+    await loginThroughUi(page, stack.webUrl, USERS.owner);
+    await page.locator('.workspace-select').selectOption(seed.workspace);
+  });
+  for (const width of WIDTHS) {
+    await run(`no screen is wider than a ${width}px viewport`, async () => {
+      await page.setViewportSize({ width, height: 800 });
+      const wide = [];
+      for (const screen of SCREENS) {
+        await gotoPage(page, screen);
+        await page.waitForTimeout(250);
+        const m = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
+        if (m.scroll > m.inner + 1) wide.push(`${screen}: ${m.scroll}px > ${m.inner}px`);
+      }
+      assert.deepEqual(wide, [], 'horizontal overflow on: ' + wide.join('; '));
+    });
+  }
+  await context.close();
+  console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} layout checks passed (${WIDTHS.length} widths x ${SCREENS.length} screens)`);
+} catch (error) { if (!(error && String(error.message).includes('horizontal overflow'))) console.log('ERROR ' + (error && error.stack || error).toString().slice(0, 600)); failed = true; }
+finally { await browser.close(); await stack.stop(); }
+process.exit(failed ? 1 : 0);
