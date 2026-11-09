@@ -1,6 +1,6 @@
 // Browser E2E harness: local SQLite backend (PROVIDER_MODE=mock, no external provider) + the built web app.
 // Supabase Auth is MOCKED by intercepting its HTTP calls in the browser; no real Supabase is contacted.
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdtempSync, rmSync, existsSync, createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';
@@ -69,7 +69,7 @@ export async function startStack({ apiPort = 8765, webPort = 4765, extraEnv = {}
   }).listen(webPort, '127.0.0.1');
   await waitFor(`http://127.0.0.1:${apiPort}/health`, 'backend');
   return {
-    apiUrl: `http://127.0.0.1:${apiPort}`, webUrl: origin, work, apiLog: () => apiLog,
+    apiUrl: `http://127.0.0.1:${apiPort}`, webUrl: origin, work, env, apiLog: () => apiLog,
     async stop() { api.kill('SIGTERM'); web.close(); await new Promise(r => setTimeout(r, 300)); rmSync(work, { recursive: true, force: true }); },
   };
 }
@@ -167,4 +167,16 @@ export async function newUserPage(browser, who, { viewport } = {}) {
   const page = await context.newPage();
   page.on('dialog', d => d.accept());
   return { context, page };
+}
+
+export function sqliteExec(stack, sql, params = []) {
+  const r = spawnSync('python', ['-c', 'import sqlite3,sys,json;db=sqlite3.connect(sys.argv[1]);db.execute(sys.argv[2],json.loads(sys.argv[3]));db.commit()', stack.env.ASSET_DATABASE_PATH, sql, JSON.stringify(params)], { encoding: 'utf8' });
+  if (r.status !== 0) throw new Error('sqlite failed: ' + r.stderr);
+}
+
+// The mock provider never produces an image, so a finished job output is seeded the way the backend unit tests do it
+// (see seed_job_output.py). The real provider path is not exercised by this.
+export function seedFinishedJobOutput(stack, jobId) {
+  const r = spawnSync('python', [resolve(here, 'seed_job_output.py'), jobId], { cwd: BACKEND_ROOT, env: { ...stack.env, PYTHONPATH: BACKEND_ROOT }, encoding: 'utf8', timeout: 60000 });
+  if (r.status !== 0) throw new Error('seeding the job output failed: ' + (r.stderr || r.stdout).slice(-600));
 }

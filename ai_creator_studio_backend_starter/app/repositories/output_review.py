@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app import config
+from app.ai_disclosure import is_ai_generated_provider
 from app.storage import get_storage
 
 
@@ -154,8 +155,10 @@ class SQLiteOutputReviewRepository:
                 "manifest_version": 1,
                 "job": {"job_id": job_id, "workspace_id": workspace_id,
                         "provider": job["provider"], "model": job["model"], "created_at": job["created_at"]},
+                "is_ai_generated": is_ai_generated_provider(job["provider"]),
                 "outputs": [{
                     "output_id": r["output_id"], "media_type": r["media_type"],
+                    "is_ai_generated": is_ai_generated_provider(job["provider"]),
                     "size_bytes": r["size_bytes"], "created_at": r["created_at"],
                     "asset_id": r["asset_id"], "asset_version_id": r["asset_version_id"],
                     "provenance_id": r["provenance_id"], "checksum_sha256": r["checksum_sha256"],

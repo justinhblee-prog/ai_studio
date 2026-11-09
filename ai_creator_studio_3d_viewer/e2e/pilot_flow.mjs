@@ -137,6 +137,11 @@ try {
     state.zipEntries = listing.stdout.trim().split('\n');
     assert.ok(state.zipEntries.some(n => /manifest/i.test(n)), 'ZIP must contain a manifest: ' + state.zipEntries.join(','));
     assert.ok(state.zipEntries.some(n => /\.(png|jpe?g|webp)$/i.test(n)), 'ZIP must contain the approved image: ' + state.zipEntries.join(','));
+    const read = spawnSync('python', ['-c', 'import sys,zipfile;print(zipfile.ZipFile(sys.argv[1]).read("manifest.json").decode())', path], { encoding: 'utf8' });
+    assert.equal(read.status, 0, read.stderr);
+    state.zipManifest = JSON.parse(read.stdout);
+    assert.equal(state.zipManifest.is_ai_generated, false, 'the package built from local adjustments must say it is not AI generated');
+    assert.equal(state.zipManifest.publication_authorized, false);
   });
 
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} steps passed; zip ${state.zipBytes} bytes, entries: ${state.zipEntries.join(', ')}`);

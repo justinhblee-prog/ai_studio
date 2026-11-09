@@ -3,6 +3,7 @@ import './OutputReviewWorkspace.css';
 import { useRequestScope } from './useRequestScope';
 import { KeyedRequestGate } from './keyedRequestGate.mjs';
 import { AuthenticatedPreviewObjectUrls } from './authenticatedPreviewObjectUrls.mjs';
+import { aiDisclosureLabel } from './app/aiDisclosure.mjs';
 
 type GeneratedOutput = {
   id: string;
@@ -15,6 +16,9 @@ type GeneratedOutput = {
   asset_id?: string | null;
   asset_version_id?: string | null;
   provenance_record_id?: string | null;
+  is_ai_generated?: boolean | null;
+  provider?: string | null;
+  model?: string | null;
 };
 
 type ReviewEvent = {
@@ -43,6 +47,7 @@ type OutputReview = {
     asset_version_id?: string | null;
     provenance_id?: string | null;
     checksum_sha256?: string | null;
+    is_ai_generated?: boolean | null;
   };
   status: string;
   latest_decision?: ReviewEvent | null;
@@ -258,8 +263,10 @@ export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId }
         const status = review?.status || 'loading';
         const terminal = status === 'approved' || status === 'rejected';
         const ready = status === 'pending_review' || status === 'changes_requested';
+        const disclosure = aiDisclosureLabel(review?.output.is_ai_generated ?? output.is_ai_generated, output.provider ?? review?.output.provider, output.model ?? review?.output.model);
         return <article className="acs-output-review-item" key={output.id}>
           <div className="acs-output-review-heading"><strong>{output.id}</strong><span>{status}</span></div>
+          <p className={`acs-ai-label acs-ai-label-${disclosure.kind}`} data-ai-disclosure={disclosure.kind}>{disclosure.text}</p>
           <p>{output.mime_type} · {output.size_bytes.toLocaleString()} bytes · Asset link: {output.asset_link_status}</p>
           {review?.output.asset_version_id && <><button type="button" disabled={!!previewLoading[output.id]} onClick={() => loadOutputPreview(output.id)}>{previewLoading[output.id] ? '미리보기 불러오는 중…' : previewUrls[output.id] ? '미리보기 새로고침' : '미리보기 불러오기 / 재시도'}</button>{previewErrors[output.id] && <small role="status">{previewErrors[output.id]}</small>}{previewExpiries[output.id] && <small>링크 만료 예정: {new Date(previewExpiries[output.id] * 1000).toLocaleTimeString()}</small>}</>}
           {previewUrls[output.id] && <img className="acs-output-review-preview" src={previewUrls[output.id]} alt="검수 대상 immutable AssetVersion 미리보기" loading="lazy" onError={(event) => handlePreviewImageError(output.id, event.currentTarget.src)} />}

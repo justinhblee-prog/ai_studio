@@ -10,6 +10,7 @@ from app.private_file_response import PrivateFileError, open_private_file_respon
 from pydantic import BaseModel, ConfigDict, Field
 from app import config, job_repository
 from app.repositories.job_limits import DailyJobLimitExceeded
+from app.ai_disclosure import disclose_job_outputs, is_ai_generated_provider
 from app.schemas import CreateTryOnJob, JobResponse, EngineInfo, ReconcileProviderSubmission, RetryPollTaskRequest, CancelGenerationJobRequest
 from app.providers.mock import MockProvider
 from app.providers.fashn import FashnProvider
@@ -54,6 +55,9 @@ class GeneratedOutputItemResponse(BaseModel):
     asset_id: str | None = None
     asset_version_id: str | None = None
     provenance_record_id: str | None = None
+    is_ai_generated: bool | None = None
+    provider: str | None = None
+    model: str | None = None
 
 
 class GeneratedOutputListResponse(BaseModel):
@@ -91,6 +95,7 @@ class GeneratedOutputReviewDetailResponse(BaseModel):
     asset_version_id: str | None = None
     provenance_id: str | None = None
     checksum_sha256: str | None = None
+    is_ai_generated: bool | None = None
 
 
 class GeneratedOutputReviewResponse(BaseModel):
@@ -322,7 +327,7 @@ async def get_job_outputs(job_id: str,
     if job.get("status") != "succeeded":
         return {"data": [], "meta": {}}
     try:
-        return repository.list_outputs(job_id)
+        return disclose_job_outputs(repository.list_outputs(job_id), job)
     except NotImplementedError as exc:
         raise HTTPException(status_code=501, detail="Output history is not supported by this repository") from exc
 
@@ -372,6 +377,7 @@ async def get_job_output_review(job_id: str, output_id: str,
     if result is None:
         raise HTTPException(status_code=404, detail="Generated Output not found")
     result.pop("workspace_id", None)
+    result["output"]["is_ai_generated"] = is_ai_generated_provider(result["output"].get("provider"))
     return result
 
 

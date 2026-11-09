@@ -874,6 +874,17 @@
             "title": "Id",
             "type": "string"
           },
+          "is_ai_generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Ai Generated"
+          },
           "job_id": {
             "title": "Job Id",
             "type": "string"
@@ -881,6 +892,17 @@
           "mime_type": {
             "title": "Mime Type",
             "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
           },
           "provenance_record_id": {
             "anyOf": [
@@ -892,6 +914,17 @@
               }
             ],
             "title": "Provenance Record Id"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
           },
           "size_bytes": {
             "title": "Size Bytes",
@@ -975,6 +1008,17 @@
           "created_at": {
             "title": "Created At",
             "type": "string"
+          },
+          "is_ai_generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Ai Generated"
           },
           "job_id": {
             "title": "Job Id",

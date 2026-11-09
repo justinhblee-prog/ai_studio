@@ -26,3 +26,7 @@ declaration (refusal messages, recorded provenance). Run it after the build, the
 scenarios in the browser: viewer cannot upload or approve, editor can upload but cannot approve, owner approves in the UI, an outsider is
 refused on every read and write (API) and sees none of the shared data (UI), and a 390 px wide screen has no horizontal overflow.
 Supabase Auth is mocked as in the other flows.
+
+`disclosure_flow.mjs` (L-07) checks the AI-generated label of provider job outputs in the review screen and in the internal manifest.
+**The mock provider never produces an image, so the finished job output is seeded** (`seed_job_output.py`, the same method the backend unit
+tests use) and the real provider path is not exercised.

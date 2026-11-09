@@ -124,3 +124,9 @@ jobs:
           set -o pipefail
           node e2e/roles_flow.mjs | tee e2e_roles.txt
           grep -q "SUMMARY 6/6 role scenarios passed" e2e_roles.txt
+      - name: AI generated disclosure on provider outputs (L-07)
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          node e2e/disclosure_flow.mjs | tee e2e_disclosure.txt
+          grep -q "SUMMARY 4/4 disclosure steps passed" e2e_disclosure.txt
