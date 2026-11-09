@@ -1,9 +1,9 @@
 // L-02 / L-01 in the browser: the acceptance gate, the optional AI-training consent, and account deletion requests.
-// Real: web bundle, backend, SQLite. Mocked: Supabase Auth. The legal documents are drafts and their text is not in the app.
+// Real: web bundle, backend (started with LEGAL_REQUIRE_ACCEPTANCE=1, so the server enforces acceptance), SQLite. Mocked: Supabase Auth. The legal documents are drafts and their text is not in the app.
 import assert from 'node:assert/strict';
 import { startStack, chromium, newUserPage, loginThroughUi, acceptLegalThroughUi, makeRunner, apiCall, USERS } from './harness.mjs';
 
-const stack = await startStack();
+const stack = await startStack({ extraEnv: { LEGAL_REQUIRE_ACCEPTANCE: '1' } });
 const browser = await chromium.launch();
 let failed = false;
 const status = who => apiCall(stack, who.token, '/v1/me/legal-status');
@@ -26,6 +26,9 @@ try {
     assert.equal(await submit().isDisabled(), true, 'two of three is not enough');
     assert.equal(await gate().locator('.legal-optional input').isChecked(), false, 'the optional consent is off by default');
     assert.equal((await status(USERS.owner)).body.accepted, false, 'nothing is recorded before the button is pressed');
+    const direct = await apiCall(stack, USERS.owner.token, '/v1/workspaces');
+    assert.equal(direct.status, 403, 'the server itself refuses an unaccepted user, not just the screen');
+    assert.equal(direct.body.detail.code, 'LEGAL_ACCEPTANCE_REQUIRED');
   });
 
   await run('accepting without the optional box opens the app, records the acceptance and leaves AI-training consent off', async () => {
@@ -34,6 +37,7 @@ try {
     await a.page.locator('.workspace-select').waitFor({ timeout: 20000 });
     assert.equal((await status(USERS.owner)).body.accepted, true);
     assert.equal(await aiConsent(USERS.owner), false);
+    assert.equal((await apiCall(stack, USERS.owner.token, '/v1/workspaces')).status, 200, 'the same direct call works once accepted');
   });
 
   await run('a second user who ticks the optional box has the consent recorded, and can withdraw it in settings', async () => {

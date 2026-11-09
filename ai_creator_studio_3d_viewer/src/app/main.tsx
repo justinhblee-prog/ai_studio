@@ -130,15 +130,18 @@ function App() {
     setBusy(true); setConnectionError(''); setApiState('checking');
     try {
       await apiRequest(api, '/health');
-      const [identity, workspaceResult, authenticatedUser, legalStatus] = await Promise.all([
+      const [identity, authenticatedUser, legalStatus] = await Promise.all([
         apiRequest(api, '/v1/auth/me', { token: candidate.access_token }),
-        loadOrCreateWorkspace(api, candidate.access_token),
         getAuthenticatedUser(supabaseConfig, candidate.access_token),
         loadLegalStatus(api, candidate.access_token), // a failed check fails the whole connection: never treated as accepted
       ]);
       if (identity.user_id !== authenticatedUser.id) throw new Error('인증 사용자와 Backend 사용자 식별자가 일치하지 않습니다.');
       setUser(authenticatedUser as AuthUser);
       setLegal(legalStatus as LegalStatus);
+      // Workspaces are loaded (or created) only after the legal documents are accepted, so a server that enforces
+      // acceptance does not block the connection and nothing is created for a user who has not accepted.
+      if (!(legalStatus as LegalStatus).accepted) { setApiState('online'); return; }
+      const workspaceResult = await loadOrCreateWorkspace(api, candidate.access_token);
       setWorkspaces(workspaceResult.workspaces as Workspace[]);
       setWorkspace(workspaceResult.workspace.workspace_id);
       setApiState('online');
@@ -208,6 +211,7 @@ function App() {
   };
 
   if (!session) return <AuthGate config={supabaseConfig} apiUrl={api} onApiUrlChange={value => { setApi(value); rememberApiBase(value); }} onAuthenticated={acceptSession}/>;
+  if (gateState(legal) === 'needs-acceptance' && legal && apiState === 'online') return <LegalGate api={api} token={session.access_token} status={legal} onAccepted={next => { setLegal(next); connectSession(session).catch(() => undefined); }} onLogout={logout}/>;
   if (apiState !== 'online' || !workspace) return <div className="connect-page">
     <div className="connect-card"><div className="brandmark">✦</div><small>AUTHENTICATED SESSION</small><h1>스튜디오 연결 확인 중</h1>
       <p>{user?.email || session.user?.email || '로그인 사용자'} 계정 인증은 완료되었습니다. 앱 API와 Workspace를 확인하고 있습니다.</p>
@@ -219,8 +223,6 @@ function App() {
       <button className="text-button" onClick={logout} disabled={busy}>로그아웃</button>
     </div>
   </div>;
-
-  if (gateState(legal) === 'needs-acceptance' && legal) return <LegalGate api={api} token={session.access_token} status={legal} onAccepted={setLegal} onLogout={logout}/>;
 
   const common = { apiBaseUrl: api, accessToken: session.access_token, workspaceId: workspace };
   const activePage = nav.find(n => n[0] === page)?.[1] || '대시보드';
