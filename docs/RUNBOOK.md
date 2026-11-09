@@ -29,6 +29,8 @@
 | `WORKER_STALE_AFTER_SECONDS` | 하트비트가 이보다 오래되면 죽은 워커 | 30 |
 | `GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE` | 워크스페이스·UTC 하루 생성 작업 상한 | 0 = 무제한. 잘못된 값은 시작 시 오류 |
 | `ASSET_REQUIRE_RIGHTS_CONFIRMATION` | 이미지 업로드 시 권리 확인 강제 | false |
+| `AI_JOBS_DISABLED` | 킬 스위치(1이면 유료 Provider 새 작업 거부·워커 호출 중단, mock 제외; 재시작 필요) | 미설정 |
+| `AI_JOB_LIMIT_PER_WORKSPACE_MONTH` / `AI_JOB_LIMIT_GLOBAL_MONTH` | 유료 Provider 월간 작업 수 상한(0=끔) | 200 / 0 |
 | `BACKUP_DIR` | 백업 스크립트의 저장 위치(점검이 최신 백업 나이를 봄) | 미설정이면 점검이 경고 |
 | `HEALTH_DISK_WARN_FREE_PERCENT` / `HEALTH_DISK_FAIL_FREE_PERCENT` / `HEALTH_BACKUP_MAX_AGE_HOURS` | 점검 임계값 | 15 / 5 / 26 |
 | `ACCESS_LOG_ENABLED` / `ACCESS_LOG_DIR` / `ACCESS_LOG_RETENTION_DAYS` / `ACCESS_LOG_ACTOR` / `ACCESS_LOG_CLIENT_IP` | 접근 로그(3-1절) | true / 표준 출력 / 30(임시) / hash / false |
