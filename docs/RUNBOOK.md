@@ -31,6 +31,7 @@
 | `ASSET_REQUIRE_RIGHTS_CONFIRMATION` | 이미지 업로드 시 권리 확인 강제 | false |
 | `BACKUP_DIR` | 백업 스크립트의 저장 위치(점검이 최신 백업 나이를 봄) | 미설정이면 점검이 경고 |
 | `HEALTH_DISK_WARN_FREE_PERCENT` / `HEALTH_DISK_FAIL_FREE_PERCENT` / `HEALTH_BACKUP_MAX_AGE_HOURS` | 점검 임계값 | 15 / 5 / 26 |
+| `ACCESS_LOG_ENABLED` / `ACCESS_LOG_DIR` / `ACCESS_LOG_RETENTION_DAYS` / `ACCESS_LOG_ACTOR` / `ACCESS_LOG_CLIENT_IP` | 접근 로그(3-1절) | true / 표준 출력 / 30(임시) / hash / false |
 | `OPS_ALERT_WEBHOOK_URL`, `OPS_ALERT_WEBHOOK_TOKEN` | 알림 웹훅(HTTPS) | 미설정이면 전달 안 함 |
 
 ## 3. 상태 점검
@@ -38,6 +39,13 @@
 - `GET /internal/ops/health` — **심층 점검**(운영자 전용). 전체 `status`는 `ok` < `warn` < `fail` 중 가장 나쁜 값이고 **`fail`이면 HTTP 503**이라 업타임 모니터에 바로 쓸 수 있다. 확인 항목: DB 파일 존재·읽기·`PRAGMA quick_check`, 저장 폴더 쓰기(1바이트 임시 파일), 디스크 여유 비율, 필수 워커의 신선한 하트비트(+ 수동 조정이 필요한 제출 수), 최신 백업 나이. 파일 경로·비밀은 응답에 없다. 이 점검은 DB가 없을 때 새로 만들지 않는다.
 - `GET /internal/ops/workers`, `/internal/ops/alerts`, `/internal/ops/metrics`(Prometheus 형식).
 - 워커는 상태 `running`/`idle`/`working`이고 하트비트가 신선하면 "살아 있음"이다(`error`·`stopped`는 아님).
+
+## 3-1. 접근 로그 (L-05)
+- 앱이 요청마다 JSON 한 줄을 남긴다(`acs.access` 로거). 항목: UTC 시각, `request_id`(응답 헤더 `X-Request-ID`로도 반환), 메서드, **라우트 템플릿**(원본 경로가 아님), 상태 코드, 소요 시간(ms), `workspace_id`(ID 형식일 때만), `actor`. **쿼리 문자열·헤더·본문·토큰·서명·일치하지 않는 경로는 기록하지 않는다.**
+- `actor`는 기본이 **가명 해시**(`h_` + SHA-256 16자리)이고 `ACCESS_LOG_ACTOR=plain|none`으로 바꾼다. 클라이언트 IP는 기본 미기록(`ACCESS_LOG_CLIENT_IP=true`일 때만).
+- `ACCESS_LOG_DIR`를 지정하면 `access.log`를 **UTC 자정마다 회전**하고 `ACCESS_LOG_RETENTION_DAYS`개(기본 30, 0은 거부)만 남긴다. 지정하지 않으면 표준 출력.
+- **uvicorn의 기본 접근 로그는 쿼리 문자열을 그대로 남긴다**(서명 미리보기·다운로드 URL의 `signature` 포함). 운영에서는 `uvicorn app.main:app --no-access-log`로 끄고 이 로그만 쓴다.
+- **보관 기간 30일은 근거 있는 값이 아니라 임시 기본값이다.** 법적 보관 기간·접근 통제·삭제 요청 시의 처리는 정해지지 않았다(`docs/LAUNCH_STATUS.md`). 로그 파일은 백업 대상이 아니다.
 
 ## 4. 백업과 복구 (`scripts/backup_restore.py`, 시험으로 검증)
 ```bash
@@ -67,4 +75,4 @@ python scripts/backup_restore.py restore "$BACKUP_DIR/backup-<타임스탬프>" 
 1. 먼저 백업하고 `verify`한다. 2. 새 코드를 배포하고 API·워커를 재시작한다(SQLite 스키마는 시작 시 자동 보강된다). 3. `GET /internal/ops/health`가 `ok`(또는 의도한 `warn`)인지 확인한다. 4. 문제가 있으면 코드를 되돌리고, 데이터 문제면 1번의 백업을 새 폴더로 복구한다. **스키마 되돌리기(다운 마이그레이션)는 지원하지 않는다.**
 
 ## 7. 이 런북이 다루지 않는 것
-실제 Provider 장애 대응(파일럿은 `mock` 또는 소수 사용 전제), PostgreSQL 전환, 개인정보 삭제 요청·침해 신고 절차(L-01, L-08은 미구현 — `docs/LAUNCH_STATUS.md`), 로그 수집·보관(L-05), 사고 시 연락 체계, 다중 인스턴스.
+실제 Provider 장애 대응(파일럿은 `mock` 또는 소수 사용 전제), PostgreSQL 전환, 개인정보 삭제 요청·침해 신고 절차(L-01, L-08은 미구현 — `docs/LAUNCH_STATUS.md`), 로그의 중앙 수집·법적 보관 정책, 사고 시 연락 체계, 다중 인스턴스.
