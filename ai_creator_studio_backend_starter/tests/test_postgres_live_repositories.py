@@ -3216,6 +3216,7 @@ def _job_at_persist_output(repos, jobs, outbox, ws, owner):
     task = poll.claim_next_poll_task(worker, 60)
     assert task is not None and task["job_id"] == job["job_id"], "test must claim its own poll task"
     poll.reschedule_poll_task(task["task_id"], worker, delay_seconds=0, phase="persist_output")
+    _isolate_queue(job["job_id"])
     task = poll.claim_next_poll_task(worker, 60)
     assert task["job_id"] == job["job_id"] and task["phase"] == "persist_output"
     jobs.transition(job["job_id"], "post_processing", actor_id=owner)
@@ -3440,6 +3441,17 @@ def test_job_list_pagination_is_total_ordered_and_workspace_scoped(repos):
             jobs.list_for_workspace(ws, **bad)
 
 
+def test_asset_delete_is_refused_while_an_active_character_links_it(repos):
+    ws, owner, editor, *_ = _workspace(repos)
+    img = _image(repos, ws, owner, "chr-link")
+    chr_ = repos["characters"].create(workspace_id=ws, actor_id=editor, payload=_char(), asset_ids=[img])["character_id"]
+    with pytest.raises(Exception) as err:
+        repos["assets"].soft_delete_asset(img, ws, actor_id=owner)
+    assert type(err.value).__name__ == "AssetConflictError" and "Character" in str(err.value)
+    repos["characters"].soft_delete(chr_, ws, editor)
+    assert repos["assets"].soft_delete_asset(img, ws, actor_id=owner) is True
+
+
 def test_job_list_pagination_under_concurrent_creates_never_skips_existing_jobs(repos):
     """Offset paging may repeat a job when new jobs land at the head, but must never skip an existing one."""
     import threading
@@ -3514,3 +3526,58 @@ def test_job_execution_cursor_is_stable_while_new_attempts_arrive(repos):
     for bad in ("garbage", "ZXhlYzow"):
         with pytest.raises(ValueError):
             jobs.list_executions(jid, cursor=bad)
+
+
+def _claimed_outbox(repos):
+    ws, owner, *_ = _workspace(repos)
+    jobs, outbox = _job_repos()
+    job, _ = jobs.create(_job_payload(ws, owner))
+    _isolate_queue(job["job_id"])
+    owner_worker = f"worker-{uuid.uuid4().hex[:8]}"
+    claimed = outbox.claim_next_outbox(owner_worker, 60)
+    assert claimed["job_id"] == job["job_id"]
+    return jobs, outbox, job["job_id"], claimed["event_id"], owner_worker
+
+
+def _park_job_rows(job_id):
+    """Leave no claimable dispatch/poll row behind for tests that share this database."""
+    import psycopg
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        conn.execute("UPDATE generation_outbox SET available_at=now()+interval '100 years' WHERE status='pending' AND job_id=%s", (job_id,))
+        conn.execute("UPDATE generation_poll_tasks SET available_at=now()+interval '100 years' WHERE status='pending' AND job_id=%s", (job_id,))
+
+
+def _outbox_row(event_id):
+    import psycopg
+    with psycopg.connect(DSN) as conn:
+        return conn.execute("SELECT status, claimed_by FROM generation_outbox WHERE event_id=%s", (event_id,)).fetchone()
+
+
+def test_outbox_completion_and_unknown_are_fenced_to_the_claiming_worker(repos):
+    """A different worker with its own valid claim elsewhere must not finish an event it does not hold."""
+    jobs, outbox, jid, event_id, holder = _claimed_outbox(repos)
+    intruder = f"worker-{uuid.uuid4().hex[:8]}"
+    with pytest.raises(RuntimeError):
+        outbox.complete_outbox_submission(event_id, jid, "prov-intruder", intruder)
+    assert outbox.mark_outbox_unknown(event_id, jid, "intruder", intruder) is False
+    assert tuple(_outbox_row(event_id)) == ("processing", holder) and jobs.get(jid)["status"] == "queued"
+    try:
+        assert outbox.complete_outbox_submission(event_id, jid, "prov-holder", holder)["status"] == "running"
+        assert tuple(_outbox_row(event_id))[0] == "processed"
+    finally:
+        _park_job_rows(jid)
+
+
+def test_outbox_expired_but_unreclaimed_lease_cannot_complete_or_mark_unknown(repos):
+    """Expiry alone (no later claim has quarantined the row yet) must already fence the old owner."""
+    import psycopg
+    jobs, outbox, jid, event_id, holder = _claimed_outbox(repos)
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        conn.execute("UPDATE generation_outbox SET lease_expires_at=now()-interval '1 second' WHERE event_id=%s", (event_id,))
+    with pytest.raises(RuntimeError):
+        outbox.complete_outbox_submission(event_id, jid, "prov-late", holder)
+    assert outbox.mark_outbox_unknown(event_id, jid, "late", holder) is False
+    assert tuple(_outbox_row(event_id)) == ("processing", holder) and jobs.get(jid)["status"] == "queued"
+    with psycopg.connect(DSN, autocommit=True) as conn:  # settle the row so no later claim has to quarantine it
+        conn.execute("UPDATE generation_outbox SET status='needs_reconciliation', claimed_by=NULL, lease_expires_at=NULL WHERE event_id=%s", (event_id,))
+

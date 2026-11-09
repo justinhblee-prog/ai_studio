@@ -245,11 +245,11 @@
   {
     "id": "T28",
     "area": "백엔드",
-    "task": "Job·Worker·Output PG 경합 시험",
-    "status": "진행예정",
+    "task": "Job·Worker·Output PG 경합 시험 (Job 목록·페이지·list_executions 커서, Outbox·알림 소유자·만료 방어 시험과 변이 증거, Project 활성 검사·Character 자산 잠금 완료; 남음: output_asset_link PG 구현·시험)",
+    "status": "진행중",
     "blocker": "",
-    "evidence": "—",
-    "today": ""
+    "evidence": "직접 확인",
+    "today": "V"
   },
   {
     "id": "T29",
@@ -479,7 +479,7 @@
   {
     "id": "T54",
     "area": "백엔드",
-    "task": "공통 오류 모듈·HTTP 매핑 완료. 라우트 어댑터: Character·Project·Project↔Product·Products·Workspaces·Assets(메타데이터+바이트)·Photo 14개 라우트 전부(초안·검수·내보내기·process-local) + save_derived 포트 완료(동등성+변이+실패 주입 시험), Lookbook (a)초안·검토·보관·이벤트·매니페스트 10개 + (b)산출물·조립 검수·출력 매니페스트 6개 + (c)패키지 내보내기 3개 완료(동등성 60/27단계·변이 8종씩·동시성 시험) = Lookbook 라우트 전부 포트화; 동시성 1차: 참조 확인 FOR SHARE 잠금으로 삭제/보관 경합 결함 수정(상품·Photo·Lookbook·Character). 동시성 2차: Job/Worker/Output 실DB 경합 시험 추가, 취소-발송 교착과 reschedule 형변환 결함 수정. 동시성 3차: Outbox·알림 전달 경합 시험 추가(새 결함 없음). 동시성 4차: Project 보관·Character 생성/수정 경합 시험 추가, 결함 2건 수정(Lookbook의 Project 조회 FOR SHARE 누락, 자산 삭제 보호에 Character 누락 — SQLite·PG 공통). 남음: output_asset_link PG 구현 자체가 없음(SQLite 전용), Job 목록·페이지 경합 시험, Job·Outbox·알림 변이 증거",
+    "task": "공통 오류 모듈·HTTP 매핑 완료. 라우트 어댑터: Character·Project·Project↔Product·Products·Workspaces·Assets(메타데이터+바이트)·Photo 14개 라우트 전부(초안·검수·내보내기·process-local) + save_derived 포트 완료(동등성+변이+실패 주입 시험), Lookbook (a)초안·검토·보관·이벤트·매니페스트 10개 + (b)산출물·조립 검수·출력 매니페스트 6개 + (c)패키지 내보내기 3개 완료(동등성 60/27단계·변이 8종씩·동시성 시험) = Lookbook 라우트 전부 포트화; 동시성 1차: 참조 확인 FOR SHARE 잠금으로 삭제/보관 경합 결함 수정(상품·Photo·Lookbook·Character). 동시성 2차: Job/Worker/Output 실DB 경합 시험 추가, 취소-발송 교착과 reschedule 형변환 결함 수정. 동시성 3차: Outbox·알림 전달 경합 시험 추가(새 결함 없음). 동시성 4차: Project 보관·Character 생성/수정 경합 시험 추가, 결함 2건 수정(Lookbook의 Project 조회 FOR SHARE 누락, 자산 삭제 보호에 Character 누락 — SQLite·PG 공통). 동시성 5·6차: Job 목록·페이지·실행 커서 시험, Outbox·알림 소유자·만료 방어 시험·변이 증거, 시험이 남긴 poll 행 격리 수정. 남음: output_asset_link PG 구현 자체가 없음(SQLite 전용)",
     "status": "진행중",
     "blocker": "",
     "evidence": "직접 확인",
