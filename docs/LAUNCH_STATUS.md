@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #14 (머지 55d5e37) — L-05 접근 로그
+- **CI (head 8a375b2, run 42571076849)**: backend success — pytest `791 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`. 로그에 `failed` 없음.
+- **완료**: 요청당 JSON 한 줄 접근 로그(라우트 템플릿, 상태, 소요, 가명 actor, 검증된 요청 ID, 쿼리·헤더·토큰·서명 미기록), 일 단위 회전·보관 일수 설정. 변이 19/19 적발. 세부 §11.
+- **미검증**: 항목·보관 기간(30일)은 법적 명세와 대조하지 않은 임시값; 보안 이벤트 전용 로그·외부 전송·변조 방지 없음; 부하 시 성능 미측정.
+- **차단**: 법적 보관 기간·항목 명세.
+
 ### 2026-11-09 · PR #13 (머지 b6c011d) — 심층 점검·런북·워커 판정 수정
 - **CI (head c7faed7, run 42570558102)**: backend success — pytest `777 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`. 로그에 `failed` 없음.
 - **완료**: `GET /internal/ops/health`(DB·저장소·디스크·필수 워커·백업, 실패 시 503), `docs/RUNBOOK.md`, 결함 2건 수정(idle/working 워커의 거짓 critical 알림, 점검이 없는 DB를 만들던 부작용). 변이 20/20 적발. 세부 §10.
@@ -68,6 +74,7 @@
 | `ai_studio_legal_patch_20261109.zip`, `ai_studio_consent_patch_20261109.zip`(각 APPLY.md) | 두 파일 모두 세션에 없음(위와 같이 검색). 적용·OpenAPI 재생성·PR을 하지 못함 | 두 zip을 저장소에 커밋하거나 업로드 |
 | D1(AI 학습 별도 동의) "이미 구현됨" | **이 저장소에서는 확인되지 않음**: 학습·동의 관련 코드가 없고(`consent`가 들어간 파일은 모두 이번 L-04 작업물), 원격 브랜치 9개 어디에도 D1 구현이 없음. 다른 사본·패치(동의 패치 zip)에 있을 가능성 | 동의 패치 zip 또는 D1이 있는 브랜치 |
 | L-01 영구 삭제 스크립트(`scripts/purge_deletion_requests.py`) | 저장소에 "삭제 요청" 테이블·API가 없음(법률·동의 패치에 있을 것으로 추정 — 패치 zip이 없어 확인 못 함). 무엇을 어떤 기준으로 지울지의 명세 없이 만들면 어긋나므로 만들지 않음. 영구 삭제는 L-04 기록(`asset_provenance`)의 처리 정책도 정해야 함 | 법률·동의 패치 zip 또는 L-01 명세 |
+| L-08 침해 신고 접수·임시 비공개 | 접수 주체(제3자 포함 여부)·인증·절차·처리 기한·이의제기가 법적 절차라 명세 없이 만들면 어긋남. 임시 비공개는 자산 목록·조회·미리보기·다운로드·기존에 만들어진 ZIP·초안 사용 차단까지 걸쳐 있어 설계 없이 구현하면 보안 구멍 위험 | 절차 명세(법무), 신고 접수 방식 결정 |
 | TEST Supabase에 0011–0013 적용 | 금지 항목(접속 정보·승인 필요) | — |
 | Production Supabase/Vercel, 유료 Provider, Production `DATABASE_BACKEND=postgresql`, 실데이터 영구 삭제, 비밀·키 | 금지 항목 | — |
 
