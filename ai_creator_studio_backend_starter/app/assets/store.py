@@ -362,6 +362,14 @@ def delete_asset(asset_id: str, workspace_id: str, actor_id: str = "system") -> 
                 (asset_id, workspace_id)).fetchone()
             if variant_reference:
                 raise ValueError("Asset is referenced by an active Product Variant; update or archive the Variant first")
+        character_table = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='character_assets'").fetchone()
+        if character_table:
+            character_reference = db.execute("""SELECT 1 FROM character_assets ca
+                JOIN characters c ON c.character_id=ca.character_id
+                WHERE ca.asset_id=? AND c.workspace_id=? AND c.deleted_at IS NULL LIMIT 1""",
+                (asset_id, workspace_id)).fetchone()
+            if character_reference:
+                raise ValueError("Asset is referenced by a Character; update or delete the Character first")
         for link_table, draft_table, feature_name in (
             ("photo_draft_assets", "photo_drafts", "Photo Draft"),
             ("lookbook_draft_assets", "lookbook_drafts", "Lookbook Draft"),

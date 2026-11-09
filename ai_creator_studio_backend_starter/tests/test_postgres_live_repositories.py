@@ -3037,6 +3037,62 @@ def test_character_delete_vs_lookbook_draft_create_never_leaves_a_deleted_refere
     assert not violations, violations
 
 
+def test_project_archive_vs_lookbook_draft_create_never_leaves_an_archived_reference(repos):
+    import threading
+
+    import psycopg
+    violations, errors = [], []
+    for i in range(20):
+        ws, owner, editor, viewer, outsider, prod, proj, chr_ = _lookbook_world(repos)
+        barrier = threading.Barrier(2)
+
+        def child():
+            try:
+                barrier.wait()
+                repos["lookbooks"].create_draft(ws, editor, {"title": "T", "product_ids": [prod], "project_id": proj})
+            except Exception as exc:  # noqa: BLE001
+                if not isinstance(exc, ValueError) and type(exc).__name__ != "LookbookStateError":
+                    errors.append(repr(exc))
+
+        def parent():
+            try:
+                barrier.wait()
+                repos["projects"].update(proj, editor, name="Campaign", project_type="campaign", status="ARCHIVED")
+            except Exception as exc:  # noqa: BLE001
+                if type(exc).__name__ != "ProjectConflictError":
+                    errors.append(repr(exc))
+        ts = [threading.Thread(target=child), threading.Thread(target=parent)]
+        [t.start() for t in ts]; [t.join() for t in ts]
+        with psycopg.connect(DSN) as conn:
+            if conn.execute("""SELECT count(*) FROM lookbook_draft_entities e JOIN lookbook_drafts d ON d.draft_id=e.draft_id
+                JOIN projects p ON p.project_id=e.entity_id WHERE e.entity_type='project' AND e.entity_id=%s
+                AND d.archived_at IS NULL AND p.status<>'ACTIVE'""", (proj,)).fetchone()[0]:
+                violations.append(i)
+    assert not errors, errors
+    assert not violations, violations
+
+
+_CHARACTER_DANGLING_SQL = """SELECT count(*) FROM character_assets ca JOIN characters c ON c.character_id=ca.character_id
+    JOIN assets a ON a.asset_id=ca.asset_id WHERE ca.asset_id=%s AND c.deleted_at IS NULL AND a.deleted_at IS NOT NULL"""
+
+
+def test_asset_delete_vs_character_create_never_leaves_a_dangling_reference(repos):
+    def make(ws, owner, editor, asset, i):
+        repos["characters"].create(workspace_id=ws, actor_id=editor, payload=_char(name=f"R{i}"), asset_ids=[asset])
+    violations, errors = _asset_delete_race(repos, make, _CHARACTER_DANGLING_SQL, "crace")
+    assert not errors, errors
+    assert not violations, violations
+
+
+def test_asset_delete_vs_character_update_never_leaves_a_dangling_reference(repos):
+    def make(ws, owner, editor, asset, i):
+        cid = repos["characters"].create(workspace_id=ws, actor_id=editor, payload=_char(name=f"U{i}"))["character_id"]
+        repos["characters"].update(cid, ws, editor, payload=_char(name=f"U{i}b"), asset_ids=[asset])
+    violations, errors = _asset_delete_race(repos, make, _CHARACTER_DANGLING_SQL, "curace")
+    assert not errors, errors
+    assert not violations, violations
+
+
 def _job_repos():
     from app.repositories.postgres_job import PostgreSQLJobRepository
     from app.repositories.postgres_outbox import PostgreSQLOutboxRepository
