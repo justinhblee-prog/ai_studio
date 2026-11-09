@@ -21,3 +21,8 @@ node e2e/pilot_flow.mjs
 
 `rights_flow.mjs` runs the same stack with `ASSET_REQUIRE_RIGHTS_CONFIRMATION=true` and checks the image-upload rights / likeness
 declaration (refusal messages, recorded provenance). Run it after the build, the same way as `pilot_flow.mjs`.
+
+`roles_flow.mjs` seeds one shared workspace through the API (owner, editor, viewer; one image, one processed photo run) and checks six
+scenarios in the browser: viewer cannot upload or approve, editor can upload but cannot approve, owner approves in the UI, an outsider is
+refused on every read and write (API) and sees none of the shared data (UI), and a 390 px wide screen has no horizontal overflow.
+Supabase Auth is mocked as in the other flows.
