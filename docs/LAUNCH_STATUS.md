@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #6 (머지 46005d4) — 레지스트리 증거 게이트
+- **CI (head c9163c6, run 42550454875)**: backend success — pytest `705 passed, 1 warning`, 실DB 단계 `74 passed, 1 warning`(failed 없음); frontend success — `tsc` 통과, `test:source` 8 pass/0 fail + 4 pass/0 fail, `vite build` 통과.
+- **완료**: 레지스트리에 집계별 근거 시험명(`evidence`)과 기계 검사(`tests/test_registry_evidence.py`) 추가; 실DB 시험 12종 추가(멱등 조회, Outbox `get_job`, 하트비트 2종, Output `record`/`list_storage_keys`/`get`, Job `update`/`list_outputs`, 풀 리스 갱신) — 변이 20/20 적발, 게이트 변이 8/8 적발; generation_jobs·job_outbox·provider_poll·outputs·operations_and_health를 live_verified로 올림; output_asset_link를 missing으로 추가.
+- **미검증**: `photos`(6)·`lookbooks`(3)·`project_products`(1)의 공개 메서드는 실DB 시험이 직접 호출하지 않고 포트 경유 동등성 시험으로만 간접 검증(`KNOWN_INDIRECT`에 명시); "메서드가 참조됨"은 충분한 시험의 증명이 아님. `postgresql` 런타임 선택은 여전히 거부됨(4개 집계 미충족), 런타임은 SQLite.
+- **차단**: 아래 표 그대로.
+
 ### 2026-11-09 · PR #5 (머지 294b6dd) — L-13, T56, CI 실패 은폐 수정
 - **CI (head bf6ed25, run 42548956699)**: backend success — pytest `692 passed, 1 warning`, 실DB 단계 `66 passed, 1 warning`(failed 없음); frontend success — `tsc --noEmit` 통과, `test:source` node 시험 8 pass/0 fail + 4 pass/0 fail, `vite build` 통과.
 - **완료**: L-13(출시 빌드는 `VITE_API_BASE_URL`만 사용, 주소 입력란·저장 값·localhost 대체 제거, 개발 빌드는 유지); T56(SQLite↔PG 새 버전 생성 메타데이터 비교 시험, 변이 7/7 적발); CI "Live tests must not be silently skipped" 단계가 실패를 가리던 문제 수정(4가지 경우 시뮬레이션); 간헐 실패 시험(Lookbook 조립 경합) 설계 결함 수정(기존 시험 40회 중 1회·순서 뒤집으면 10회 중 6회 실패 → 수정 후 두 순서 모두 40회 중 0회).
@@ -53,8 +59,14 @@ T56은 수정이 아니라 비교 시험 추가였다. "수정을 되돌리면 �
 | L-02 프런트 동의 화면 | **막힘** — 위와 같음 |
 | 법률 패치 zip 적용 | **막힘** — 파일 없음 |
 | 랜딩 재구현(시안 ①) | 시안 파일이 저장소에 없음 — 확인 필요 |
-| 브라우저 E2E | 가능한 범위에서 진행 (Supabase는 호출하지 않고 요청 가로채기 사용) |
+| 브라우저 E2E | 진행 중 — 1단계(소유자 흐름) 구현, 아래 "E2E" 참조 |
 | TEST Supabase에 0011–0013 적용 | 승인·접속 정보 필요 — 하지 않음 |
 
 ## 4. 승인 경계 (불변)
 Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABASE_BACKEND=postgresql` 활성화 금지, 영구 삭제 실행 금지, 비밀·키 사용 금지.
+
+## 5. E2E (큐 6, 브랜치 e2e-flow)
+- `ai_creator_studio_3d_viewer/e2e/pilot_flow.mjs`: 출시 빌드를 헤드리스 Chromium으로 구동 — 로그인 → Workspace 자동 생성 → 이미지 업로드 → 상품 생성 → 포토 초안 → 로컬 이미지 처리 → 검수 승인·manifest → 룩북 초안 → 기획 제출·승인 → 승인된 Photo 결과 연결 → 조립 검토 제출·승인 → 내부 ZIP 생성·다운로드(ZIP 무결성, `manifest.json`과 이미지 포함 확인). 로컬 3회 연속 `SUMMARY 10/10 steps passed`.
+- **실제와 mock 구분**: 실제 = 웹 번들, FastAPI, SQLite, 파일 저장소, 결정적 로컬 이미지 처리, ZIP 내보내기. **mock = Supabase Auth**(브라우저에서 요청을 가로챔; 실제 Supabase 로그인은 시험하지 않음). **AI Provider 호출 없음**: 이 앱의 "생성"은 외부 Provider가 아니라 Pillow 기반 결정적 로컬 조정(`ENHANCE`/`LIGHTING`). Provider 경로(`/v1/generation-jobs`, `PROVIDER_MODE=mock`)는 이 E2E가 시험하지 않음.
+- 변이 검증: 주소 입력란 복구(처음에는 **적발 못 함** — 입력란 검사를 로그인 이후에만 해서 시험 결함이었음, 로그인 화면·설정 패널 검사를 추가한 뒤 적발), ZIP에서 manifest 제거(적발), 로컬 처리 실패(적발).
+- CI: `e2e` 잡 추가(Playwright 1.63.0 고정). **GitHub에서 실행한 결과는 이 PR의 CI로 확인**(아래 PR 항목 참조).

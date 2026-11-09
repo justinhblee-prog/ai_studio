@@ -574,5 +574,14 @@
     "blocker": "",
     "evidence": "직접 확인",
     "today": "V"
+  },
+  {
+    "id": "T65",
+    "area": "E2E",
+    "task": "브라우저 E2E 1단계(소유자 흐름 10단계, Supabase Auth mock, 로컬 SQLite, AI Provider 없음) + CI e2e 잡. 남음: 모바일 폭, 권한별(소유자·편집자·열람자), 교차 워크스페이스 차단",
+    "status": "진행중",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
   }
 ]

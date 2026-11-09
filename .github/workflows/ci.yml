@@ -74,3 +74,41 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run test:source
       - run: npm run build
+
+  e2e:
+    # Browser E2E: local SQLite backend (PROVIDER_MODE=mock, no external provider) + the release web build.
+    # Supabase Auth is mocked inside the browser; no Supabase, Vercel or paid provider is contacted.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ai_creator_studio_3d_viewer/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: ai_creator_studio_backend_starter/requirements.txt
+      - run: pip install -r ai_creator_studio_backend_starter/requirements.txt
+      - name: Install web dependencies and the pinned Playwright browser
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          npm ci
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Build the release web bundle (fixed API address, mocked Supabase address)
+        working-directory: ai_creator_studio_3d_viewer
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8765
+          VITE_SUPABASE_URL: https://e2e-mock.supabase.test
+          VITE_SUPABASE_ANON_KEY: e2e-anon-not-a-secret
+        run: npm run build
+      - name: Pilot flow
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          node e2e/pilot_flow.mjs | tee e2e.txt
+          grep -q "SUMMARY 10/10 steps passed" e2e.txt
