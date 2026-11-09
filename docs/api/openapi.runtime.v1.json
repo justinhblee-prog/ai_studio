@@ -368,10 +368,43 @@
       },
       "Body_upload_image_asset_v1_assets_images_post": {
         "properties": {
+          "depicts_person": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depicts Person"
+          },
           "file": {
             "format": "binary",
             "title": "File",
             "type": "string"
+          },
+          "likeness_consent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Likeness Consent"
+          },
+          "rights_confirmed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rights Confirmed"
           },
           "workspace_id": {
             "maxLength": 64,
@@ -3821,7 +3854,7 @@
     },
     "/v1/assets/images": {
       "post": {
-        "description": "Store a validated source image for the independent Photo Engine workflow.",
+        "description": "Store a validated source image for the independent Photo Engine workflow.\n\nThe optional rights fields are recorded in the asset provenance; they are required only when\nASSET_REQUIRE_RIGHTS_CONFIRMATION is enabled (L-04).",
         "operationId": "upload_image_asset_v1_assets_images_post",
         "parameters": [
           {

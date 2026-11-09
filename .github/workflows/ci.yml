@@ -112,3 +112,9 @@ jobs:
           set -o pipefail
           node e2e/pilot_flow.mjs | tee e2e.txt
           grep -q "SUMMARY 10/10 steps passed" e2e.txt
+      - name: Rights declaration flow (L-04, enforcement on)
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          node e2e/rights_flow.mjs | tee e2e_rights.txt
+          grep -q "SUMMARY 6/6 rights steps passed" e2e_rights.txt

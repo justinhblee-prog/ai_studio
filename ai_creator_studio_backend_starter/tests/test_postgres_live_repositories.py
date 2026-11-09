@@ -3844,3 +3844,24 @@ def test_upload_rights_declaration_is_recorded_identically_by_sqlite_and_postgre
     assert sqlite_out == pg_out
     assert dict(sqlite_out)["none"] == [{"source": "upload"}]
     assert dict(sqlite_out)["person"] == [{"source": "upload", "rights": {"rights_confirmed": True, "depicts_person": True, "likeness_consent": True}}]
+
+
+def test_upload_declaration_record_survives_deleting_the_asset_in_postgresql(repos, tmp_path, monkeypatch):
+    import psycopg
+
+    import app.config as config
+    from app.assets.validation import validate_image_upload
+    from app.ports.asset_bytes import PostgreSQLAssetBytesPort
+    monkeypatch.setattr(config, "ASSET_STORAGE_DIR", tmp_path / "pg-private")
+    (tmp_path / "pg-private").mkdir()
+    ws, owner, editor, *_ = _workspace(repos)
+    data = _png(77)
+    val = validate_image_upload("a.png", data, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)
+    conf = {"rights_confirmed": True, "depicts_person": True, "likeness_consent": True}
+    asset = PostgreSQLAssetBytesPort(repos["assets"]).save(ws, editor, "a.png", data, val, upload_confirmation=conf)
+    assert repos["assets"].soft_delete_asset(asset["asset_id"], ws, actor_id=owner) is True
+    with psycopg.connect(DSN) as conn:
+        rows = conn.execute("SELECT event_type, details_json FROM asset_provenance WHERE asset_id=%s ORDER BY created_at, provenance_id",
+                            (asset["asset_id"],)).fetchall()
+    assert [r[0] for r in rows] == ["asset.uploaded", "asset.deleted"]
+    assert rows[0][1]["rights"] == conf

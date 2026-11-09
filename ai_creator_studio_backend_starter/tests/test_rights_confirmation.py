@@ -122,3 +122,37 @@ def test_rights_flag_is_wired_to_its_environment_variable():
                              capture_output=True, text=True, env=env, check=True)
         return out.stdout.strip()
     assert read(None) == "False" and read("true") == "True"
+
+
+def test_assets_uploaded_before_enforcement_are_not_blocked_retroactively(env, monkeypatch):
+    """Enforcement applies to new uploads only; an existing asset without a declaration stays usable and listable."""
+    import app.config as config
+    old = upload_image()  # uploaded while enforcement was off, no declaration
+    assert old.status_code == 201
+    asset_id = old.json()["asset_id"]
+    monkeypatch.setattr(config, "ASSET_REQUIRE_RIGHTS_CONFIRMATION", True)
+    assert upload_image().status_code == 422  # a new upload is now refused...
+    listed = client.get("/v1/assets?workspace_id=rights-ws&kind=image", headers=auth()).json()["items"]
+    assert [a["asset_id"] for a in listed] == [asset_id]  # ...but the old asset is untouched
+    assert client.get(f"/v1/assets/{asset_id}", headers=auth()).status_code == 200
+    draft = client.post("/v1/photo-drafts", headers=auth(), json={
+        "workspace_id": "rights-ws", "source_asset_id": asset_id, "operation": "ENHANCE", "preserve_identity": True,
+        "preserve_product_geometry": True, "preserve_text_and_logo": True, "output_format": "PNG", "output_count": 1})
+    assert draft.status_code == 201, draft.text  # usable as a source without any declaration on record
+    assert uploaded_details(asset_id) == [{"source": "upload"}]
+
+
+def test_declaration_record_survives_deleting_the_asset(env):
+    """The declaration lives in asset_provenance, which keeps its rows when the asset is soft-deleted."""
+    import sqlite3
+
+    import app.config as config
+    res = upload_image(rights_confirmed=True, depicts_person=True, likeness_consent=True)
+    asset_id = res.json()["asset_id"]
+    assert client.delete(f"/v1/assets/{asset_id}", headers=auth()).status_code == 204
+    db = sqlite3.connect(config.ASSET_DATABASE_PATH)
+    rows = db.execute("SELECT event_type, details_json FROM asset_provenance WHERE asset_id=? ORDER BY created_at, provenance_id", (asset_id,)).fetchall()
+    kinds = [r[0] for r in rows]
+    assert kinds == ["asset.uploaded", "asset.deleted"], kinds
+    assert json.loads(rows[0][1])["rights"] == {"rights_confirmed": True, "depicts_person": True, "likeness_consent": True}
+    assert db.execute("SELECT deleted_at IS NOT NULL FROM assets WHERE asset_id=?", (asset_id,)).fetchone()[0] == 1
