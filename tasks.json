@@ -673,5 +673,14 @@
     "blocker": "",
     "evidence": "직접 확인",
     "today": "V"
+  },
+  {
+    "id": "T76",
+    "area": "보안",
+    "task": "의존성 취약점 점검(npm audit 0건, pip-audit): Pillow 13·pytest 9로 상향해 pillow 39건·pytest 1건 해결, starlette 7건은 FastAPI 업그레이드 필요(별도 PR)",
+    "status": "진행중",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
   }
 ]
