@@ -59,6 +59,15 @@ python scripts/backup_restore.py restore "$BACKUP_DIR/backup-<타임스탬프>" 
 - **자동 스케줄·외부 보관·암호화·보존 기간은 아직 없다.** 하루 한 번 백업을 돌리고 결과를 서버 밖으로 복사하는 것은 운영자가 정해야 한다. 예시(시험하지 않음): `17 3 * * * cd /srv/acs/backend && python scripts/backup_restore.py backup --dest "$BACKUP_DIR"`
 - **복구 훈련**: 분기마다 새 폴더로 복구해 `GET /internal/ops/health`와 자산 하나의 미리보기가 정상인지 확인한다(아직 실제 환경에서 해 본 적 없음).
 
+### 삭제 요청 처리 (`scripts/purge_requests.py`)
+```bash
+python scripts/purge_requests.py                                   # 유예기간(7일)이 지난 pending 요청의 계획만 출력(dry-run)
+python scripts/purge_requests.py --apply --confirm <request_id>    # 요청 하나를 실제 처리 (되돌릴 수 없음)
+```
+- **실데이터 첫 실행은 사용자 승인이 필요하다.** 먼저 백업(위)을 만들고 dry-run 출력을 확인한다.
+- `blocked=`에 `LAST_OWNER`·`JOB_IN_PROGRESS`·`UNMAPPED_TABLE`이 나오면 처리하지 않는다(알 수 없는 표가 생기면 일부러 멈춘다).
+- 백업에 남은 사본은 지워지지 않는다. 백업은 30일 뒤 폐기하는 것이 결정이다.
+
 ## 5. 장애 대응
 | 증상 (심층 점검의 항목) | 원인 후보 | 조치 |
 |---|---|---|
