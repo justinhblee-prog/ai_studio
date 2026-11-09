@@ -646,5 +646,23 @@
     "blocker": "법적 보관 기간·항목 명세 없음",
     "evidence": "직접 확인",
     "today": "V"
+  },
+  {
+    "id": "T73",
+    "area": "관리",
+    "task": "출시 체크리스트 초판(docs/LAUNCH_CHECKLIST.md): 32개 항목을 증거 유무로 분류(완료 6·부분 12·미완료 8·차단 6). 11/28에 갱신",
+    "status": "진행중",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T74",
+    "area": "법률",
+    "task": "L-08 침해 신고 접수와 임시 비공개",
+    "status": "진행예정",
+    "blocker": "절차 명세(법무)와 접수 방식 결정 필요",
+    "evidence": "—",
+    "today": ""
   }
 ]
