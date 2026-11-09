@@ -1,0 +1,524 @@
+[
+  {
+    "id": "T01",
+    "area": "관리",
+    "task": "두 패키지·마스터 문서 통합 검토",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": ""
+  },
+  {
+    "id": "T02",
+    "area": "관리",
+    "task": "통합 진행 현황표(PROGRESS.md) 작성",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": ""
+  },
+  {
+    "id": "T03",
+    "area": "관리",
+    "task": "진행 현황 대시보드 구축",
+    "status": "진행중",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T04",
+    "area": "관리",
+    "task": "루트 문서 약 1,000개 아카이브 정리(11-08 작업물 유실로 재수행 필요)",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T05",
+    "area": "관리",
+    "task": "BUILD_INFO.md·마스터 문서 20장(인증 서술) 정정",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "기록상",
+    "today": ""
+  },
+  {
+    "id": "T06",
+    "area": "관리",
+    "task": "기준선 manifest(해시·파일목록·계보) 작성 — 재작성 필요",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T07",
+    "area": "기획",
+    "task": "PRD v0.1(문서는 프로젝트에 보존, 공개 결정 9건 대기)",
+    "status": "진행중",
+    "blocker": "사용자 결정",
+    "evidence": "직접 확인",
+    "today": ""
+  },
+  {
+    "id": "T08",
+    "area": "기획",
+    "task": "가격·크레딧·단위경제성 설계",
+    "status": "진행예정",
+    "blocker": "사용자 결정",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T09",
+    "area": "기획",
+    "task": "시장·경쟁사 조사 문서(11곳, 프로젝트에 보존)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": ""
+  },
+  {
+    "id": "T10",
+    "area": "프런트",
+    "task": "랜딩 시안 5종 수신·검토",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": ""
+  },
+  {
+    "id": "T11",
+    "area": "프런트",
+    "task": "시안 기준안 선택(① 기준)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": ""
+  },
+  {
+    "id": "T12",
+    "area": "프런트",
+    "task": "랜딩 화면 재구현(11-08 구현본 유실, 00231 기본 랜딩만 존재)",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T13",
+    "area": "프런트",
+    "task": "PublicLanding 컴포넌트 KO/EN·토큰·접근성 재작업",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T14",
+    "area": "프런트",
+    "task": "디자인 토큰·공통 컴포넌트 정리",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T15",
+    "area": "프런트",
+    "task": "영문·다국어(i18n) 적용",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T16",
+    "area": "프런트",
+    "task": "목업 수치 제거, 미착수 기능 '준비 중' 표기(재작업)",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T17",
+    "area": "프런트",
+    "task": "Viewer 구문·구조·무결성·인증 단위 검사(test:source)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T18",
+    "area": "프런트",
+    "task": "타입 검사(tsc 오류 0, 기존 10건 수정)·Vite 프로덕션 빌드 성공",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T19",
+    "area": "프런트",
+    "task": "브라우저·모바일 E2E",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T20",
+    "area": "백엔드",
+    "task": "Python compileall",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T21",
+    "area": "백엔드",
+    "task": "전체 pytest 634 통과(일반 621 + 실DB 13)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T22",
+    "area": "백엔드",
+    "task": "의존성 설치 후 전체 pytest 재실행(fastapi 0.115.14 고정)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T23",
+    "area": "백엔드",
+    "task": "Character PG 마이그레이션 0011·저장소·실DB 시험",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T24",
+    "area": "백엔드",
+    "task": "Photo PG 마이그레이션 0012·저장소(run 멱등성·리스·동시성·검토·내보내기 기록)·실DB 시험",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T25",
+    "area": "백엔드",
+    "task": "Lookbook PG 마이그레이션 0013·저장소(검토 워크플로·조립 검토·매니페스트)·실DB 시험",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T26",
+    "area": "백엔드",
+    "task": "Workspace·Asset PG 저장소 보강(누락 메서드·create_asset_version 정리)",
+    "status": "진행중",
+    "blocker": "",
+    "evidence": "—",
+    "today": "V"
+  },
+  {
+    "id": "T27",
+    "area": "백엔드",
+    "task": "중앙 Repository 선택 레지스트리(fail-closed, 집계별 검증 상태·실DB 시험 연동 규칙, 라우트·DI 미연결)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T28",
+    "area": "백엔드",
+    "task": "Job·Worker·Output PG 경합 시험",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T29",
+    "area": "DB",
+    "task": "TEST Supabase migration 0006–0010 적용",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "기록상",
+    "today": ""
+  },
+  {
+    "id": "T30",
+    "area": "DB",
+    "task": "TEST migration 이력·스키마 읽기 전용 재확인",
+    "status": "진행예정",
+    "blocker": "TEST 접속 정보",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T31",
+    "area": "DB",
+    "task": "실인증 FastAPI CRUD와 2인 Workspace 격리 시험",
+    "status": "진행예정",
+    "blocker": "TEST 접속 정보",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T32",
+    "area": "인증·저장",
+    "task": "Supabase Auth 소스와 단위 테스트",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T33",
+    "area": "인증·저장",
+    "task": "Auth 실계정 브라우저 E2E",
+    "status": "진행예정",
+    "blocker": "TEST 접속 정보",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T34",
+    "area": "인증·저장",
+    "task": "Storage private 실파일 생명주기",
+    "status": "진행예정",
+    "blocker": "TEST 접속 정보",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T35",
+    "area": "AI·3D",
+    "task": "Provider adapter 기반(mock·fashn)",
+    "status": "진행중",
+    "blocker": "",
+    "evidence": "기록상",
+    "today": ""
+  },
+  {
+    "id": "T36",
+    "area": "AI·3D",
+    "task": "실제 Provider 이미지 생성·비용 기록",
+    "status": "진행예정",
+    "blocker": "유료 호출 승인",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T37",
+    "area": "AI·3D",
+    "task": "Virtual Fitting 실증",
+    "status": "진행예정",
+    "blocker": "유료 호출 승인",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T38",
+    "area": "AI·3D",
+    "task": "3D 의상 생성 파이프라인",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T39",
+    "area": "AI·3D",
+    "task": "실제 GLB 브라우저 로딩·성능 검증",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T40",
+    "area": "사업화",
+    "task": "요금제·결제·환불·정산",
+    "status": "진행예정",
+    "blocker": "사용자 결정",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T41",
+    "area": "사업화",
+    "task": "Marketplace 등록·검색·라이선스",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T42",
+    "area": "사업화",
+    "task": "법률 검토(약관·개인정보·저작권·초상권)",
+    "status": "진행예정",
+    "blocker": "전문가 검토",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T43",
+    "area": "운영",
+    "task": "clean checkout CI 초안(GitHub Actions: 백엔드+PG16 서비스 실DB 시험, 프런트 npm ci·tsc·빌드). 명령은 로컬 실행 확인, GitHub 실제 실행은 아직",
+    "status": "진행중",
+    "blocker": "GitHub 실행",
+    "evidence": "직접 확인(명령만)",
+    "today": "V"
+  },
+  {
+    "id": "T44",
+    "area": "운영",
+    "task": "TEST Preview 배포와 스모크 시험",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T45",
+    "area": "운영",
+    "task": "모니터링·백업·복구 리허설",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T46",
+    "area": "마케팅",
+    "task": "글로벌 사이트·SEO·B2B 영업 자료",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T47",
+    "area": "프런트",
+    "task": "시안 이미지 자산 적용",
+    "status": "진행예정",
+    "blocker": "라이선스 확인 이미지",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T48",
+    "area": "백엔드",
+    "task": "워크스페이스 소유자 역할 덮어쓰기 취약점 수정(재발견·재수정, 실DB 시험)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T49",
+    "area": "백엔드",
+    "task": "실제 PostgreSQL 16 시험 러너(scripts/run_live_pg_tests.sh) 재작성·실행",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T50",
+    "area": "백엔드",
+    "task": "Photo 검토·내보내기 결정 저장소 메서드(실DB 시험)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T51",
+    "area": "백엔드",
+    "task": "psycopg3 Connection.executemany 결함 4곳 수정(실DB에서 발견)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T52",
+    "area": "백엔드",
+    "task": "저장소 코드를 실제 PostgreSQL에서 실행하는 시험(psycopg)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T53",
+    "area": "DB",
+    "task": "마이그레이션 0011–0013 TEST Supabase 적용",
+    "status": "진행예정",
+    "blocker": "TEST 접속 정보·승인",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T54",
+    "area": "백엔드",
+    "task": "공통 오류 모듈·HTTP 매핑 완료. 라우트 어댑터: Character·Project·Project↔Product·Products·Workspaces·Assets(메타데이터+바이트)·Photo 14개 라우트 전부(초안·검수·내보내기·process-local) + save_derived 포트 완료(동등성+변이+실패 주입 시험), Lookbook (a)초안·검토·보관·이벤트·매니페스트 10개 + (b)산출물·조립 검수·출력 매니페스트 6개 + (c)패키지 내보내기 3개 완료(동등성 60/27단계·변이 8종씩·동시성 시험) = Lookbook 라우트 전부 포트화; 동시성 1차: 참조 확인 FOR SHARE 잠금으로 삭제/보관 경합 결함 수정(상품·Photo·Lookbook·Character). 동시성 2차: Job/Worker/Output 실DB 경합 시험 추가, 취소-발송 교착과 reschedule 형변환 결함 수정. 동시성 3차: Outbox·알림 전달 경합 시험 추가(새 결함 없음). 남음: Project 활성 검사·Character 생성 경합 시험, output_asset_link PG 구현 확인",
+    "status": "진행중",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T55",
+    "area": "백엔드",
+    "task": "OpenAPI 스냅샷 재생성·FastAPI 버전 고정",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T56",
+    "area": "백엔드",
+    "task": "Asset 버전 생성 메타데이터 보강 재구현",
+    "status": "진행예정",
+    "blocker": "",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T57",
+    "area": "백엔드",
+    "task": "Character 수정·삭제 시 활성 Lookbook 참조 잠금(저장소 수준, 실DB 시험)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T58",
+    "area": "백엔드",
+    "task": "라우트 어댑터 설계서(프로젝트에 보존, 권한 포트 우선)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": ""
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "snapshot": "/mnt/data/AI_CREATOR_STUDIO_BUILD-00125/docs/api/openapi.runtime.v1.json",
+  "source_files": 8,
+  "viewer_calls": 63,
+  "unique_endpoints": 52,
+  "matched": 63,
+  "missing": [],
+  "query_mismatches": [],
+  "unresolved_dynamic": [],
+  "scope_note": "Source-level fetch URL/method check only; does not validate payload/response schemas or browser execution."
+}

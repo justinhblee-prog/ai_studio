@@ -1,0 +1,109 @@
+# Source Inventory — BUILD-00156
+
+- Backend files (excluding caches): 145
+- Backend Python files: 123
+- Backend Python test files: 52
+- Viewer files (excluding caches): 72
+- Viewer source files (.ts/.tsx/.js/.mjs under src): 20
+- Viewer script/test files: 24
+
+## Backend top-level layout
+- `.env.example`
+- `.gitignore`
+- `.pytest_cache/`
+- `README.md`
+- `app/`
+- `assets.sqlite3`
+- `docs/`
+- `outputs/`
+- `private_assets/`
+- `requirements-audit.txt`
+- `requirements-migration.txt`
+- `requirements.txt`
+- `scripts/`
+- `tests/`
+
+## Viewer top-level layout
+- `README.md`
+- `docs/`
+- `package.json`
+- `requirements-browser-audit.txt`
+- `scripts/`
+- `src/`
+- `tsconfig.json`
+
+## Backend test files
+- `ai_creator_studio_backend_starter/tests/test_alert_delivery_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_api.py`
+- `ai_creator_studio_backend_starter/tests/test_asset_validation.py`
+- `ai_creator_studio_backend_starter/tests/test_assets_api.py`
+- `ai_creator_studio_backend_starter/tests/test_characters_api.py`
+- `ai_creator_studio_backend_starter/tests/test_concurrent_claims.py`
+- `ai_creator_studio_backend_starter/tests/test_credit_ledger_domain.py`
+- `ai_creator_studio_backend_starter/tests/test_credit_ledger_repository_contract.py`
+- `ai_creator_studio_backend_starter/tests/test_credit_ledger_uow_contract.py`
+- `ai_creator_studio_backend_starter/tests/test_generation_job_cancellation.py`
+- `ai_creator_studio_backend_starter/tests/test_generation_job_listing.py`
+- `ai_creator_studio_backend_starter/tests/test_job_diagnostics_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_job_event_repository_ports.py`
+- `ai_creator_studio_backend_starter/tests/test_job_event_uow.py`
+- `ai_creator_studio_backend_starter/tests/test_job_repository_extraction.py`
+- `ai_creator_studio_backend_starter/tests/test_job_state.py`
+- `ai_creator_studio_backend_starter/tests/test_legacy_job_repository_facade.py`
+- `ai_creator_studio_backend_starter/tests/test_legacy_module_import_boundaries.py`
+- `ai_creator_studio_backend_starter/tests/test_live_fashn_smoke.py`
+- `ai_creator_studio_backend_starter/tests/test_lookbook_export_cleanup.py`
+- `ai_creator_studio_backend_starter/tests/test_openapi_contract_audit.py`
+- `ai_creator_studio_backend_starter/tests/test_openapi_runtime_audit.py`
+- `ai_creator_studio_backend_starter/tests/test_operations_alert_read_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_operations_api_repository_di.py`
+- `ai_creator_studio_backend_starter/tests/test_operations_monitoring_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_outbox_admin_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_outbox_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_output_asset_link_worker.py`
+- `ai_creator_studio_backend_starter/tests/test_output_crash_recovery.py`
+- `ai_creator_studio_backend_starter/tests/test_output_maintenance_lock.py`
+- `ai_creator_studio_backend_starter/tests/test_poll_admin_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_poll_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_postgres_readiness.py`
+- `ai_creator_studio_backend_starter/tests/test_private_file_response.py`
+- `ai_creator_studio_backend_starter/tests/test_project_products_api.py`
+- `ai_creator_studio_backend_starter/tests/test_projects_api.py`
+- `ai_creator_studio_backend_starter/tests/test_qa_traceability_ids.py`
+- `ai_creator_studio_backend_starter/tests/test_repository_contract.py`
+- `ai_creator_studio_backend_starter/tests/test_repository_sql_extraction_v044_v046.py`
+- `ai_creator_studio_backend_starter/tests/test_runtime_openapi_snapshot.py`
+- `ai_creator_studio_backend_starter/tests/test_schema_module.py`
+- `ai_creator_studio_backend_starter/tests/test_sqlite_operations_sql.py`
+- `ai_creator_studio_backend_starter/tests/test_sqlite_to_postgres_migration.py`
+- `ai_creator_studio_backend_starter/tests/test_sqlite_worker_sql.py`
+- `ai_creator_studio_backend_starter/tests/test_storage_port.py`
+- `ai_creator_studio_backend_starter/tests/test_viewer_response_contract_audit.py`
+- `ai_creator_studio_backend_starter/tests/test_viewer_response_contracts.py`
+- `ai_creator_studio_backend_starter/tests/test_viewer_response_contracts_extended.py`
+- `ai_creator_studio_backend_starter/tests/test_worker_dependency_injection.py`
+- `ai_creator_studio_backend_starter/tests/test_worker_health_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_worker_heartbeat_repository.py`
+- `ai_creator_studio_backend_starter/tests/test_worker_repository_ports.py`
+
+## Viewer source files
+- `ai_creator_studio_3d_viewer/src/AssetWorkspace.tsx`
+- `ai_creator_studio_3d_viewer/src/LookbookDraftWorkspace.tsx`
+- `ai_creator_studio_3d_viewer/src/OutputReviewWorkspace.tsx`
+- `ai_creator_studio_3d_viewer/src/PhotoDraftWorkspace.tsx`
+- `ai_creator_studio_3d_viewer/src/ProductCatalogWorkspace.tsx`
+- `ai_creator_studio_3d_viewer/src/ProjectProductAssignmentWorkspace.tsx`
+- `ai_creator_studio_3d_viewer/src/ProjectWorkspace.tsx`
+- `ai_creator_studio_3d_viewer/src/Studio3DViewer.tsx`
+- `ai_creator_studio_3d_viewer/src/authenticatedPreviewObjectUrls.mjs`
+- `ai_creator_studio_3d_viewer/src/boundedModelDownload.mjs`
+- `ai_creator_studio_3d_viewer/src/disposeGltfResources.mjs`
+- `ai_creator_studio_3d_viewer/src/disposeViewerResources.mjs`
+- `ai_creator_studio_3d_viewer/src/index.ts`
+- `ai_creator_studio_3d_viewer/src/keyedRequestGate.mjs`
+- `ai_creator_studio_3d_viewer/src/lookbookPreviewLinks.mjs`
+- `ai_creator_studio_3d_viewer/src/modelBasePath.mjs`
+- `ai_creator_studio_3d_viewer/src/projectLifecycleEvents.mjs`
+- `ai_creator_studio_3d_viewer/src/requestScopeGate.mjs`
+- `ai_creator_studio_3d_viewer/src/runViewerCleanupSteps.mjs`
+- `ai_creator_studio_3d_viewer/src/useRequestScope.ts`

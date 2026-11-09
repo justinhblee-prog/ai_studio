@@ -1,0 +1,11 @@
+{
+  "animationFrame": true,
+  "chromium_executable": "/usr/bin/chromium",
+  "error": null,
+  "renderer": "WebKit WebGL",
+  "resizeObserved": true,
+  "scope": "browser capability smoke only; does not load the React/Three.js Viewer",
+  "status": "pass",
+  "trianglePixel": true,
+  "webgl2": true
+}

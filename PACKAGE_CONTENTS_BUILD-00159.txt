@@ -1,0 +1,12 @@
+AI CREATOR STUDIO BUILD-00159
+
+This package is based on BUILD-00158 and includes BUILD-00159 test-gate integrity corrections.
+
+Primary handoff: CURRENT_HANDOFF_BUILD-00159.md
+Release notes: BUILD-00159_RELEASE_NOTES.md
+Verification: BUILD-00159_VERIFICATION.md
+Roadmap: ROADMAP_BUILD-00157.md
+Viewer: ai_creator_studio_3d_viewer/
+Backend: ai_creator_studio_backend_starter/
+
+Important: Real Three.js integration is BLOCKED until declared dependencies are installed. The test now returns non-zero in that condition.
