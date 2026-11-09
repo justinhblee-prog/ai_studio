@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test:source": "node scripts/validate_typescript_syntax.cjs && python scripts/validate_package_integrity.py && python scripts/validate_source.py && python scripts/test_public_landing_contract.py && node src/app/supabaseAuth.test.mjs",
+    "test:source": "node scripts/validate_typescript_syntax.cjs && python scripts/validate_package_integrity.py && python scripts/validate_source.py && python scripts/test_public_landing_contract.py && node src/app/supabaseAuth.test.mjs && node src/app/apiBaseUrl.test.mjs",
     "test:auth": "node src/app/supabaseAuth.test.mjs"
   },
   "dependencies": {
