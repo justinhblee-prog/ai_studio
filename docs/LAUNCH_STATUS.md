@@ -215,3 +215,10 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - OpenAPI 스냅샷 차이: 프레임워크가 만드는 부분뿐(파일 필드 `format: binary` → `contentMediaType`, ValidationError 스키마의 `ctx`·`input`; 10줄 추가·3줄 삭제).
 - **자동 점검**: `.github/workflows/dependency-audit.yml`(매주 월요일 + 요구사항·잠금 파일 변경 PR + 수동 실행)로 `pip-audit`·`npm audit`를 돌림. 메인 CI와 분리(새 권고가 무관한 PR을 막지 않게). 결과는 이 PR의 체크와 아래 PR 항목에 적음.
 - **미검증/한계**: 알려진 취약점 DB 기준이며 "안전하다"는 증명이 아님; 잠금 파일이 없어 고정되지 않은 전이 의존성은 설치 시점에 따라 달라짐; 주간 예약 실행은 기본 브랜치 머지 후에야 동작하므로 아직 실행된 적 없음; 컨테이너·OS 패키지는 배포 환경이 없어 대상 아님; 업그레이드는 주요 버전(Starlette 0.46 → 1.10)이라 **시험에 없는 동작 변화가 있을 수 있음** — 배포 전 실제 환경 확인 필요.
+
+## 14. 설계 창 패치 반영 (`APPLY_ORDER_20261109.md`의 순서, 패치 9개; 전달문 `DEV_HANDOFF_20261109.md`)
+패키지 `ai_studio_window_a_package_20261109.zip`(체크섬 `SHA256SUMS` 전부 일치)을 받아 순서대로 PR 하나씩 반영한다. 설계 창의 수치(예: 681 통과)는 a1fc935 기준 환경의 것이고, **여기 적는 수치는 main(FastAPI 0.162.2 / Starlette 1.10 / Pillow 13 / pytest 9)에서 새로 측정한 값**이다.
+
+| # | 패치 | 처리 | PR | 비고 |
+|---|---|---|---|---|
+| 1 | legal | 반영(새 기능) | (이 PR) | `git apply`가 충돌 없이 적용됨. 스냅샷 재생성: 새 경로 5개만 추가(84→89, 삭제 0) |
