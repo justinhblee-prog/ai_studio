@@ -3160,6 +3160,7 @@ def _job_at_persist_output(repos, jobs, outbox, ws, owner):
     task = poll.claim_next_poll_task(worker, 60)
     assert task is not None and task["job_id"] == job["job_id"], "test must claim its own poll task"
     poll.reschedule_poll_task(task["task_id"], worker, delay_seconds=0, phase="persist_output")
+    _isolate_queue(job["job_id"])
     task = poll.claim_next_poll_task(worker, 60)
     assert task["job_id"] == job["job_id"] and task["phase"] == "persist_output"
     jobs.transition(job["job_id"], "post_processing", actor_id=owner)
@@ -3356,3 +3357,188 @@ def test_outbox_expired_lease_is_quarantined_and_stale_worker_cannot_complete(re
     assert status == "needs_reconciliation"
     final = jobs.get(jid)
     assert final["status"] == "queued" and final["error_code"] == "PROVIDER_START_UNKNOWN"
+
+
+def test_project_archive_vs_lookbook_draft_create_never_leaves_an_inactive_project_reference(repos):
+    """Invariant under contention: an unarchived Lookbook Draft never references a non-ACTIVE Project."""
+    import threading
+
+    import psycopg
+    violations, errors = [], []
+    for i in range(25):
+        ws, owner, editor, viewer, outsider, prod, proj, chr_ = _lookbook_world(repos)
+        barrier = threading.Barrier(2)
+
+        def child():
+            try:
+                barrier.wait()
+                repos["lookbooks"].create_draft(ws, editor, {"title": "T", "product_ids": [prod], "project_id": proj})
+            except Exception as exc:  # noqa: BLE001
+                if not isinstance(exc, ValueError) and type(exc).__name__ != "LookbookStateError":
+                    errors.append(repr(exc))
+
+        def parent():
+            try:
+                barrier.wait()
+                repos["projects"].update(proj, editor, name="Campaign", project_type="general", status="ARCHIVED")
+            except Exception as exc:  # noqa: BLE001
+                if type(exc).__name__ != "ProjectConflictError":
+                    errors.append(repr(exc))
+        ts = [threading.Thread(target=child), threading.Thread(target=parent)]
+        [t.start() for t in ts]; [t.join() for t in ts]
+        with psycopg.connect(DSN) as conn:
+            if conn.execute("""SELECT count(*) FROM lookbook_draft_entities e JOIN lookbook_drafts d ON d.draft_id=e.draft_id
+                JOIN projects p ON p.project_id=e.entity_id WHERE e.entity_type='project' AND e.entity_id=%s
+                AND d.archived_at IS NULL AND p.status<>'ACTIVE'""", (proj,)).fetchone()[0]:
+                violations.append(i)
+    assert not errors, errors
+    assert not violations, f"unarchived Lookbook Drafts reference a non-ACTIVE Project in iterations {violations}"
+
+
+def test_asset_delete_is_refused_while_an_active_character_links_it(repos):
+    ws, owner, editor, *_ = _workspace(repos)
+    img = _image(repos, ws, owner, "chr-link")
+    chr_ = repos["characters"].create(workspace_id=ws, actor_id=editor, payload=_char(), asset_ids=[img])["character_id"]
+    with pytest.raises(Exception) as err:
+        repos["assets"].soft_delete_asset(img, ws, actor_id=owner)
+    assert type(err.value).__name__ == "AssetConflictError" and "Character" in str(err.value)
+    repos["characters"].soft_delete(chr_, ws, editor)
+    assert repos["assets"].soft_delete_asset(img, ws, actor_id=owner) is True
+
+
+def _character_asset_race(repos, make_character, rounds=25):
+    """Run `make_character(ws, editor, asset)` against `soft_delete_asset`; count active characters linking a deleted asset."""
+    import threading
+
+    import psycopg
+    ws, owner, editor, *_ = _workspace(repos)
+    violations, errors = [], []
+    for i in range(rounds):
+        asset = _image(repos, ws, owner, f"crace-{i}")
+        barrier = threading.Barrier(2)
+
+        def writer():
+            try:
+                barrier.wait()
+                make_character(ws, editor, asset)
+            except Exception as exc:  # noqa: BLE001
+                if not isinstance(exc, ValueError):
+                    errors.append(repr(exc))
+
+        def deleter():
+            try:
+                barrier.wait()
+                repos["assets"].soft_delete_asset(asset, ws, actor_id=owner)
+            except Exception as exc:  # noqa: BLE001
+                if type(exc).__name__ not in {"AssetConflictError", "RepositoryConflictError"}:
+                    errors.append(repr(exc))
+        ts = [threading.Thread(target=writer), threading.Thread(target=deleter)]
+        [t.start() for t in ts]; [t.join() for t in ts]
+        with psycopg.connect(DSN) as conn:
+            if conn.execute("""SELECT count(*) FROM character_assets ca JOIN characters c ON c.character_id=ca.character_id
+                JOIN assets a ON a.asset_id=ca.asset_id WHERE ca.asset_id=%s AND c.deleted_at IS NULL
+                AND a.deleted_at IS NOT NULL""", (asset,)).fetchone()[0]:
+                violations.append(i)
+    return violations, errors
+
+
+def test_asset_delete_vs_character_create_never_leaves_a_dangling_reference(repos):
+    violations, errors = _character_asset_race(
+        repos, lambda ws, editor, asset: repos["characters"].create(
+            workspace_id=ws, actor_id=editor, payload=_char(), asset_ids=[asset]))
+    assert not errors, errors
+    assert not violations, f"active Characters link a deleted asset in iterations {violations}"
+
+
+def test_asset_delete_vs_character_update_never_leaves_a_dangling_reference(repos):
+    def make(ws, editor, asset):
+        chr_ = repos["characters"].create(workspace_id=ws, actor_id=editor, payload=_char())["character_id"]
+        repos["characters"].update(chr_, ws, editor, payload=_char(), asset_ids=[asset])
+    violations, errors = _character_asset_race(repos, make)
+    assert not errors, errors
+    assert not violations, f"active Characters link a deleted asset in iterations {violations}"
+
+
+def test_job_workspace_listing_pages_are_ordered_complete_and_isolated(repos):
+    import psycopg
+
+    jobs, _outbox = _job_repos()
+    ws, owner, *_ = _workspace(repos)
+    other_ws, other_owner, *_ = _workspace(repos)
+    mine = [jobs.create(_job_payload(ws, owner, key=str(i)))[0]["job_id"] for i in range(7)]
+    foreign = jobs.create(_job_payload(other_ws, other_owner))[0]["job_id"]
+    with psycopg.connect(DSN) as conn:  # force created_at ties so only the job_id tie-break orders them
+        conn.execute("""UPDATE generation_jobs SET created_at = CASE WHEN job_id = ANY(%s) THEN %s::timestamptz
+                        ELSE created_at END WHERE workspace_id=%s""",
+                     (mine[:4], "2030-01-01T00:00:00+00:00", ws))
+    full = [j["job_id"] for j in jobs.list_for_workspace(ws, limit=200)]
+    assert sorted(full) == sorted(mine) and foreign not in full and len(full) == 7
+    with psycopg.connect(DSN) as conn:
+        expected = [r[0] for r in conn.execute(
+            "SELECT job_id FROM generation_jobs WHERE workspace_id=%s ORDER BY created_at DESC, job_id DESC", (ws,))]
+    assert full == expected
+    tied = [j for j in full if j in mine[:4]]
+    assert tied == sorted(mine[:4], reverse=True)
+    paged = []
+    for offset in (0, 3, 6, 9):
+        paged += [j["job_id"] for j in jobs.list_for_workspace(ws, limit=3, offset=offset)]
+    assert paged == full, "pages must concatenate to the full ordered list without gaps or duplicates"
+    assert jobs.list_for_workspace(ws, limit=3, offset=7) == []
+    assert [j["job_id"] for j in jobs.list_for_workspace(other_ws, limit=50)] == [foreign]
+    for bad in ({"limit": 0}, {"limit": 201}, {"limit": 5, "offset": -1}):
+        with pytest.raises(ValueError):
+            jobs.list_for_workspace(ws, **bad)
+
+
+def _claimed_outbox(repos):
+    ws, owner, *_ = _workspace(repos)
+    jobs, outbox = _job_repos()
+    job, _ = jobs.create(_job_payload(ws, owner))
+    _isolate_queue(job["job_id"])
+    owner_worker = f"worker-{uuid.uuid4().hex[:8]}"
+    claimed = outbox.claim_next_outbox(owner_worker, 60)
+    assert claimed["job_id"] == job["job_id"]
+    return jobs, outbox, job["job_id"], claimed["event_id"], owner_worker
+
+
+def _park_job_rows(job_id):
+    """Leave no claimable dispatch/poll row behind for tests that share this database."""
+    import psycopg
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        conn.execute("UPDATE generation_outbox SET available_at=now()+interval '100 years' WHERE status='pending' AND job_id=%s", (job_id,))
+        conn.execute("UPDATE generation_poll_tasks SET available_at=now()+interval '100 years' WHERE status='pending' AND job_id=%s", (job_id,))
+
+
+def _outbox_row(event_id):
+    import psycopg
+    with psycopg.connect(DSN) as conn:
+        return conn.execute("SELECT status, claimed_by FROM generation_outbox WHERE event_id=%s", (event_id,)).fetchone()
+
+
+def test_outbox_completion_and_unknown_are_fenced_to_the_claiming_worker(repos):
+    """A different worker with its own valid claim elsewhere must not finish an event it does not hold."""
+    jobs, outbox, jid, event_id, holder = _claimed_outbox(repos)
+    intruder = f"worker-{uuid.uuid4().hex[:8]}"
+    with pytest.raises(RuntimeError):
+        outbox.complete_outbox_submission(event_id, jid, "prov-intruder", intruder)
+    assert outbox.mark_outbox_unknown(event_id, jid, "intruder", intruder) is False
+    assert tuple(_outbox_row(event_id)) == ("processing", holder) and jobs.get(jid)["status"] == "queued"
+    try:
+        assert outbox.complete_outbox_submission(event_id, jid, "prov-holder", holder)["status"] == "running"
+        assert tuple(_outbox_row(event_id))[0] == "processed"
+    finally:
+        _park_job_rows(jid)
+
+
+def test_outbox_expired_but_unreclaimed_lease_cannot_complete_or_mark_unknown(repos):
+    """Expiry alone (no later claim has quarantined the row yet) must already fence the old owner."""
+    import psycopg
+    jobs, outbox, jid, event_id, holder = _claimed_outbox(repos)
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        conn.execute("UPDATE generation_outbox SET lease_expires_at=now()-interval '1 second' WHERE event_id=%s", (event_id,))
+    with pytest.raises(RuntimeError):
+        outbox.complete_outbox_submission(event_id, jid, "prov-late", holder)
+    assert outbox.mark_outbox_unknown(event_id, jid, "late", holder) is False
+    assert tuple(_outbox_row(event_id)) == ("processing", holder) and jobs.get(jid)["status"] == "queued"
+    with psycopg.connect(DSN, autocommit=True) as conn:  # settle the row so no later claim has to quarantine it
+        conn.execute("UPDATE generation_outbox SET status='needs_reconciliation', claimed_by=NULL, lease_expires_at=NULL WHERE event_id=%s", (event_id,))

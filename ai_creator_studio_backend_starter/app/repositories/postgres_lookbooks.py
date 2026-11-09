@@ -150,7 +150,7 @@ class PostgreSQLLookbookRepository:
             raise DetailedValueError({"code": "LOOKBOOK_IMAGE_ASSET_REQUIRED",
                 "message": "All product/person references must be active image assets in this workspace."})
         if p.get("project_id"):
-            proj = conn.execute("SELECT status FROM projects WHERE project_id=%s AND workspace_id=%s",
+            proj = conn.execute("SELECT status FROM projects WHERE project_id=%s AND workspace_id=%s FOR SHARE",
                                 (p["project_id"], workspace_id)).fetchone()
             if proj is None:
                 raise ValueError("Project must belong to this workspace")

@@ -388,6 +388,9 @@ class PostgreSQLAssetMetadataRepository:
                 ("""SELECT 1 FROM lookbook_draft_assets l JOIN lookbook_drafts d ON d.draft_id=l.draft_id
                     WHERE l.asset_id=%s AND d.workspace_id=%s AND d.archived_at IS NULL LIMIT 1""", (asset_id, workspace_id),
                  "Asset is referenced by an active Lookbook Draft; archive the draft first"),
+                ("""SELECT 1 FROM character_assets ca JOIN characters c ON c.character_id=ca.character_id
+                    WHERE ca.asset_id=%s AND c.workspace_id=%s AND c.deleted_at IS NULL LIMIT 1""", (asset_id, workspace_id),
+                 "Asset is referenced by an active Character; update or delete the Character first"),
             )
             for query, params, message in guards:
                 if conn.execute(query, params).fetchone():

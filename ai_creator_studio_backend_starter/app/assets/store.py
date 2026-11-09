@@ -374,6 +374,14 @@ def delete_asset(asset_id: str, workspace_id: str, actor_id: str = "system") -> 
                     (asset_id, workspace_id)).fetchone()
                 if referenced:
                     raise ValueError(f"Asset is referenced by an active {feature_name}; archive the draft first")
+        character_table = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='character_assets'").fetchone()
+        if character_table:
+            character_reference = db.execute("""SELECT 1 FROM character_assets ca
+                JOIN characters c ON c.character_id=ca.character_id
+                WHERE ca.asset_id=? AND c.workspace_id=? AND c.deleted_at IS NULL LIMIT 1""",
+                (asset_id, workspace_id)).fetchone()
+            if character_reference:
+                raise ValueError("Asset is referenced by an active Character; update or delete the Character first")
         version_rows = db.execute("SELECT storage_key FROM asset_versions WHERE asset_id=?", (asset_id,)).fetchall()
         keys = {row["storage_key"], *(item["storage_key"] for item in version_rows)}
         now = datetime.now(timezone.utc).isoformat()
