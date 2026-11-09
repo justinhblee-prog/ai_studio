@@ -1,0 +1,40 @@
+{
+  "_note": "원본 tasks.json이 없어 2026-11-09 세션에서 새로 작성함. 이 세션의 실제 작업만 기록.",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "저장소에서 CURRENT_HANDOFF_WORK-E.md, tasks.json, ci.yml 점검",
+      "status": "done",
+      "result": "세 파일 모두 없었음 (.gitignore만 존재)"
+    },
+    {
+      "id": "T2",
+      "title": ".github/workflows/ci.yml 초안 작성",
+      "status": "done",
+      "result": "ruff + pytest, Python 3.11/3.12"
+    },
+    {
+      "id": "T3",
+      "title": "PR #1로 CI 실행 확인",
+      "status": "done",
+      "result": "test (3.11), test (3.12) 모두 success (코드 없는 상태)"
+    },
+    {
+      "id": "T4",
+      "title": "PR #1 머지",
+      "status": "blocked",
+      "blocked_by": "사용자 지시 대기"
+    },
+    {
+      "id": "T5",
+      "title": "원본 핸드오프 문서와 tasks.json 확보 후 대체",
+      "status": "blocked",
+      "blocked_by": "원본 위치 불명"
+    },
+    {
+      "id": "T6",
+      "title": "코드 추가 후 ci.yml 보강 (pip 캐시, pytest exit 5 허용 제거)",
+      "status": "todo"
+    }
+  ]
+}
