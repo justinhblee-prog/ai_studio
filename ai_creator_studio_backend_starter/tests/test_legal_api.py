@@ -138,3 +138,50 @@ def test_concurrent_identical_deletion_requests_create_one_pending_row(legal_env
     assert codes.count(201) == 1, codes
     items = client.get("/v1/me/deletion-requests", headers=auth()).json()["items"]
     assert len(items) == 1 and items[0]["status"] == "pending"
+
+
+def _consent(token="token-user-a"):
+    items = client.get("/v1/me/consents", headers=auth(token)).json()["items"]
+    return {i["purpose"]: i["granted"] for i in items}
+
+
+def test_ai_training_consent_defaults_to_refused_and_needs_auth(legal_env):
+    assert client.get("/v1/me/consents").status_code == 401
+    assert client.put("/v1/me/consents/ai_training", json={"granted": True}).status_code == 401
+    assert _consent() == {"ai_training": False}
+
+
+def test_consent_grant_withdraw_regrant_keeps_history_and_latest_wins(legal_env):
+    from app.assets.store import _connect
+    for granted in (True, False, True):
+        assert client.put("/v1/me/consents/ai_training", headers=auth(), json={"granted": granted}).status_code == 200
+    assert _consent() == {"ai_training": True}
+    client.put("/v1/me/consents/ai_training", headers=auth(), json={"granted": False})
+    assert _consent() == {"ai_training": False}
+    with _connect() as db:
+        assert db.execute("SELECT COUNT(*) AS n FROM consents WHERE user_id='user-a'").fetchone()["n"] == 4
+
+
+def test_consent_is_isolated_per_user_and_rejects_unknown_purpose(legal_env):
+    client.put("/v1/me/consents/ai_training", headers=auth(), json={"granted": True})
+    assert _consent("token-user-b") == {"ai_training": False}
+    assert client.put("/v1/me/consents/marketing", headers=auth(), json={"granted": True}).status_code == 404
+    assert client.put("/v1/me/consents/ai_training", headers=auth(), json={"granted": "yes please", "x": 1}).status_code == 422
+
+
+def test_consent_is_not_part_of_required_document_acceptance(legal_env):
+    client.post("/v1/me/legal-acceptances", headers=auth(), json={"documents": _all_current()})
+    assert client.get("/v1/me/legal-status", headers=auth()).json()["accepted"] is True
+    assert _consent() == {"ai_training": False}
+
+
+def test_a_consent_row_records_the_privacy_policy_version_it_was_given_under(legal_env, monkeypatch):
+    """The version is the evidence of which text the user agreed to, so it must be stored, and the right one."""
+    from app.assets.store import _connect
+    client.put("/v1/me/consents/ai_training", headers=auth(), json={"granted": True})
+    monkeypatch.setenv("LEGAL_DOCUMENT_VERSIONS", "privacy=2027-01-01")
+    client.put("/v1/me/consents/ai_training", headers=auth(), json={"granted": False})
+    with _connect() as db:
+        rows = db.execute("SELECT granted, version FROM consents WHERE user_id='user-a' ORDER BY seq").fetchall()
+    assert [(r["granted"], r["version"]) for r in rows] == [(1, "draft-2026-11-09"), (0, "2027-01-01")]
+    assert _consent()["ai_training"] is False

@@ -652,6 +652,20 @@
         "title": "CharacterResponse",
         "type": "object"
       },
+      "ConsentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "granted": {
+            "title": "Granted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "granted"
+        ],
+        "title": "ConsentInput",
+        "type": "object"
+      },
       "CreateTryOnJob": {
         "properties": {
           "category": {
@@ -7616,6 +7630,121 @@
         "summary": "Submit Lookbook For Review",
         "tags": [
           "lookbook"
+        ]
+      }
+    },
+    "/v1/me/consents": {
+      "get": {
+        "description": "Optional consents (default: not granted). Separate from accepting the terms and privacy policy.",
+        "operationId": "list_consents_v1_me_consents_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Consents",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
+    "/v1/me/consents/{purpose}": {
+      "put": {
+        "description": "Grant or withdraw an optional consent. History is kept; withdrawal takes effect immediately.",
+        "operationId": "set_consent_v1_me_consents__purpose__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "purpose",
+            "required": true,
+            "schema": {
+              "title": "Purpose",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Consent",
+        "tags": [
+          "legal"
         ]
       }
     },

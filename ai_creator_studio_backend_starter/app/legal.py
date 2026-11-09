@@ -66,6 +66,16 @@ def _initialize() -> None:
             resolved_at TEXT
         )""")
         db.execute("CREATE INDEX IF NOT EXISTS idx_deletion_requests_user ON deletion_requests(user_id, requested_at)")
+        # Optional consents are append-only; the newest row per (user, purpose) is the current state.
+        db.execute("""CREATE TABLE IF NOT EXISTS consents (
+            seq INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            granted INTEGER NOT NULL CHECK(granted IN (0,1)),
+            version TEXT NOT NULL,
+            changed_at TEXT NOT NULL
+        )""")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_consents_user_purpose ON consents(user_id, purpose, seq)")
         # At most one open request per user and target.
         db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_deletion_requests_open
             ON deletion_requests(user_id, scope, COALESCE(workspace_id,'')) WHERE status='pending'""")
@@ -87,6 +97,29 @@ class DeletionRequestInput(BaseModel):
     scope: Literal["account", "workspace_content"]
     workspace_id: str | None = Field(default=None, min_length=1, max_length=128)
     reason: str | None = Field(default=None, max_length=500)
+
+
+CONSENT_PURPOSES = ("ai_training",)
+
+
+class ConsentInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    granted: bool
+
+
+def _consent_state(user_id: str) -> list[dict]:
+    """Current state per purpose. No row means not granted (default is refusal)."""
+    version = current_versions()["privacy"]
+    with _connect() as db:
+        rows = db.execute("""SELECT c.purpose, c.granted, c.changed_at FROM consents c
+            WHERE c.user_id=? AND c.seq=(SELECT MAX(seq) FROM consents WHERE user_id=c.user_id AND purpose=c.purpose)""", (user_id,)).fetchall()
+    by_purpose = {r["purpose"]: r for r in rows}
+    items = []
+    for purpose in CONSENT_PURPOSES:
+        row = by_purpose.get(purpose)
+        items.append({"purpose": purpose, "granted": bool(row["granted"]) if row else False,
+                      "changed_at": row["changed_at"] if row else None, "current_version": version})
+    return items
 
 
 def _status_for(user_id: str) -> dict:
@@ -194,3 +227,22 @@ async def cancel_deletion_request(request_id: str, user_id: str = Depends(curren
             raise HTTPException(status_code=409, detail="Only a pending deletion request can be cancelled")
         db.execute("UPDATE deletion_requests SET status='cancelled', resolved_at=? WHERE request_id=?", (_now(), request_id))
     return Response(status_code=204)
+
+
+@router.get("/v1/me/consents")
+async def list_consents(user_id: str = Depends(current_user)):
+    """Optional consents (default: not granted). Separate from accepting the terms and privacy policy."""
+    _initialize()
+    return {"items": _consent_state(user_id)}
+
+
+@router.put("/v1/me/consents/{purpose}")
+async def set_consent(purpose: str, body: ConsentInput, user_id: str = Depends(current_user)):
+    """Grant or withdraw an optional consent. History is kept; withdrawal takes effect immediately."""
+    _initialize()
+    if purpose not in CONSENT_PURPOSES:
+        raise HTTPException(status_code=404, detail="Unknown consent purpose")
+    with _connect() as db:
+        db.execute("INSERT INTO consents(user_id,purpose,granted,version,changed_at) VALUES(?,?,?,?,?)",
+                   (user_id, purpose, 1 if body.granted else 0, current_versions()["privacy"], _now()))
+    return {"items": _consent_state(user_id)}
