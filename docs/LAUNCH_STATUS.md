@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #11 (머지 911fa32) — 백업·복구
+- **CI (head 4f86afe, run 42568761241)**: backend success — pytest `740 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`. 로그에 `failed` 없음.
+- **완료**: SQLite 온라인 백업 + 파일 저장소 + 매니페스트 해시 검증, 새 빈 디렉터리로만 복구, 백업→복구→API 조회 일치 시험 15건, 소요 시간 기록(§8). 시험 중 결함 2건 발견·수정(스냅샷의 WAL 부산물, 손상 시 원시 sqlite 오류 노출). 변이 13종 적발, 2종은 동치로 판단(적발 못 함).
+- **미검증**: 실제 서버·네트워크 디스크 소요 시간, 외부 보관·암호화·보존·스케줄, 실제 배포에서의 복구 훈련.
+- **차단**: L-01 영구 삭제(삭제 요청 테이블·API 없음).
+
 ### 2026-11-09 · PR #10 (머지 525ae7d) — 권한별·교차 Workspace·모바일 폭 E2E
 - **CI (head db2fbf3, run 42567811198)**: backend success — pytest `725 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10 steps passed`, `SUMMARY 6/6 rights steps passed`, `SUMMARY 6/6 role scenarios passed`. 로그에 `failed` 없음.
 - **완료**: 6개 시나리오(뷰어는 업로드·승인 불가, 편집자는 업로드 가능·승인 불가, 소유자 승인, 외부인 API의 모든 읽기·쓰기 거절, 외부인 UI에서 공유 데이터 미노출, 390px 모바일 가로 넘침 없음). 변이 4/4 적발(뷰어 업로드 허용, 편집자 승인 허용, 비멤버를 뷰어로 취급, 폭 강제). 간헐 실패 1건의 원인(시드된 `photo-enhance.png`와 부분 문자열 일치)을 찾아 고침: 수정 후 25회 중 0회 실패(수정 전 3회 반복 중 1회, 20회 시도 중 1회).
@@ -131,3 +137,10 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 | 65.8 MB (파일 300개, 2만 행) | 0.25 s | 0.06 s | 0.27 s |
 | 1,046.6 MB (파일 1000개, 10만 행) | 2.21 s | 1.20 s | 2.73 s |
 - **미검증/한계**: 운영 서버·네트워크 디스크에서의 소요 시간; 백업 파일의 외부 보관·암호화·보존 기간·자동 스케줄(운영 결정, 아직 없음); 복구 훈련을 실제 배포 환경에서 해 본 적 없음; 백업 중 파일 저장소가 바뀌는 경우의 일관성은 DB만 보장(파일은 복사 시점의 상태, 쓰는 중 파일은 해시가 복사본 기준으로 기록됨); `ASSET_STORAGE_DIR`와 `OUTPUT_DIR`만 대상(다른 경로를 쓰면 지정 필요); PG 백업은 범위 밖(런타임은 SQLite).
+
+## 9. AI 생성물 표시 (큐 10 / L-07, 브랜치 ai-label)
+- **이미 있던 것(중복 구현 안 함)**: 사진 스튜디오 manifest·룩북 출력/패키지 manifest·파생 자산 출처에는 `is_ai_generated: false`가 이미 있고, 사진 UI는 "비AI 로컬 조정"을 표시함(Pillow 기반 결정적 조정이라 사실과 일치).
+- **빠져 있던 것(이번에 구현)**: 외부 Provider가 만든 **작업 출력**에는 표시가 전혀 없었음. 이제 ① 출력 목록 API(`/v1/generation-jobs/{id}/outputs`)에 `is_ai_generated`·`provider`·`model`, ② 검수 API 응답의 `output.is_ai_generated`, ③ 내부 내보내기 manifest의 최상위·출력별 `is_ai_generated`, ④ 결과물 검수 화면의 배지("AI 생성물 · fashn / tryon-v1.6" / "AI 미사용 출력" / 서버가 값을 안 주면 "AI 생성 여부 미확인").
+- 판정 규칙(`app/ai_disclosure.py`): Provider가 `mock`이면 AI 아님, **그 외·알 수 없음·비어 있음은 AI 생성물로 표시**(애매하면 공개 쪽). 판정은 작업의 Provider 하나로만 하며 저장소는 건드리지 않음(SQLite/PG 공통, OpenAPI 스냅샷에는 선택 필드 4개만 추가).
+- 시험: 백엔드 API 시험 5건(mock/fashn/미지정, 목록·검수·manifest, 헬퍼) — 변이 9/9 적발; 프런트 로직 3건; 브라우저 `disclosure_flow.mjs` 4/4 단계(10회 연속 통과) + 파이프라인 흐름에서 ZIP의 `manifest.json`이 `is_ai_generated: false`임을 확인 — 변이 4/4 적발(배지 제거, 항상 AI 미사용, API 미표시, 패키지 manifest 반전).
+- **한계/미검증**: ① mock Provider는 이미지를 만들지 않아 **E2E의 작업 출력은 시드한 것**(단위 시험과 같은 방식) — 실제 Provider 경로는 끝까지 시험하지 않음. ② 표시 문구는 제품 문구이며 법적으로 요구되는 표기 문구·형식(워터마크, 메타데이터 삽입 등)은 정하지 않음 — 법무 입력 필요. ③ 내보낸 이미지 파일 자체에는 AI 표시를 넣지 않음(manifest와 화면에만). ④ 작업 출력 manifest는 SQLite 구현에만 있음(PG에는 해당 manifest 구현이 없음). ⑤ 룩북에 Provider 출력이 들어오는 경로는 아직 없어 룩북 항목별 AI 판정은 "로컬 보정 = 아님"으로 고정(그 경로가 생기면 다시 판정해야 함).
