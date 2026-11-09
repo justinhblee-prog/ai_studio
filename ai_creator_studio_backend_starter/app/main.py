@@ -5,12 +5,13 @@ from typing import Any
 from app.viewer_responses import ManifestExportResponse
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from app.private_file_response import PrivateFileError, open_private_file_response
 from pydantic import BaseModel, ConfigDict, Field
 from app import config, job_repository
 from app.repositories.job_limits import DailyJobLimitExceeded
 from app.ai_disclosure import disclose_job_outputs, is_ai_generated_provider
+from app.deep_health import run_deep_health
 from app.schemas import CreateTryOnJob, JobResponse, EngineInfo, ReconcileProviderSubmission, RetryPollTaskRequest, CancelGenerationJobRequest
 from app.providers.mock import MockProvider
 from app.providers.fashn import FashnProvider
@@ -192,6 +193,14 @@ async def runtime_readiness_diagnostics(user_id: str = Depends(current_user)):
     """Read-only integration readiness; restricted to platform operators."""
     require_platform_ops(user_id)
     return build_platform_readiness()
+
+
+@app.get("/internal/ops/health")
+async def deep_health_diagnostics(user_id: str = Depends(current_user)):
+    """Deep health (database, storage, disk, workers, backup); 503 when any check fails. Platform operators only."""
+    require_platform_ops(user_id)
+    report = run_deep_health()
+    return JSONResponse(report, status_code=503 if report["status"] == "fail" else 200)
 
 
 @app.get("/internal/ops/provider-registry")

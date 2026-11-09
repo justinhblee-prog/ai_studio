@@ -62,6 +62,12 @@ def _non_negative_int(name: str, default: int) -> int:
 # Cost control: maximum generation jobs a workspace may create per UTC day. 0 = unlimited (default, backward compatible).
 GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE = _non_negative_int("GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE", 0)
 
+# Deep health thresholds (GET /internal/ops/health). BACKUP_DIR is optional: where backup_restore.py writes backups.
+HEALTH_DISK_WARN_FREE_PERCENT = _non_negative_int("HEALTH_DISK_WARN_FREE_PERCENT", 15)
+HEALTH_DISK_FAIL_FREE_PERCENT = _non_negative_int("HEALTH_DISK_FAIL_FREE_PERCENT", 5)
+HEALTH_BACKUP_MAX_AGE_HOURS = _non_negative_int("HEALTH_BACKUP_MAX_AGE_HOURS", 26)
+BACKUP_DIR = Path(os.getenv("BACKUP_DIR")).resolve() if os.getenv("BACKUP_DIR", "").strip() else None
+
 WORKER_STALE_AFTER_SECONDS = int(os.getenv("WORKER_STALE_AFTER_SECONDS", "30"))
 
 # Durable provider polling worker controls. Backoff is bounded; Retry-After is honored only from verified response headers.

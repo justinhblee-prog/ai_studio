@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #12 (머지 1567d9e) — L-07 AI 생성물 표시
+- **CI (head 4789581, run 42569714594)**: backend success — pytest `745 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`. 로그에 `failed` 없음.
+- **완료**: Provider 작업 출력의 AI 생성물 표시(목록·검수 API, 내부 manifest, 검수 화면 배지). 사진·룩북의 기존 `is_ai_generated: false`는 중복 구현하지 않고 시험으로 고정. 변이 백엔드 9/9·브라우저 4/4 적발. 세부는 §9.
+- **미검증**: 실제 Provider 경로(E2E의 작업 출력은 시드); 법적으로 요구되는 표기 문구·워터마크·메타데이터; 내보낸 이미지 파일 자체의 AI 표시 없음.
+- **차단**: 표기 문구는 법무 입력 필요.
+
 ### 2026-11-09 · PR #11 (머지 911fa32) — 백업·복구
 - **CI (head 4f86afe, run 42568761241)**: backend success — pytest `740 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`. 로그에 `failed` 없음.
 - **완료**: SQLite 온라인 백업 + 파일 저장소 + 매니페스트 해시 검증, 새 빈 디렉터리로만 복구, 백업→복구→API 조회 일치 시험 15건, 소요 시간 기록(§8). 시험 중 결함 2건 발견·수정(스냅샷의 WAL 부산물, 손상 시 원시 sqlite 오류 노출). 변이 13종 적발, 2종은 동치로 판단(적발 못 함).
@@ -144,3 +150,11 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - 판정 규칙(`app/ai_disclosure.py`): Provider가 `mock`이면 AI 아님, **그 외·알 수 없음·비어 있음은 AI 생성물로 표시**(애매하면 공개 쪽). 판정은 작업의 Provider 하나로만 하며 저장소는 건드리지 않음(SQLite/PG 공통, OpenAPI 스냅샷에는 선택 필드 4개만 추가).
 - 시험: 백엔드 API 시험 5건(mock/fashn/미지정, 목록·검수·manifest, 헬퍼) — 변이 9/9 적발; 프런트 로직 3건; 브라우저 `disclosure_flow.mjs` 4/4 단계(10회 연속 통과) + 파이프라인 흐름에서 ZIP의 `manifest.json`이 `is_ai_generated: false`임을 확인 — 변이 4/4 적발(배지 제거, 항상 AI 미사용, API 미표시, 패키지 manifest 반전).
 - **한계/미검증**: ① mock Provider는 이미지를 만들지 않아 **E2E의 작업 출력은 시드한 것**(단위 시험과 같은 방식) — 실제 Provider 경로는 끝까지 시험하지 않음. ② 표시 문구는 제품 문구이며 법적으로 요구되는 표기 문구·형식(워터마크, 메타데이터 삽입 등)은 정하지 않음 — 법무 입력 필요. ③ 내보낸 이미지 파일 자체에는 AI 표시를 넣지 않음(manifest와 화면에만). ④ 작업 출력 manifest는 SQLite 구현에만 있음(PG에는 해당 manifest 구현이 없음). ⑤ 룩북에 Provider 출력이 들어오는 경로는 아직 없어 룩북 항목별 AI 판정은 "로컬 보정 = 아님"으로 고정(그 경로가 생기면 다시 판정해야 함).
+
+## 10. 심층 점검과 런북 (큐 14, 브랜치 health-runbook)
+- `GET /internal/ops/health`(운영자 전용): DB 존재·읽기·`PRAGMA quick_check`, 저장 폴더 쓰기, 디스크 여유 비율(경고 15% 미만, 실패 5% 미만), 필수 워커의 신선한 하트비트(+ 수동 조정이 필요한 제출 수), 최신 백업 나이(26시간 초과·없음·미설정은 경고). 전체 상태는 가장 나쁜 값이고 **실패면 HTTP 503**. 응답에 파일 경로·비밀 없음. `/health`는 공개 최소 생존 확인 그대로.
+- `docs/RUNBOOK.md`: 프로세스, 설정 표, 점검 해석, 백업·복구 절차, 장애 대응 표, 배포·롤백, 다루지 않는 것. **실제 배포에서 실행해 본 적은 없음**(배포 대상 정보 없음).
+- **시험 중 발견·수정한 결함 2건**: ① 워커 건강 판정이 상태 `running`만 인정해서, `idle`/`working`만 보내는 `output_asset_link` 워커가 **항상 비정상**으로 판정되고 기본 `REQUIRED_WORKER_TYPES`에 포함되어 있어 운영 알림에 `worker:output_asset_link:stale` **거짓 critical 알림**이 났음(기존 `/internal/ops/workers`·`metrics`도 같은 영향) → `running`·`idle`·`working`+신선한 하트비트를 살아 있음으로 통일(SQLite 두 곳). ② 점검이 호출하는 워커 상태 조회가 스키마를 초기화하면서 **없는 DB 파일을 새로 만들었음**(장애로 DB가 사라졌을 때 빈 DB가 생겨 문제를 가림) → DB 파일이 없으면 만들지 않고 실패 보고. 이 둘은 새 시험이 기준선에서 먼저 빨갛게 나온 것으로 확인했고(수정 전 실패 확인), 수정 후 통과.
+- 시험: `tests/test_deep_health.py` 24건(각 점검의 ok/warn/fail, 없는 DB·손상 DB·quick_check 실패·폴더 아님·쓰기 불가·디스크 임계값·필수 워커 없음/오래됨·수동 조정·백업 신선도·가장 나쁜 값·엔드포인트 인증·503), `tests/test_worker_liveness.py` 8건. 변이 20/20 적발(처음 1건이 살아남아 사유 문구·"DB를 만들지 않음" 단언을 추가해 적발, 그 과정에서 위 결함 ②를 발견). 시험은 실제 디스크 여유에 의존하지 않도록 `disk_usage`를 고정(이 샌드박스는 실제 여유가 11.7%라 경고가 나왔음).
+- OpenAPI 스냅샷: 새 경로 1개만 추가(45줄 추가, 삭제 0).
+- **미검증/한계**: `PRAGMA quick_check`는 전체 `integrity_check`보다 약함; 디스크 임계값·백업 나이 기본값은 근거 있는 값이 아니라 출발점; PG 런타임 점검은 범위 밖(런타임은 SQLite); 점검은 외부 서비스(Supabase Auth, Provider)의 가용성을 보지 않음; 점검 결과를 외부 모니터에 연결하는 일은 하지 않았음.
