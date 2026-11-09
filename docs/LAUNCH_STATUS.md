@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #33 (머지 032bb2b) — E2E 시험의 경합 하나 수정 (`pilot_flow` 초안 저장)
+- **CI (head 7375e00, run 42625907062)**: backend success — pytest `848 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, `5/5 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **배경**: PR #32의 CI e2e가 이 단계에서 한 번 실패(`0 !== 1`) — 제품 결함이 아니라 시험의 경합(목록 대기 ≠ 저장 요청 완료 대기). POST를 600 ms 지연시켜 재현, 응답을 기다리도록 수정하고 같은 지연으로 통과 확인.
+- **미검증**: 같은 모양의 다른 단계는 전수 점검하지 않음(실제로 실패한 한 곳만 수정).
+- **차단**: 없음.
+
 ### 2026-11-09 · PR #31 (머지 2e8d8a1) — 서버의 동의 강제 (`LEGAL_REQUIRE_ACCEPTANCE`)
 - **CI (head 9e872f3, run 42624754322)**: backend success — pytest `848 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, `5/5 legal screen`(서버를 강제 모드로 띄움), `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: 설정을 켜면 동의 안 한 사용자의 API 호출이 403 `LEGAL_ACCEPTANCE_REQUIRED`(동의·철회·삭제 요청·`/internal/` 제외). 프런트는 동의 확인 뒤에 워크스페이스를 불러오거나 만든다. 변이 7종 적발.
