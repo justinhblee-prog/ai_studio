@@ -497,11 +497,11 @@
   {
     "id": "T56",
     "area": "백엔드",
-    "task": "Asset 버전 생성 메타데이터 보강 재구현",
-    "status": "진행예정",
+    "task": "Asset 버전 생성 메타데이터 보강 재구현 — 요구사항 문서 없음. SQLite↔PG 비교로 확인한 결과 코드 차이는 없었고, 비교 시험이 없던 부분을 보강(자산 행 필드, 경로·255자 파일명, previous_version 값, 모델 버전의 gltf_version·embedded_binary). 변이 7종 적발",
+    "status": "완료",
     "blocker": "",
-    "evidence": "—",
-    "today": ""
+    "evidence": "직접 확인",
+    "today": "V"
   },
   {
     "id": "T57",
@@ -520,5 +520,50 @@
     "blocker": "",
     "evidence": "직접 확인",
     "today": ""
+  },
+  {
+    "id": "T59",
+    "area": "프런트",
+    "task": "L-13 출시 빌드에서 Backend API 주소 입력란 제거·VITE_API_BASE_URL 고정 (출시 빌드는 환경변수만 사용, 저장 값 삭제, localhost 대체 없음, 누락 시 설정 오류 표시)",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
+  },
+  {
+    "id": "T60",
+    "area": "프런트·백엔드",
+    "task": "L-04 인물 사진 업로드 시 권리·동의 확인",
+    "status": "진행예정",
+    "blocker": "claude/LEGAL_IMPLEMENTATION_GAPS.md가 저장소에 없음(사용자 제공 필요). 확인 문구·기록 항목은 법률 결정",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T61",
+    "area": "프런트",
+    "task": "L-02 프런트 동의 화면",
+    "status": "진행예정",
+    "blocker": "claude/LEGAL_IMPLEMENTATION_GAPS.md가 저장소에 없음(사용자 제공 필요). 동의 대상·문구는 법률 결정",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T62",
+    "area": "관리",
+    "task": "ai_studio_legal_patch_20261109.zip 적용(APPLY.md 순서의 git apply, OpenAPI 스냅샷 재생성)",
+    "status": "진행예정",
+    "blocker": "zip이 세션에 없음(업로드 폴더·파일시스템 검색 모두 없음)",
+    "evidence": "—",
+    "today": ""
+  },
+  {
+    "id": "T63",
+    "area": "CI",
+    "task": "CI 'Live tests must not be silently skipped' 단계가 시험 실패를 가리던 문제 수정(pipefail + failed/skipped 검사)과 간헐 실패 시험(Lookbook 조립 경합) 설계 결함 수정",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
   }
 ]

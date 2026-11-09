@@ -9,6 +9,17 @@ import LookbookDraftWorkspace from '../LookbookDraftWorkspace';
 import OutputReviewWorkspace from '../OutputReviewWorkspace';
 import Studio3DViewer from '../Studio3DViewer';
 import { apiRequest, loadOrCreateWorkspace } from './apiClient.mjs';
+import { API_BASE_STORAGE_KEY, apiBaseConfigError, resolveApiBase } from './apiBaseUrl.mjs';
+
+// L-13: release builds take the API address only from VITE_API_BASE_URL (no input, no saved override).
+// import.meta.env.PROD is replaced at build time, so the input and its strings are removed from release bundles.
+const PRODUCTION_BUILD = import.meta.env.PROD;
+const API_EDITABLE = !import.meta.env.PROD;
+if (!API_EDITABLE) { try { window.localStorage.removeItem(API_BASE_STORAGE_KEY); } catch { /* storage may be disabled */ } }
+function rememberApiBase(value: string) {
+  if (!API_EDITABLE) return;
+  try { window.localStorage.setItem(API_BASE_STORAGE_KEY, value); } catch { /* storage may be disabled */ }
+}
 import {
   clearSession, getAuthenticatedUser, loadSession, normalizeSupabaseConfig,
   refreshSession, saveSession, sessionFromLocationHash, signInWithPassword,
@@ -76,13 +87,14 @@ function AuthGate({
       <button type="button" className="auth-back" onClick={() => setShowAuth(false)}>← 홈으로 돌아가기</button>
       <small>YOUR CREATIVE WORKSPACE</small><h2>{mode === 'login' ? '다시 오신 것을 환영합니다.' : '스튜디오 계정 만들기'}</h2>
       <p>{mode === 'login' ? '계정에 로그인하여 작업을 계속하세요.' : '이메일 인증 후 스튜디오를 사용할 수 있습니다.'}</p>
-      <label>Backend API 주소<input type="url" value={apiUrl} onChange={e => onApiUrlChange(e.target.value)} placeholder="https://api.your-domain.com" required disabled={busy}/></label>
+      {API_EDITABLE && <label>Backend API 주소<input type="url" value={apiUrl} onChange={e => onApiUrlChange(e.target.value)} placeholder="https://api.your-domain.com" required disabled={busy}/></label>}
+      {apiBaseConfigError({ production: PRODUCTION_BUILD, base: apiUrl }) && <div className="auth-error" role="alert">{apiBaseConfigError({ production: PRODUCTION_BUILD, base: apiUrl })}</div>}
       <label>이메일<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required disabled={busy}/></label>
       <label>비밀번호<input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={8} required disabled={busy}/></label>
       {error && <div className="auth-error" role="alert">{error}</div>}{notice && <div className="auth-notice" role="status">{notice}</div>}
       <button className="auth-submit" type="submit" disabled={busy || !email.trim() || password.length < 8}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '계정 만들기'} <span>↗</span></button>
       <div className="auth-switch">{mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'} <button type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); setNotice(''); }}>{mode === 'login' ? '회원가입' : '로그인'}</button></div>
-      <div className="auth-footnote">API 서버: {apiUrl || '미설정'}<br/>인증은 Supabase Auth로 처리됩니다. 비밀번호는 이 앱에서 저장하지 않습니다.</div>
+      <div className="auth-footnote">{API_EDITABLE && <>API 서버: {apiUrl || '미설정'}<br/></>}인증은 Supabase Auth로 처리됩니다. 비밀번호는 이 앱에서 저장하지 않습니다.</div>
     </form></div>
   </div>;
 }
@@ -92,12 +104,12 @@ function App() {
     url: import.meta.env.VITE_SUPABASE_URL,
     anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
   }), []);
-  const [api, setApi] = useState(() => {
-    const configured = import.meta.env.VITE_API_BASE_URL || '';
-    if (configured) return configured;
-    try { const saved = window.localStorage.getItem('acs.backend.baseUrl'); if (saved) return saved; } catch { /* storage may be disabled */ }
-    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : '';
-  });
+  const [api, setApi] = useState(() => resolveApiBase({
+    production: PRODUCTION_BUILD,
+    configured: import.meta.env.VITE_API_BASE_URL || '',
+    readSaved: () => { try { return window.localStorage.getItem(API_BASE_STORAGE_KEY) || ''; } catch { return ''; } },
+    hostname: window.location.hostname,
+  }));
   const [session, setSession] = useState<AuthSession | null>(() => loadSession() as AuthSession | null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -188,12 +200,13 @@ function App() {
     finally { setBusy(false); }
   };
 
-  if (!session) return <AuthGate config={supabaseConfig} apiUrl={api} onApiUrlChange={value => { setApi(value); try { window.localStorage.setItem('acs.backend.baseUrl', value); } catch { /* storage may be disabled */ } }} onAuthenticated={acceptSession}/>;
+  if (!session) return <AuthGate config={supabaseConfig} apiUrl={api} onApiUrlChange={value => { setApi(value); rememberApiBase(value); }} onAuthenticated={acceptSession}/>;
   if (apiState !== 'online' || !workspace) return <div className="connect-page">
     <div className="connect-card"><div className="brandmark">✦</div><small>AUTHENTICATED SESSION</small><h1>스튜디오 연결 확인 중</h1>
       <p>{user?.email || session.user?.email || '로그인 사용자'} 계정 인증은 완료되었습니다. 앱 API와 Workspace를 확인하고 있습니다.</p>
       {connectionError && <div className="auth-error" role="alert">{connectionError}</div>}
-      <label className="connect-api-label">Backend API 주소<input value={api} onChange={e => { setApi(e.target.value); try { window.localStorage.setItem('acs.backend.baseUrl', e.target.value); } catch { /* storage may be disabled */ } }} placeholder="https://api.your-domain.com"/></label>
+      {apiBaseConfigError({ production: PRODUCTION_BUILD, base: api }) && <div className="auth-error" role="alert">{apiBaseConfigError({ production: PRODUCTION_BUILD, base: api })}</div>}
+      {API_EDITABLE && <label className="connect-api-label">Backend API 주소<input value={api} onChange={e => { setApi(e.target.value); rememberApiBase(e.target.value); }} placeholder="https://api.your-domain.com"/></label>}
       <div className="connect-meta"><span>Supabase Auth</span><b>세션 보유</b><span>API 상태</span><b>{apiState === 'online' ? '연결됨' : '확인 필요'}</b></div>
       <button className="auth-submit" onClick={() => connectSession(session).catch(() => undefined)} disabled={busy}>{busy ? '연결 확인 중…' : '다시 연결'}</button>
       <button className="text-button" onClick={logout} disabled={busy}>로그아웃</button>
@@ -215,11 +228,11 @@ function App() {
         <button className="outline" onClick={() => setSettings(!settings)}>⚙ 설정</button>
       </div></header>
       {settings && <section className="settings"><div className="settings-title"><b>서비스 연결 정보</b><span>인증 토큰은 세션 저장소에 보관하며 화면에 표시하지 않습니다.</span></div>
-        <label>Backend API 주소<input value={api} onChange={e => { setApi(e.target.value); try { window.localStorage.setItem('acs.backend.baseUrl', e.target.value); } catch { /* storage may be disabled */ } }} placeholder="https://api.example.com"/></label>
+        {API_EDITABLE && <label>Backend API 주소<input value={api} onChange={e => { setApi(e.target.value); rememberApiBase(e.target.value); }} placeholder="https://api.example.com"/></label>}
         <label>인증 사용자<input value={user?.email || ''} readOnly/></label>
         <label>현재 Workspace<input value={workspace} readOnly/></label>
         <label>결과 검수 Job ID<input value={job} onChange={e => setJob(e.target.value)} placeholder="job UUID"/></label>
-        <p>API 주소를 변경하면 인증된 세션으로 연결 및 사용자 권한을 다시 확인합니다.</p></section>}
+        {API_EDITABLE && <p>API 주소를 변경하면 인증된 세션으로 연결 및 사용자 권한을 다시 확인합니다.</p>}</section>}
       {connectionError && <div className="connection-alert" role="alert">{connectionError}</div>}
       {page === 'overview' ? <>
         <section className="hero"><div><div className="eyebrow">AI-POWERED CREATIVE PRODUCTION</div><h1>당신의 아이디어를<br/><em>프로페셔널 콘텐츠</em>로.</h1>

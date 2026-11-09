@@ -2549,12 +2549,14 @@ def test_lookbook_assembly_concurrent_attach_and_decide_are_serialised(repos, tm
         return wins, losses, other
 
     # six different runs competing for the same page: exactly one wins
-    wins, losses, other = race(lambda i: lb.attach_approved_photo_output(did, ws, editor, photo_run_id=runs[i], page_order=1), 6)
+    wins, losses, other = race(lambda i: (lb.attach_approved_photo_output(did, ws, editor, photo_run_id=runs[i], page_order=1), runs[i])[1], 6)
     assert not other, other
     assert len(wins) == 1 and len(losses) == 5
     assert lb.list_outputs(did, ws, viewer)["total"] == 1
-    # one run attached concurrently to different pages: exactly one wins
-    wins, losses, other = race(lambda i: lb.attach_approved_photo_output(did, ws, editor, photo_run_id=runs[5], page_order=10 + i), 6)
+    # one run attached concurrently to different pages: exactly one wins.
+    # Use a run that did NOT win above (any run may win the first race; an already attached run loses every attempt).
+    spare = next(r for r in runs if r != wins[0])
+    wins, losses, other = race(lambda i: lb.attach_approved_photo_output(did, ws, editor, photo_run_id=spare, page_order=10 + i), 6)
     assert not other, other
     assert len(wins) == 1 and len(losses) == 5
     assert lb.list_outputs(did, ws, viewer)["total"] == 2
@@ -3581,3 +3583,81 @@ def test_outbox_expired_but_unreclaimed_lease_cannot_complete_or_mark_unknown(re
     with psycopg.connect(DSN, autocommit=True) as conn:  # settle the row so no later claim has to quarantine it
         conn.execute("UPDATE generation_outbox SET status='needs_reconciliation', claimed_by=NULL, lease_expires_at=NULL WHERE event_id=%s", (event_id,))
 
+
+
+def _glb(extra: str = "") -> bytes:
+    import json
+    import struct
+    doc = json.dumps({"asset": {"version": "2.0", "generator": extra}}, separators=(",", ":")).encode()
+    doc += b" " * ((4 - len(doc) % 4) % 4)
+    chunk = struct.pack("<II", len(doc), 0x4E4F534A) + doc
+    return b"glTF" + struct.pack("<II", 2, 12 + len(chunk)) + chunk
+
+
+def _version_metadata_scenario(bytes_port, meta_port, ws, editor):
+    """New-version metadata: asset row, filename normalisation, version rows and provenance values."""
+    import hashlib
+
+    from app import config
+    from app.assets.validation import validate_asset_upload
+
+    out = []
+    sha = lambda data: hashlib.sha256(data).hexdigest()  # noqa: E731
+    val = lambda name, data: validate_asset_upload(name, data, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)  # noqa: E731
+    asset_fields = ("original_filename", "media_type", "size_bytes", "gltf_version", "embedded_binary", "asset_kind")
+
+    def show_asset(asset_id, data):
+        row = meta_port.get(asset_id, editor)
+        return tuple((k, row.get(k)) for k in asset_fields) + (("checksum_ok", row.get("checksum_sha256") == sha(data)),)
+
+    def prov(asset_id):
+        items = meta_port.provenance(asset_id, editor, 100, 0)["items"]
+        return sorted((i["event_type"], i["version_number"], i["details"].get("previous_version")) for i in items)
+
+    v1, v2, v3 = _glb("one"), _glb("two"), _glb("three")
+    saved = bytes_port.save(ws, editor, "model-one.glb", v1, val("model-one.glb", v1))
+    aid = saved["asset_id"]
+    out.append(("after-save", show_asset(aid, v1)))
+    bytes_port.save_version(aid, editor, "../up/dir/model-two.glb", v2, val("model-two.glb", v2))
+    out.append(("after-version2-path-stripped", show_asset(aid, v2)))
+    long_name = "n" * 300 + ".glb"
+    bytes_port.save_version(aid, editor, long_name, v3, val("x.glb", v3))
+    row = meta_port.get(aid, editor)
+    out.append(("after-version3-long-name", (len(row["original_filename"]), row["original_filename"] == long_name[:255],
+                                             show_asset(aid, v3)[1:])))
+    versions = meta_port.versions(aid, editor)["items"]
+    out.append(("versions", [(v["version_number"], v["is_current"], v["size_bytes"], v["media_type"]) for v in versions]))
+    out.append(("version-checksums", sorted(sha(d) for d in (v1, v2, v3)) == sorted(v["checksum_sha256"] for v in versions)))
+    out.append(("provenance-previous-version", prov(aid)))
+    return out
+
+
+def test_asset_version_metadata_parity_sqlite_vs_postgresql(repos, tmp_path, monkeypatch):
+    import app.config as config
+    from app.assets import store
+    from app.ports.asset_bytes import PostgreSQLAssetBytesPort, SQLiteAssetBytesPort
+    from app.ports.assets import PostgreSQLAssetMetadataPort, SQLiteAssetMetadataPort
+    from app.ports.workspace import SQLiteWorkspacePort
+
+    sq_dir, pg_dir = tmp_path / "sq-private", tmp_path / "pg-private"
+    sq_dir.mkdir(); pg_dir.mkdir()
+    monkeypatch.setattr(config, "ASSET_STORAGE_DIR", sq_dir)
+    monkeypatch.setattr(config, "ASSET_DATABASE_PATH", tmp_path / "parity-version.sqlite3")
+    store.initialize()
+    store.create_workspace("parity-ver", "owner_sq")
+    store.add_workspace_member("parity-ver", "editor_sq", "editor")
+    wsp = SQLiteWorkspacePort()
+    sqlite_out = _version_metadata_scenario(SQLiteAssetBytesPort(wsp), SQLiteAssetMetadataPort(wsp), "parity-ver", "editor_sq")
+
+    monkeypatch.setattr(config, "ASSET_STORAGE_DIR", pg_dir)
+    ws, owner, editor, *_ = _workspace(repos)
+    pg_out = _version_metadata_scenario(PostgreSQLAssetBytesPort(repos["assets"]), PostgreSQLAssetMetadataPort(repos["assets"]), ws, editor)
+    mism = [(a[0], a[1], b[1]) for a, b in zip(sqlite_out, pg_out) if a != b]
+    assert [r[0] for r in sqlite_out] == [r[0] for r in pg_out]
+    assert not mism, "\n" + "\n".join(f"{m[0]}\n   sqlite={m[1]}\n   pg    ={m[2]}" for m in mism)
+    shown = dict(sqlite_out)
+    assert shown["after-version2-path-stripped"][0] == ("original_filename", "model-two.glb")
+    assert shown["after-version3-long-name"][:2] == (255, True)
+    assert [v[0] for v in shown["versions"]] == [3, 2, 1] and [v[1] for v in shown["versions"]] == [True, False, False]
+    created = [e for e in shown["provenance-previous-version"] if e[0] == "asset.version_created"]
+    assert created == [("asset.version_created", 2, 1), ("asset.version_created", 3, 2)]
