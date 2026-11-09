@@ -1,6 +1,51 @@
 {
   "components": {
     "schemas": {
+      "AcceptanceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/AcceptedDocument"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Documents",
+            "type": "array"
+          }
+        },
+        "required": [
+          "documents"
+        ],
+        "title": "AcceptanceInput",
+        "type": "object"
+      },
+      "AcceptedDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "enum": [
+              "terms",
+              "privacy",
+              "content_policy"
+            ],
+            "title": "Document",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "version"
+        ],
+        "title": "AcceptedDocument",
+        "type": "object"
+      },
       "AddMemberBody": {
         "properties": {
           "role": {
@@ -706,6 +751,49 @@
           "workspace_id"
         ],
         "title": "CreateWorkspaceBody",
+        "type": "object"
+      },
+      "DeletionRequestInput": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "scope": {
+            "enum": [
+              "account",
+              "workspace_content"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Id"
+          }
+        },
+        "required": [
+          "scope"
+        ],
+        "title": "DeletionRequestInput",
         "type": "object"
       },
       "EngineInfo": {
@@ -6046,6 +6134,26 @@
         "summary": "Reconcile Provider Submission"
       }
     },
+    "/v1/legal/documents": {
+      "get": {
+        "description": "Public: the document versions a user must accept. ``status`` stays ``draft`` until the texts are final.",
+        "operationId": "legal_documents_v1_legal_documents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Legal Documents",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
     "/v1/lookbook-drafts": {
       "get": {
         "operationId": "read_lookbook_drafts_v1_lookbook_drafts_get",
@@ -7508,6 +7616,264 @@
         "summary": "Submit Lookbook For Review",
         "tags": [
           "lookbook"
+        ]
+      }
+    },
+    "/v1/me/deletion-requests": {
+      "get": {
+        "operationId": "list_deletion_requests_v1_me_deletion_requests_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Deletion Requests",
+        "tags": [
+          "legal"
+        ]
+      },
+      "post": {
+        "description": "Record a deletion request. Nothing is deleted here; an operator processes pending requests.",
+        "operationId": "create_deletion_request_v1_me_deletion_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletionRequestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Deletion Request",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
+    "/v1/me/deletion-requests/{request_id}": {
+      "delete": {
+        "operationId": "cancel_deletion_request_v1_me_deletion_requests__request_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Deletion Request",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
+    "/v1/me/legal-acceptances": {
+      "post": {
+        "operationId": "accept_legal_documents_v1_me_legal_acceptances_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptanceInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Legal Documents",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
+    "/v1/me/legal-status": {
+      "get": {
+        "operationId": "legal_status_v1_me_legal_status_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Legal Status",
+        "tags": [
+          "legal"
         ]
       }
     },

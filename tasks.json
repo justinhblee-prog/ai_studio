@@ -682,5 +682,14 @@
     "blocker": "",
     "evidence": "직접 확인",
     "today": "V"
+  },
+  {
+    "id": "T77",
+    "area": "패치",
+    "task": "설계 창 패치 9개를 APPLY_ORDER 순서로 반영(legal→consent→backup→cost_cap→purge→authz→ops_check→deps_upgrade→e2e). 겹치는 기능은 비교만 하고 중복 반영하지 않음",
+    "status": "진행중",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
   }
 ]
