@@ -54,7 +54,11 @@ try {
     await gotoPage(page, '포토 스튜디오');
     await photo.locator('label', { hasText: '원본 이미지' }).locator('select').selectOption({ label: 'shirt.png' });
     await photo.locator('label', { hasText: '편집 작업' }).locator('select').selectOption({ label: '품질 향상' });
-    await photo.getByRole('button', { name: 'Photo Draft 초안 저장' }).click();
+    // The "saved drafts" list is on screen even with zero drafts, so wait for the save request itself, not for the list.
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('/v1/photo-drafts') && r.request().method() === 'POST' && r.status() === 201, { timeout: 10000 }),
+      photo.getByRole('button', { name: 'Photo Draft 초안 저장' }).click(),
+    ]);
     await page.locator('[aria-label="저장된 Photo Draft"]').waitFor({ timeout: 10000 });
     const drafts = await apiCall(stack, USERS.owner.token, `/v1/photo-drafts?workspace_id=${state.workspace}`);
     assert.equal(drafts.body.items.length, 1); state.draftId = drafts.body.items[0].draft_id;
