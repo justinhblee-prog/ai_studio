@@ -1,3 +1,5 @@
+import { RIGHTS_CONFIRMATION_COPY, RIGHTS_ERROR_MESSAGES } from './rightsConfirmationCopy';
+import { appendRightsDeclaration, rightsErrorCode } from './app/rightsDeclaration.mjs';
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import './PhotoDraftWorkspace.css';
 import { useRequestScope } from './useRequestScope';
@@ -80,6 +82,9 @@ async function responseError(response: Response): Promise<string> {
 }
 
 export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: PhotoDraftWorkspaceProps) {
+  const [rightsConfirmed, setRightsConfirmed] = useState(false);
+  const [depictsPerson, setDepictsPerson] = useState(false);
+  const [likenessConsent, setLikenessConsent] = useState(false);
   const base = apiBaseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${accessToken}` };
   const { capture: captureScope, isCurrent: isScopeCurrent } = useRequestScope([base, accessToken, workspaceId]);
@@ -162,8 +167,12 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       const form = new FormData();
       form.set('workspace_id', workspaceId);
       form.set('file', file);
+      appendRightsDeclaration(form, { rightsConfirmed, depictsPerson, likenessConsent });
       const response = await fetch(`${base}/v1/assets/images`, { method: 'POST', headers, body: form });
-      if (!response.ok) throw new Error(await responseError(response));
+      if (!response.ok) {
+        const code = await rightsErrorCode(response);
+        throw new Error(code ? RIGHTS_ERROR_MESSAGES[code] : await responseError(response));
+      }
       const created = await response.json() as ImageAsset;
       if (!isScopeCurrent(scope)) return;
       await load();
@@ -174,7 +183,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
     } finally {
       if (isScopeCurrent(scope)) { reviewMutationInFlightRef.current = false; setBusy(false); }
     }
-  }, [base, accessToken, workspaceId, load, captureScope, isScopeCurrent]);
+  }, [base, accessToken, workspaceId, load, captureScope, isScopeCurrent, rightsConfirmed, depictsPerson, likenessConsent]);
 
   const createDraft = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     const scope = captureScope();
@@ -337,6 +346,12 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
           <input type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" disabled={busy} onChange={uploadImage} />
         </label>
       </header>
+      <fieldset className="acs-photo-rights" aria-label={RIGHTS_CONFIRMATION_COPY.heading} disabled={busy}>
+        <legend>{RIGHTS_CONFIRMATION_COPY.heading}</legend>
+        <label><input type="checkbox" checked={rightsConfirmed} onChange={event => setRightsConfirmed(event.currentTarget.checked)} /> {RIGHTS_CONFIRMATION_COPY.rightsConfirmed}</label>
+        <label><input type="checkbox" checked={depictsPerson} onChange={event => { setDepictsPerson(event.currentTarget.checked); if (!event.currentTarget.checked) setLikenessConsent(false); }} /> {RIGHTS_CONFIRMATION_COPY.depictsPerson}</label>
+        {depictsPerson && <label><input type="checkbox" checked={likenessConsent} onChange={event => setLikenessConsent(event.currentTarget.checked)} /> {RIGHTS_CONFIRMATION_COPY.likenessConsent}</label>}
+      </fieldset>
       <p className="acs-photo-draft-notice">ENHANCE·LIGHTING은 Pillow 기반 결정론적 로컬 이미지 조정으로 실행할 수 있습니다(생성형 AI 아님). BACKGROUND·RETOUCH·COMPOSE는 AI 엔진 연결이 필요합니다. 로컬 조정은 인물 정체성·텍스트·로고 보존을 의미적으로 보증하지 않으며 결과 검수가 필요합니다. 승인 후 내보내는 manifest는 메타데이터 전용이며 게시·상업적 이용 권리를 부여하지 않습니다. Provider 호출과 크레딧 차감은 실행되지 않습니다.</p>
       {error && <p className="acs-photo-draft-error" role="alert">{error}</p>}
       <div className="acs-photo-draft-grid">

@@ -25,7 +25,8 @@ class AssetBytesPort(Protocol):
     def workspace_of(self, asset_id: str) -> str | None: ...
     def version_record(self, asset_id: str, workspace_id: str, version_id: str) -> dict[str, Any] | None: ...
     def current_file(self, asset_id: str) -> Path | None: ...
-    def save(self, workspace_id: str, user_id: str, filename: str, content: bytes, validated: Any) -> dict[str, Any]: ...
+    def save(self, workspace_id: str, user_id: str, filename: str, content: bytes, validated: Any,
+             upload_confirmation: dict[str, Any] | None = None) -> dict[str, Any]: ...
     def save_version(self, asset_id: str, user_id: str, filename: str, content: bytes, validated: Any) -> dict[str, Any]: ...
     def restore(self, asset_id: str, user_id: str, version_id: str) -> dict[str, Any]: ...
     def audit(self, workspace_id: str, user_id: str, limit: int, offset: int) -> dict[str, Any]: ...
@@ -55,11 +56,11 @@ class SQLiteAssetBytesPort:
         require_role(self._workspaces, workspace_id, user_id, write=write)
         return workspace_id
 
-    def save(self, workspace_id, user_id, filename, content, validated):
+    def save(self, workspace_id, user_id, filename, content, validated, upload_confirmation=None):
         from app.assets import store
         require_role(self._workspaces, workspace_id, user_id, write=True)
         return store.save_asset(owner_id=user_id, workspace_id=workspace_id, filename=filename,
-                                content=content, validated=validated)
+                                content=content, validated=validated, upload_confirmation=upload_confirmation)
 
     def save_version(self, asset_id, user_id, filename, content, validated):
         from app.assets import store
@@ -125,7 +126,7 @@ class PostgreSQLAssetBytesPort:
             raise RuntimeError("Asset metadata could not be reloaded")
         return _public_asset(row)
 
-    def save(self, workspace_id, user_id, filename, content, validated):
+    def save(self, workspace_id, user_id, filename, content, validated, upload_confirmation=None):
         from app.assets.validation import storage_suffix
         require_role(self._workspaces, workspace_id, user_id, write=True)
         asset_id = "ast_" + uuid.uuid4().hex
@@ -136,7 +137,8 @@ class PostgreSQLAssetBytesPort:
                 asset_id=asset_id, owner_id=user_id, workspace_id=workspace_id,
                 original_filename=Path(filename).name, storage_key=key, media_type=validated.media_type,
                 size_bytes=validated.size_bytes, checksum_sha256=hashlib.sha256(content).hexdigest(),
-                gltf_version=validated.gltf_version or "", embedded_binary=bool(validated.embedded_binary))
+                gltf_version=validated.gltf_version or "", embedded_binary=bool(validated.embedded_binary),
+                upload_confirmation=upload_confirmation)
         except Exception:
             self._blobs.delete(key)
             raise

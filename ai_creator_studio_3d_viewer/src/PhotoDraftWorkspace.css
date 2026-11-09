@@ -15,3 +15,5 @@
 .acs-photo-review-comment{display:grid;gap:5px;margin-top:12px;font-size:12px;color:#d7e0ef}.acs-photo-review-comment input{border:1px solid #414a5b;border-radius:7px;background:#10141b;color:#eef1f6;padding:8px;font:inherit}.acs-photo-manifest{max-height:300px;overflow:auto;padding:10px;border-radius:8px;background:#10141b;color:#d7e0ef;font-size:11px}
 
 .acs-photo-preview{display:block;width:100%;max-height:320px;object-fit:contain;margin-top:7px;border:1px solid #414a5b;border-radius:8px;background:#10141b}
+
+.acs-photo-rights{display:grid;gap:6px;margin:8px 0;padding:8px 12px;border:1px solid #d8deea;border-radius:8px;font-size:13px}.acs-photo-rights legend{padding:0 6px;font-weight:700}.acs-photo-rights label{display:flex;align-items:center;gap:8px}

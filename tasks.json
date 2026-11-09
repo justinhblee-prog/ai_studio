@@ -533,9 +533,9 @@
   {
     "id": "T60",
     "area": "프런트·백엔드",
-    "task": "L-04 인물 사진 업로드 시 권리·동의 확인",
-    "status": "진행예정",
-    "blocker": "claude/LEGAL_IMPLEMENTATION_GAPS.md가 저장소에 없음(사용자 제공 필요). 확인 문구·기록 항목은 법률 결정",
+    "task": "L-04 인물 사진 업로드 시 권리·초상권 확인: 구현 완료(서버 필드·플래그·provenance 기록·UI 체크박스·E2E), PR 진행 중. UI 문구는 임시(법무 승인 필요)",
+    "status": "진행중",
+    "blocker": "LEGAL_IMPLEMENTATION_GAPS.md 없음 — 요구사항 대조 불가, 문구 법무 승인 필요",
     "evidence": "—",
     "today": ""
   },
@@ -583,5 +583,14 @@
     "blocker": "",
     "evidence": "직접 확인",
     "today": "V"
+  },
+  {
+    "id": "T66",
+    "area": "문서",
+    "task": "claude/DESIGN_PACK_20261109.md(D1·D2·D4·D5)와 법률·동의 패치 zip 적용",
+    "status": "진행예정",
+    "blocker": "문서와 두 zip이 세션에 없음, D1 구현이 저장소에 없음",
+    "evidence": "—",
+    "today": ""
   }
 ]

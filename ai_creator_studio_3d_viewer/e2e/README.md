@@ -18,3 +18,6 @@ npm ci && npm install --no-save playwright@1.63.0 && npx playwright install chro
 VITE_API_BASE_URL=http://127.0.0.1:8765 VITE_SUPABASE_URL=https://e2e-mock.supabase.test VITE_SUPABASE_ANON_KEY=e2e-anon-not-a-secret npm run build
 node e2e/pilot_flow.mjs
 ```
+
+`rights_flow.mjs` runs the same stack with `ASSET_REQUIRE_RIGHTS_CONFIRMATION=true` and checks the image-upload rights / likeness
+declaration (refusal messages, recorded provenance). Run it after the build, the same way as `pilot_flow.mjs`.

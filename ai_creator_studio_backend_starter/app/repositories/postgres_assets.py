@@ -93,7 +93,8 @@ class PostgreSQLAssetMetadataRepository:
                        original_filename: str, storage_key: str, media_type: str,
                        size_bytes: int, checksum_sha256: str, gltf_version: str = "",
                        embedded_binary: bool = False, storage_backend: str = "local",
-                       storage_bucket: str = "private_assets") -> dict[str, Any]:
+                       storage_bucket: str = "private_assets",
+                       upload_confirmation: dict[str, Any] | None = None) -> dict[str, Any]:
         if not all(isinstance(v, str) and v.strip() for v in
                    (asset_id, owner_id, workspace_id, original_filename, storage_key, media_type)):
             raise ValueError("Asset identity and metadata fields are required")
@@ -103,6 +104,7 @@ class PostgreSQLAssetMetadataRepository:
             raise ValueError("Asset checksum must be a SHA-256 hex digest")
         if storage_backend not in {"local", "supabase_storage"} or not storage_bucket.strip():
             raise ValueError("Asset storage locator is invalid")
+        from app.assets.rights import upload_details
         now = self._now()
         version_id = "av_" + uuid.uuid4().hex
         provenance_id = "ap_" + uuid.uuid4().hex
@@ -126,7 +128,7 @@ class PostgreSQLAssetMetadataRepository:
                 event_type,actor_id,details_json,created_at)
                 VALUES(%s,%s,%s,1,'asset.uploaded',%s,%s,%s)""",
                 (provenance_id, workspace_id, asset_id, owner_id,
-                 self._jsonb({"source": "upload"}), now))
+                 self._jsonb(upload_details(upload_confirmation)), now))
         return self.get_asset(asset_id, workspace_id)
 
     def get_asset(self, asset_id: str, workspace_id: str) -> dict[str, Any] | None:

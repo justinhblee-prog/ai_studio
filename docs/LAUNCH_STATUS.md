@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #7 (머지 2c39903) — 브라우저 E2E 1단계
+- **CI (head 5dc966a, run 42552138675)**: backend success — pytest `705 passed, 1 warning`, 실DB 단계 `74 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 pass/0 fail + 4 pass/0 fail, `vite build` 통과; **e2e success — GitHub에서 `SUMMARY 10/10 steps passed`**(ZIP에 `manifest.json`과 이미지 포함 확인).
+- **완료**: 출시 빌드를 헤드리스 Chromium으로 구동하는 소유자 흐름 10단계(로그인 → Workspace → 이미지 업로드 → 상품 → 포토 초안 → 로컬 이미지 처리 → 검수 승인 → 룩북 기획·조립 승인 → ZIP 다운로드); 변이 3종 적발(주소 입력란 복구는 처음에 놓쳐서 시험을 고친 뒤 적발).
+- **미검증**: Supabase Auth는 **mock**(실제 Supabase 로그인 미시험); AI Provider 경로 미시험(이 앱의 "생성"은 결정적 로컬 조정); 모바일 폭·권한별·교차 Workspace 시험은 아직 없음.
+- **차단**: 없음.
+
 ### 2026-11-09 · PR #6 (머지 46005d4) — 레지스트리 증거 게이트
 - **CI (head c9163c6, run 42550454875)**: backend success — pytest `705 passed, 1 warning`, 실DB 단계 `74 passed, 1 warning`(failed 없음); frontend success — `tsc` 통과, `test:source` 8 pass/0 fail + 4 pass/0 fail, `vite build` 통과.
 - **완료**: 레지스트리에 집계별 근거 시험명(`evidence`)과 기계 검사(`tests/test_registry_evidence.py`) 추가; 실DB 시험 12종 추가(멱등 조회, Outbox `get_job`, 하트비트 2종, Output `record`/`list_storage_keys`/`get`, Job `update`/`list_outputs`, 풀 리스 갱신) — 변이 20/20 적발, 게이트 변이 8/8 적발; generation_jobs·job_outbox·provider_poll·outputs·operations_and_health를 live_verified로 올림; output_asset_link를 missing으로 추가.
@@ -23,6 +29,9 @@
 | L-02 서버 API(`/v1/legal/documents`, `/v1/me/legal-status`, `/v1/me/legal-acceptances`) | 저장소에 해당 라우트 없음(패치 zip에 들어 있을 것으로 추정 — 미확인). 법률 문서 본문·버전은 빈칸을 임의로 채우지 않음 | 패치 zip 또는 문서 본문 |
 | `claude/LEGAL_IMPLEMENTATION_GAPS.md`(L-항목 정의) | 저장소에 없음 | 문서 |
 | 배포 환경(영속 디스크 유무) | 파일럿은 SQLite 단일 인스턴스를 전제. 서버리스뿐이면 결론이 바뀜 | 배포 대상 정보 |
+| `claude/DESIGN_PACK_20261109.md` 및 폴더 `1. AI Studio`의 사본(D1·D2·D4·D5) | 저장소(모든 원격 브랜치)·로컬 파일시스템·세션 업로드 폴더 어디에도 없음(3회 확인). 설계서 내용을 알 수 없어 D2 대조·D4·D5를 설계서대로 구현하지 못함 | 문서를 저장소에 커밋하거나 세션에 업로드 |
+| `ai_studio_legal_patch_20261109.zip`, `ai_studio_consent_patch_20261109.zip`(각 APPLY.md) | 두 파일 모두 세션에 없음(위와 같이 검색). 적용·OpenAPI 재생성·PR을 하지 못함 | 두 zip을 저장소에 커밋하거나 업로드 |
+| D1(AI 학습 별도 동의) "이미 구현됨" | **이 저장소에서는 확인되지 않음**: 학습·동의 관련 코드가 없고(`consent`가 들어간 파일은 모두 이번 L-04 작업물), 원격 브랜치 9개 어디에도 D1 구현이 없음. 다른 사본·패치(동의 패치 zip)에 있을 가능성 | 동의 패치 zip 또는 D1이 있는 브랜치 |
 | TEST Supabase에 0011–0013 적용 | 금지 항목(접속 정보·승인 필요) | — |
 | Production Supabase/Vercel, 유료 Provider, Production `DATABASE_BACKEND=postgresql`, 실데이터 영구 삭제, 비밀·키 | 금지 항목 | — |
 
@@ -55,7 +64,7 @@ T56은 수정이 아니라 비교 시험 추가였다. "수정을 되돌리면 �
 | 경합 시험 4종·Job/Outbox/알림 변이 증거 | 완료(`output_asset_link` PG 구현 없음 — 미구현으로 확인) |
 | T56 | 완료(시험 보강) |
 | L-13 출시 빌드 API 주소 고정 | 완료 (PR #5) |
-| L-04 인물 사진 업로드 권리·동의 확인 | **막힘** — `claude/LEGAL_IMPLEMENTATION_GAPS.md`가 저장소에 없음, 문구·기록 항목은 법률 결정 |
+| L-04 인물 사진 업로드 권리·동의 확인 | **구현됨(PR #8 대기)** — 설계서(D2)와 대조 못 함(문서 없음). UI 문구는 법무 승인 전 임시 문구(`src/rightsConfirmationCopy.ts`) |
 | L-02 프런트 동의 화면 | **막힘** — 위와 같음 |
 | 법률 패치 zip 적용 | **막힘** — 파일 없음 |
 | 랜딩 재구현(시안 ①) | 시안 파일이 저장소에 없음 — 확인 필요 |
@@ -70,3 +79,14 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **실제와 mock 구분**: 실제 = 웹 번들, FastAPI, SQLite, 파일 저장소, 결정적 로컬 이미지 처리, ZIP 내보내기. **mock = Supabase Auth**(브라우저에서 요청을 가로챔; 실제 Supabase 로그인은 시험하지 않음). **AI Provider 호출 없음**: 이 앱의 "생성"은 외부 Provider가 아니라 Pillow 기반 결정적 로컬 조정(`ENHANCE`/`LIGHTING`). Provider 경로(`/v1/generation-jobs`, `PROVIDER_MODE=mock`)는 이 E2E가 시험하지 않음.
 - 변이 검증: 주소 입력란 복구(처음에는 **적발 못 함** — 입력란 검사를 로그인 이후에만 해서 시험 결함이었음, 로그인 화면·설정 패널 검사를 추가한 뒤 적발), ZIP에서 manifest 제거(적발), 로컬 처리 실패(적발).
 - CI: `e2e` 잡 추가(Playwright 1.63.0 고정). **GitHub에서 실행한 결과는 이 PR의 CI로 확인**(아래 PR 항목 참조).
+
+## 6. L-04 업로드 권리·초상권 확인 (D2와의 대조는 문서가 없어 못 함 — 구현의 실제 동작만 기록)
+요청하신 3가지 대조 항목에 대한 **이 구현의 실제 동작**(시험으로 확인). 설계서와 비교한 것이 **아니다**.
+| 항목 | 이 구현의 동작 | 근거 시험 |
+|---|---|---|
+| (1) 권리 확인 없는 업로드 거부(422) | `ASSET_REQUIRE_RIGHTS_CONFIRMATION`이 **켜진 때만** 422(`RIGHTS_CONFIRMATION_REQUIRED`; 사람이 나온다고 선언하면 `LIKENESS_CONSENT_REQUIRED`도). **기본값은 꺼짐**이라 확인 없는 업로드도 201(옛 클라이언트 호환). 거절된 업로드는 자산·파일을 남기지 않음. 이미지 업로드만 대상(GLB 모델 업로드는 제외) | `test_rights_confirmation.py` 9건, 실제 브라우저 `rights_flow.mjs` 6/6 |
+| (2) 확인 기록 테이블, 자산 삭제 후 기록 유지 | 별도 테이블 없이 기존 `asset_provenance`의 `asset.uploaded` 행 `details.rights`에 `{rights_confirmed, depicts_person, likeness_consent}`를 기록. 자산 soft delete 후에도 행이 남음(`asset.uploaded` + `asset.deleted` 2행). **영구 삭제(L-01 purge)가 이 행을 어떻게 다룰지는 미정·미구현** | SQLite `test_declaration_record_survives_deleting_the_asset`, PG `test_upload_declaration_record_survives_deleting_the_asset_in_postgresql`; 변이(삭제 시 출처 행도 삭제) 2/2 적발 |
+| (3) 기존 자산 호환(소급 차단 없음) | 강제는 **새 업로드에만** 적용. 선언 없이 올라간 기존 자산은 강제를 켠 뒤에도 목록·조회·포토 초안 원본으로 계속 사용 가능, provenance는 옛 형식(`{"source":"upload"}`) 그대로 | `test_assets_uploaded_before_enforcement_are_not_blocked_retroactively` (이 시험에 대한 표적 변이는 만들지 못함 — "동작 없음"을 지키는 회귀 시험) |
+- **설계서와 달라도 이 구현을 유지하는 이유는 판단할 수 없다**(설계서를 못 봄). 별도 확인 테이블이 설계서의 요구라면 이 구현은 그것을 충족하지 않는다.
+- 기록 호환: 선언이 없으면 provenance가 이전과 바이트 단위로 같음(시험).
+- 변이 검증: 백엔드 10/10 적발, 프런트 로직 5/5 적발, 브라우저 3/3 적발(선언 미전송, 오류 메시지 매핑 제거, 권리 체크 무시).

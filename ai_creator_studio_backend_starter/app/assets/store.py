@@ -116,7 +116,8 @@ def initialize() -> None:
             WHERE a.owner_id != (SELECT w.owner_id FROM workspaces w WHERE w.workspace_id=a.workspace_id)""")
 
 
-def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: bytes, validated: Any) -> dict[str, Any]:
+def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: bytes, validated: Any,
+               upload_confirmation: dict[str, Any] | None = None) -> dict[str, Any]:
     initialize()
     asset_id = "ast_" + uuid.uuid4().hex
     from app.assets.validation import storage_suffix
@@ -129,6 +130,9 @@ def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: byte
         raise RuntimeError("Invalid private storage path")
     checksum = hashlib.sha256(content).hexdigest()
     now = datetime.now(timezone.utc).isoformat()
+    from app.assets.rights import upload_details
+    import json as _json
+    upload_details_json = _json.dumps(upload_details(upload_confirmation), separators=(",", ":"))
     try:
         with destination.open("xb") as handle:
             handle.write(content)
@@ -150,7 +154,7 @@ def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: byte
                 version_number, event_type, actor_id, details_json, created_at)
                 VALUES(?,?,?,?,?,?,?,?)""",
                 ("ap_" + uuid.uuid4().hex, workspace_id, asset_id, 1, "asset.uploaded",
-                 owner_id, '{"source":"upload"}', now))
+                 owner_id, upload_details_json, now))
     except Exception:
         destination.unlink(missing_ok=True)
         raise
