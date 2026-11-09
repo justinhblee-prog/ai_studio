@@ -56,6 +56,7 @@ python scripts/backup_restore.py verify "$BACKUP_DIR/backup-<타임스탬프>"  
 python scripts/backup_restore.py restore "$BACKUP_DIR/backup-<타임스탬프>" --target /srv/acs-restored   # 새 빈 폴더로만 복구
 ```
 - 복구는 **기존 데이터를 절대 덮어쓰지 않는다**(대상이 비어 있지 않으면 거절). 복구 후 출력된 경로를 `ASSET_DATABASE_PATH`·`ASSET_STORAGE_DIR`·`OUTPUT_DIR`로 지정하고 API·워커를 다시 시작한다.
+- 파일 영역의 **심볼릭 링크는 따라가지도 복사하지도 않는다**(링크 대상은 백업에 들어가지 않으니, 링크로 연결한 저장소가 있다면 그 실제 위치를 따로 백업해야 한다). `verify`는 매니페스트에 없는 파일이 백업 폴더에 있으면 실패로 보고한다.
 - 합성 데이터 기준 소요 시간: 1 GB에서 백업 2.2초·복구 2.7초(로컬 디스크; 실제 서버는 다를 수 있음).
 - **자동 스케줄·외부 보관·암호화·보존 기간은 아직 없다.** 하루 한 번 백업을 돌리고 결과를 서버 밖으로 복사하는 것은 운영자가 정해야 한다. 예시(시험하지 않음): `17 3 * * * cd /srv/acs/backend && python scripts/backup_restore.py backup --dest "$BACKUP_DIR"`
 - **복구 훈련**: 분기마다 새 폴더로 복구해 `GET /internal/ops/health`와 자산 하나의 미리보기가 정상인지 확인한다(아직 실제 환경에서 해 본 적 없음).

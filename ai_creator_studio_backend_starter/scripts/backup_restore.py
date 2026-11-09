@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sqlite3
 import sys
@@ -68,6 +69,15 @@ def _inside(child: Path, parent: Path) -> bool:
         return False
 
 
+def _regular_files(root: Path):
+    """Regular files under root, sorted. Symlinks (to files or directories) are never followed or copied,
+    so a link cannot pull data from outside the file area into a backup."""
+    found = []
+    for current, _dirs, names in os.walk(root, followlinks=False):
+        found.extend(Path(current) / n for n in names if not (Path(current) / n).is_symlink() and (Path(current) / n).is_file())
+    return sorted(found)
+
+
 def backup(databases: dict[str, Path], file_areas: dict[str, Path], destination_root: Path, *, label: str | None = None) -> Path:
     """Create destination_root/backup-<UTC timestamp>/ and return it."""
     started = time.perf_counter()
@@ -112,7 +122,7 @@ def backup(databases: dict[str, Path], file_areas: dict[str, Path], destination_
         if not root.is_dir():
             manifest["files"].append({"area": area, "missing_source": True})
             continue
-        for source in sorted(p for p in root.rglob("*") if p.is_file()):
+        for source in _regular_files(root):
             rel = source.relative_to(root).as_posix()
             target = out / "files" / area / rel
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -157,6 +167,13 @@ def verify(backup_dir: Path) -> dict:
             problems.append(f"missing file: {entry['area']}/{entry['path']}")
         elif path.stat().st_size != entry["size"] or _sha256(path) != entry["sha256"]:
             problems.append(f"file changed: {entry['area']}/{entry['path']}")
+    expected = {MANIFEST}
+    expected |= {e["file"] for e in manifest["databases"] if "file" in e}
+    expected |= {f"files/{e['area']}/{e['path']}" for e in manifest["files"] if "path" in e}
+    for found in _regular_files(backup_dir):
+        rel = found.relative_to(backup_dir).as_posix()
+        if rel not in expected:
+            problems.append(f"unlisted file in backup: {rel}")
     if problems:
         raise BackupVerificationError("; ".join(problems[:20]) + (f" (+{len(problems) - 20} more)" if len(problems) > 20 else ""))
     return manifest
