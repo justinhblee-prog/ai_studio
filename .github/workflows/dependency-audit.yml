@@ -1,0 +1,39 @@
+# Known-vulnerability audit of the backend (pip-audit) and frontend (npm audit) dependencies.
+# Separate from ci.yml on purpose: a newly published advisory should be visible, not block unrelated pull requests.
+# Read-only lookup of public advisory databases; no secrets are used.
+name: dependency-audit
+on:
+  schedule:
+    - cron: "23 4 * * 1"
+  pull_request:
+    paths:
+      - "ai_creator_studio_backend_starter/requirements*.txt"
+      - "ai_creator_studio_3d_viewer/package.json"
+      - "ai_creator_studio_3d_viewer/package-lock.json"
+      - ".github/workflows/dependency-audit.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pip-audit==2.7.3
+      - run: pip-audit -r ai_creator_studio_backend_starter/requirements.txt --progress-spinner off
+  node:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ai_creator_studio_3d_viewer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm audit
