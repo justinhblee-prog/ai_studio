@@ -556,5 +556,14 @@
     "blocker": "zip이 세션에 없음(업로드 폴더·파일시스템 검색 모두 없음)",
     "evidence": "—",
     "today": ""
+  },
+  {
+    "id": "T63",
+    "area": "CI",
+    "task": "CI 'Live tests must not be silently skipped' 단계가 시험 실패를 가리던 문제 수정(pipefail + failed/skipped 검사)과 간헐 실패 시험(Lookbook 조립 경합) 설계 결함 수정",
+    "status": "완료",
+    "blocker": "",
+    "evidence": "직접 확인",
+    "today": "V"
   }
 ]

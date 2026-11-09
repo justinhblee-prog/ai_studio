@@ -49,7 +49,10 @@ jobs:
       - name: pytest (unit + live PostgreSQL repository tests)
         run: python -m pytest -q --no-header -p no:cacheprovider
       - name: Live tests must not be silently skipped
-        run: python -m pytest -q --no-header -p no:cacheprovider tests/test_postgres_live_repositories.py -rs | tee live.txt && ! grep -q skipped live.txt
+        run: |
+          set -o pipefail
+          python -m pytest -q --no-header -p no:cacheprovider tests/test_postgres_live_repositories.py -rs | tee live.txt
+          ! grep -qE "[0-9]+ (skipped|failed)" live.txt
 
   frontend:
     runs-on: ubuntu-24.04

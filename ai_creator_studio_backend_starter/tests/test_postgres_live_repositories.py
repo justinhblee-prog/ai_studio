@@ -2549,12 +2549,14 @@ def test_lookbook_assembly_concurrent_attach_and_decide_are_serialised(repos, tm
         return wins, losses, other
 
     # six different runs competing for the same page: exactly one wins
-    wins, losses, other = race(lambda i: lb.attach_approved_photo_output(did, ws, editor, photo_run_id=runs[i], page_order=1), 6)
+    wins, losses, other = race(lambda i: (lb.attach_approved_photo_output(did, ws, editor, photo_run_id=runs[i], page_order=1), runs[i])[1], 6)
     assert not other, other
     assert len(wins) == 1 and len(losses) == 5
     assert lb.list_outputs(did, ws, viewer)["total"] == 1
-    # one run attached concurrently to different pages: exactly one wins
-    wins, losses, other = race(lambda i: lb.attach_approved_photo_output(did, ws, editor, photo_run_id=runs[5], page_order=10 + i), 6)
+    # one run attached concurrently to different pages: exactly one wins.
+    # Use a run that did NOT win above (any run may win the first race; an already attached run loses every attempt).
+    spare = next(r for r in runs if r != wins[0])
+    wins, losses, other = race(lambda i: lb.attach_approved_photo_output(did, ws, editor, photo_run_id=spare, page_order=10 + i), 6)
     assert not other, other
     assert len(wins) == 1 and len(losses) == 5
     assert lb.list_outputs(did, ws, viewer)["total"] == 2
