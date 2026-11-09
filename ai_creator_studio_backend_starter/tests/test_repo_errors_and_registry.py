@@ -102,9 +102,10 @@ def test_postgresql_runtime_selection_fails_closed_listing_pending_aggregates():
     message = str(err.value)
     assert "Refusing to fall back to SQLite" in message
     pending = reg.pending_aggregates()
-    assert {"generation_jobs", "credits_ledger", "workspace_and_asset_metadata"} <= set(pending)
+    assert {"output_asset_link", "credits_ledger", "file_storage_lifecycle", "workspace_and_asset_metadata"} == set(pending)
     assert all(name in message for name in pending)
-    assert not {"characters", "photos", "lookbooks", "projects", "products"} & set(pending)
+    assert not {"characters", "photos", "lookbooks", "projects", "products", "generation_jobs", "job_outbox",
+                "provider_poll", "outputs", "operations_and_health"} & set(pending)
 
 
 def test_unknown_or_blank_backend_is_rejected(monkeypatch):
@@ -128,10 +129,13 @@ def test_postgresql_becomes_selectable_only_when_all_aggregates_are_live_verifie
 def test_build_postgres_repository_gates_by_verification_status():
     assert type(reg.build_postgres_repository("characters")).__name__ == "PostgreSQLCharacterRepository"
     with pytest.raises(BackendNotReadyError):
-        reg.build_postgres_repository("generation_jobs")  # unverified
-    assert type(reg.build_postgres_repository("generation_jobs", allow_unverified=True)).__name__ == "PostgreSQLJobRepository"
+        reg.build_postgres_repository("workspace_and_asset_metadata")  # partial, not live_verified
+    assert type(reg.build_postgres_repository("workspace_and_asset_metadata", allow_unverified=True)).__name__ == "PostgreSQLAssetMetadataRepository"
+    assert type(reg.build_postgres_repository("generation_jobs")).__name__ == "PostgreSQLJobRepository"
     with pytest.raises(BackendNotReadyError):
         reg.build_postgres_repository("credits_ledger", allow_unverified=True)  # missing
+    with pytest.raises(BackendNotReadyError):
+        reg.build_postgres_repository("output_asset_link", allow_unverified=True)  # missing: no PostgreSQL implementation
     with pytest.raises(KeyError):
         reg.build_postgres_repository("nope")
 

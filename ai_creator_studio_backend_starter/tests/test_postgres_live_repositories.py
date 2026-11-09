@@ -3661,3 +3661,147 @@ def test_asset_version_metadata_parity_sqlite_vs_postgresql(repos, tmp_path, mon
     assert [v[0] for v in shown["versions"]] == [3, 2, 1] and [v[1] for v in shown["versions"]] == [True, False, False]
     created = [e for e in shown["provenance-previous-version"] if e[0] == "asset.version_created"]
     assert created == [("asset.version_created", 2, 1), ("asset.version_created", 3, 2)]
+
+
+def test_job_get_idempotent_returns_the_job_and_payload_hash_scoped_to_the_workspace(repos):
+    jobs, _outbox = _job_repos()
+    ws, owner, *_ = _workspace(repos)
+    other_ws, other_owner, *_ = _workspace(repos)
+    key = "idem-" + uuid.uuid4().hex[:8]
+    payload = _job_payload(ws, owner, key="k1")
+    job, created = jobs.create(payload, idempotency_key=key)
+    assert created is True
+    found = jobs.get_idempotent(ws, key)
+    assert found is not None and found[0]["job_id"] == job["job_id"] and found[1] == payload["payload_hash"]
+    assert jobs.get_idempotent(ws, "no-such-key") is None
+    assert jobs.get_idempotent(other_ws, key) is None  # same key in another workspace is a different key
+
+
+def test_outbox_get_job_reads_the_job_aggregate(repos):
+    jobs, outbox = _job_repos()
+    ws, owner, *_ = _workspace(repos)
+    job, _ = jobs.create(_job_payload(ws, owner))
+    got = outbox.get_job(job["job_id"])
+    assert got is not None and got["job_id"] == job["job_id"] and got["status"] == "queued"
+    assert outbox.get_job("job_missing_" + uuid.uuid4().hex) is None
+
+
+def _heartbeat_rows(worker_id):
+    import psycopg
+    with psycopg.connect(DSN) as conn:
+        return conn.execute("SELECT started_at, last_seen_at, state, metadata_json FROM generation_worker_heartbeats WHERE worker_id=%s",
+                            (worker_id,)).fetchall()
+
+
+@pytest.mark.parametrize("which", ["outbox", "operations"])
+def test_worker_heartbeat_upserts_without_resetting_started_at(repos, which):
+    import time
+
+    from app.repositories.postgres_operations import PostgreSQLOperationsRepository
+    repo = _job_repos()[1] if which == "outbox" else PostgreSQLOperationsRepository()
+    beat = repo.heartbeat_worker if which == "outbox" else repo.heartbeat
+    worker = f"worker-{uuid.uuid4().hex[:8]}"
+    beat(worker, "idle", {"n": 1})
+    first = _heartbeat_rows(worker)
+    assert len(first) == 1 and first[0][2] == "idle" and first[0][3] == {"n": 1}
+    time.sleep(0.02)
+    beat(worker, "busy", {"n": 2})
+    second = _heartbeat_rows(worker)
+    assert len(second) == 1, "a second heartbeat must update the row, not add one"
+    assert second[0][0] == first[0][0], "started_at must not be reset by later heartbeats"
+    assert second[0][1] > first[0][1] and second[0][2] == "busy" and second[0][3] == {"n": 2}
+    beat(worker, "idle")  # metadata defaults to {}
+    assert _heartbeat_rows(worker)[0][3] == {}
+    for bad_worker, bad_state in (("", "idle"), (worker, ""), (worker, "   ")):
+        with pytest.raises(ValueError):
+            beat(bad_worker, bad_state)
+
+
+def test_output_record_get_and_storage_key_listing(repos):
+    from app.repositories.postgres_output import PostgreSQLOutputRepository
+    jobs, _outbox = _job_repos()
+    outputs = PostgreSQLOutputRepository()
+    ws, owner, *_ = _workspace(repos)
+    job1, _ = jobs.create(_job_payload(ws, owner, key="o1"))
+    job2, _ = jobs.create(_job_payload(ws, owner, key="o2"))
+    k1, k2, k3 = (f"out_{uuid.uuid4().hex}.png" for _ in range(3))
+    assert outputs.get(job1["job_id"]) is None
+    rec = outputs.record(job1["job_id"], k1, "image/png", 123)
+    assert (rec["job_id"], rec["storage_key"], rec["media_type"], rec["size_bytes"]) == (job1["job_id"], k1, "image/png", 123)
+    assert outputs.get(job1["job_id"])["storage_key"] == k1
+    outputs.record(job2["job_id"], k2, "image/webp", 5)
+    keys = outputs.list_storage_keys()
+    assert {k1, k2} <= keys and k3 not in keys
+    # recording again for the same job replaces its output; the old key is no longer listed
+    again = outputs.record(job1["job_id"], k3, "image/jpeg", 7)
+    assert again["storage_key"] == k3 and again["media_type"] == "image/jpeg" and again["size_bytes"] == 7
+    keys = outputs.list_storage_keys()
+    assert k3 in keys and k1 not in keys and k2 in keys
+    for args in (("../evil.png", "image/png", 1), ("a/b.png", "image/png", 1), ("", "image/png", 1),
+                 (k1, "application/pdf", 1), (k1, "image/png", -1), (k1, "image/png", True)):
+        with pytest.raises(ValueError):
+            outputs.record(job2["job_id"], *args)
+    from app import config
+    with pytest.raises(ValueError):
+        outputs.record(job2["job_id"], k1, "image/png", config.MAX_OUTPUT_BYTES + 1)
+    assert outputs.get(job2["job_id"])["storage_key"] == k2, "rejected records must not change the stored output"
+
+
+def test_job_update_applies_allowed_fields_bumps_version_and_records_an_event(repos):
+    import psycopg
+    jobs, _outbox = _job_repos()
+    ws, owner, *_ = _workspace(repos)
+    job, _ = jobs.create(_job_payload(ws, owner))
+    jid = job["job_id"]
+    before = jobs.get(jid)
+    updated = jobs.update(jid, {"message": "hello"}, event_type="TEST_UPDATED")
+    assert updated["message"] == "hello" and updated["status"] == before["status"] and updated["version"] == before["version"] + 1
+    with psycopg.connect(DSN) as conn:
+        events = conn.execute("SELECT event_type, from_status, to_status FROM generation_job_events WHERE job_id=%s ORDER BY event_id", (jid,)).fetchall()
+    assert events[-1] == ("TEST_UPDATED", before["status"], before["status"])
+    default = jobs.update(jid, {"message": "again"})
+    assert default["version"] == before["version"] + 2
+    with psycopg.connect(DSN) as conn:
+        assert conn.execute("SELECT event_type FROM generation_job_events WHERE job_id=%s ORDER BY event_id DESC LIMIT 1", (jid,)).fetchone()[0] == "JOB_UPDATED"
+    with pytest.raises(ValueError):
+        jobs.update(jid, {"status": "succeeded"})  # status changes go through transition(), never update()
+    with pytest.raises(KeyError):
+        jobs.update("job_missing_" + uuid.uuid4().hex, {"message": "x"})
+    assert jobs.get(jid)["message"] == "again" and jobs.get(jid)["status"] == before["status"]
+
+
+def test_job_list_outputs_reports_recorded_outputs_and_not_queued_link_status(repos):
+    from app.repositories.postgres_output import PostgreSQLOutputRepository
+    jobs, _outbox = _job_repos()
+    ws, owner, *_ = _workspace(repos)
+    job, _ = jobs.create(_job_payload(ws, owner))
+    assert jobs.list_outputs(job["job_id"]) == {"data": [], "meta": {}}
+    key = f"out_{uuid.uuid4().hex}.png"
+    PostgreSQLOutputRepository().record(job["job_id"], key, "image/png", 42)
+    data = jobs.list_outputs(job["job_id"])["data"]
+    assert len(data) == 1
+    assert (data[0]["job_id"], data[0]["mime_type"], data[0]["size_bytes"], data[0]["asset_link_status"]) == (job["job_id"], "image/png", 42, "not_queued")
+    assert data[0]["asset_id"] is None and data[0]["provenance_record_id"] is None
+    other, _ = jobs.create(_job_payload(ws, owner, key="other"))
+    assert jobs.list_outputs(other["job_id"])["data"] == [], "outputs of another job must not appear"
+
+
+def test_poll_lease_renewal_extends_only_the_owner_before_expiry(repos):
+    import psycopg
+    ws, owner, *_ = _workspace(repos)
+    jobs, outbox = _job_repos()
+    job, task, worker, poll = _job_at_persist_output(repos, jobs, outbox, ws, owner)
+
+    def lease():
+        with psycopg.connect(DSN) as conn:
+            return conn.execute("SELECT lease_expires_at FROM generation_poll_tasks WHERE task_id=%s", (task["task_id"],)).fetchone()[0]
+    before = lease()
+    assert poll.renew_poll_task_lease(task["task_id"], worker, 600) is True
+    assert lease() > before, "renewal must extend the lease"
+    stranger = f"worker-{uuid.uuid4().hex[:8]}"
+    after = lease()
+    assert poll.renew_poll_task_lease(task["task_id"], stranger, 6000) is False
+    assert lease() == after, "a non-owner must not change the lease"
+    with pytest.raises(ValueError):
+        poll.renew_poll_task_lease("", worker, 60)
+    _park_job_rows(job["job_id"])
