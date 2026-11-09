@@ -159,6 +159,7 @@ export async function seedSharedWorkspace(stack, { withRun = true } = {}) {
     if (r.status !== 201) throw new Error(`member seed failed for ${role}: ${r.status} ${JSON.stringify(r.body)}`);
   }
   const form = new FormData(); form.set('workspace_id', workspace);
+  form.set('rights_confirmed', 'true'); form.set('depicts_person', 'false'); form.set('likeness_consent', 'false'); // uploads must declare rights by default (D2)
   form.set('file', new Blob([makePng(48, 32, [30, 140, 60])], { type: 'image/png' }), 'seed.png');
   const up = await fetch(stack.apiUrl + '/v1/assets/images', { method: 'POST', headers: { Authorization: `Bearer ${USERS.owner.token}` }, body: form });
   if (up.status !== 201) throw new Error('image seed failed ' + up.status);

@@ -20,6 +20,7 @@ try {
     await run('1 viewer: sees the shared workspace but cannot upload or approve', async () => {
       await goPhoto(page, USERS.viewer); await showsSharedWorkspace(page);
       const before = await imageCount();
+      await photoSection(page).getByLabel(/사용할 권리가 있음을 확인/).check();
       await photoSection(page).locator('input[type=file]').setInputFiles({ name: 'viewer-upload.png', mimeType: 'image/png', buffer: makePng(40, 30, [1, 2, 3]) });
       await photoSection(page).locator('p[role=alert]').waitFor({ timeout: 8000 });
       assert.equal(await imageCount(), before, 'a viewer upload must not create an asset');
@@ -33,6 +34,7 @@ try {
     await run('2 editor: can upload an image but cannot approve a review', async () => {
       await goPhoto(page, USERS.editor); await showsSharedWorkspace(page);
       const before = await imageCount();
+      await photoSection(page).getByLabel(/사용할 권리가 있음을 확인/).check();
       await photoSection(page).locator('input[type=file]').setInputFiles({ name: 'editor-upload.png', mimeType: 'image/png', buffer: makePng(40, 30, [9, 9, 9]) });
       await photoSection(page).locator('select').first().locator('option', { hasText: /^editor-upload\.png$/ }).waitFor({ state: 'attached' });
       assert.equal(await imageCount(), before + 1);
@@ -64,7 +66,7 @@ try {
       for (const [path, method] of checks) { const r = await apiCall(stack, t, path, { method }); assert.ok([403, 404].includes(r.status), `${method} ${path} -> ${r.status}`); }
       const approve = await apiCall(stack, t, `/v1/photo-drafts/${seed.draftId}/runs/${seed.runId}/review/approve?workspace_id=${seed.workspace}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       assert.ok([403, 404].includes(approve.status), 'approve -> ' + approve.status);
-      const form = new FormData(); form.set('workspace_id', seed.workspace); form.set('file', new Blob([makePng(30, 30, [5, 5, 5])], { type: 'image/png' }), 'x.png');
+      const form = new FormData(); form.set('workspace_id', seed.workspace); form.set('rights_confirmed', 'true'); form.set('depicts_person', 'false'); form.set('likeness_consent', 'false'); form.set('file', new Blob([makePng(30, 30, [5, 5, 5])], { type: 'image/png' }), 'x.png');
       const up = await fetch(stack.apiUrl + '/v1/assets/images', { method: 'POST', headers: { Authorization: `Bearer ${t}` }, body: form });
       assert.ok([403, 404].includes(up.status), 'upload -> ' + up.status);
     }); all.push(...results); await context.close(); }

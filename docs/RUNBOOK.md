@@ -28,7 +28,7 @@
 | `REQUIRED_WORKER_TYPES` | 필수 워커 유형 | `outbox,provider_poll,output_asset_link` |
 | `WORKER_STALE_AFTER_SECONDS` | 하트비트가 이보다 오래되면 죽은 워커 | 30 |
 | `GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE` | 워크스페이스·UTC 하루 생성 작업 상한 | 0 = 무제한. 잘못된 값은 시작 시 오류 |
-| `ASSET_REQUIRE_RIGHTS_CONFIRMATION` | 이미지 업로드 시 권리 확인 강제 | false |
+| `ASSET_REQUIRE_RIGHTS_CONFIRMATION` | 이미지 업로드 시 권리 확인(`rights_confirmed=true`) 강제. **명시적으로 0/false/no/off일 때만 꺼짐**(옛 클라이언트용), 그 외에는 켜짐 | **true** (D2) |
 | `LEGAL_REQUIRE_ACCEPTANCE` | 1이면 현재 법률 문서 버전에 동의하지 않은 사용자의 API 호출을 403으로 거절(동의·철회·삭제 요청 경로 제외; 재시작 필요) | 꺼짐 |
 | `AI_JOBS_DISABLED` | 킬 스위치(1이면 유료 Provider 새 작업 거부·워커 호출 중단, mock 제외; 재시작 필요) | 미설정 |
 | `AI_JOB_LIMIT_PER_WORKSPACE_MONTH` / `AI_JOB_LIMIT_GLOBAL_MONTH` | 유료 Provider 월간 작업 수 상한(0=끔) | 200 / 0 |

@@ -34,6 +34,8 @@ GLOBAL_TABLES = {
 }
 USER_TABLES = ("legal_acceptances", "consents")
 ANON_COLUMNS = ("actor_id", "owner_id", "created_by")
+# Columns anonymised only in these tables (a user_id column elsewhere is a consent/acceptance record that is deleted instead).
+ANON_BY_TABLE = {"upload_rights_confirmations": ("user_id",)}
 SHELL_TABLES = {"workspaces", "workspace_members"}
 
 
@@ -185,7 +187,7 @@ def build_plan(conns, request, asset_dir, output_dir, keep_history=False):
             for t in _tables(conn):
                 if t in GLOBAL_TABLES or t == "deletion_requests":
                     continue
-                for c in ANON_COLUMNS:
+                for c in ANON_COLUMNS + ANON_BY_TABLE.get(t, ()):
                     if c in _cols(conn, t):
                         n = conn.execute(f'SELECT COUNT(*) FROM "{t}" WHERE "{c}"=?', (user,)).fetchone()[0]
                         if n:
@@ -228,7 +230,7 @@ def apply_plan(conns, request, plan, keep_history=False, now=None):
                 for t in _tables(conn):
                     if t in GLOBAL_TABLES:
                         continue
-                    for c in ANON_COLUMNS:
+                    for c in ANON_COLUMNS + ANON_BY_TABLE.get(t, ()):
                         if c in _cols(conn, t):
                             conn.execute(f'UPDATE "{t}" SET "{c}"=? WHERE "{c}"=?', (ANON, user))
             conn.execute("COMMIT")

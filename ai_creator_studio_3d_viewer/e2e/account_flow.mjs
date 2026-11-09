@@ -55,7 +55,7 @@ try {
   });
 
   await run('an asset used by a Character cannot be deleted until the Character is removed', async () => {
-    const form = new FormData(); form.set('workspace_id', ws);
+    const form = new FormData(); form.set('workspace_id', ws); form.set('rights_confirmed', 'true'); form.set('depicts_person', 'false'); form.set('likeness_consent', 'false');
     form.set('file', new Blob([makePng(32, 24, [20, 80, 140])], { type: 'image/png' }), 'ref.png');
     const up = await fetch(stack.apiUrl + '/v1/assets/images', { method: 'POST', headers: { Authorization: `Bearer ${owner}` }, body: form });
     assert.equal(up.status, 201); const assetId = (await up.json()).asset_id;

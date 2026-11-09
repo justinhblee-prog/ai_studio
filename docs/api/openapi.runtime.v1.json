@@ -4052,7 +4052,7 @@
     },
     "/v1/assets/images": {
       "post": {
-        "description": "Store a validated source image for the independent Photo Engine workflow.\n\nThe optional rights fields are recorded in the asset provenance; they are required only when\nASSET_REQUIRE_RIGHTS_CONFIRMATION is enabled (L-04).",
+        "description": "Store a validated source image for the independent Photo Engine workflow.\n\nThe rights fields are recorded in the asset provenance and, when confirmed, in upload_rights_confirmations (D2).\n``rights_confirmed=true`` is required unless ASSET_REQUIRE_RIGHTS_CONFIRMATION is explicitly switched off (L-04).",
         "operationId": "upload_image_asset_v1_assets_images_post",
         "parameters": [
           {
@@ -4609,6 +4609,63 @@
           }
         },
         "summary": "Add Asset Relation",
+        "tags": [
+          "assets"
+        ]
+      }
+    },
+    "/v1/assets/{asset_id}/rights-confirmation": {
+      "get": {
+        "description": "D2: whether the uploader confirmed the rights to this image. Assets uploaded before enforcement read as unconfirmed.",
+        "operationId": "asset_rights_confirmation_v1_assets__asset_id__rights_confirmation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Asset Rights Confirmation",
         "tags": [
           "assets"
         ]
