@@ -285,3 +285,30 @@ def test_restore_detects_a_copy_that_does_not_match_the_backup(live, tmp_path, m
     monkeypatch.setattr(br.shutil, "copy2", corrupting_copy)
     with pytest.raises(br.BackupVerificationError, match="restored"):
         br.restore(out, tmp_path / "restored")
+
+
+def test_symlinks_in_a_file_area_are_not_followed_into_the_backup(live, tmp_path):
+    populate()
+    secret_dir = tmp_path / "outside"
+    secret_dir.mkdir()
+    (secret_dir / "secret.txt").write_text("not part of the data")
+    area = Path(live.ASSET_STORAGE_DIR)
+    (area / "link-to-file.txt").symlink_to(secret_dir / "secret.txt")
+    (area / "link-to-dir").symlink_to(secret_dir, target_is_directory=True)
+    out = make_backup(live, tmp_path)
+    manifest = json.loads((out / "manifest.json").read_text())
+    assert not [f for f in manifest["files"] if "link-to" in f.get("path", "")]
+    assert not list(out.rglob("secret.txt"))
+    br.verify(out)
+
+
+def test_verify_reports_a_file_in_the_backup_that_the_manifest_does_not_list(live, tmp_path):
+    populate()
+    out = make_backup(live, tmp_path)
+    (out / "files" / "outputs" / "smuggled.bin").parent.mkdir(parents=True, exist_ok=True)
+    (out / "files" / "outputs" / "smuggled.bin").write_bytes(b"x")
+    with pytest.raises(br.BackupVerificationError, match="unlisted file"):
+        br.verify(out)
+    with pytest.raises(br.BackupVerificationError):
+        br.restore(out, tmp_path / "restored")
+    assert not (tmp_path / "restored").exists()

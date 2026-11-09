@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #21 (머지 3ab4616) — 설계 창 패치 2/9: consent
+- **CI (head 79e0929, run 42608986871)**: backend success — pytest `809 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`. 로그에 `failed` 없음.
+- **완료**: `consents` 테이블과 `GET /v1/me/consents`, `PUT /v1/me/consents/{purpose}`(목적은 `ai_training` 하나, 기본은 미동의, 이력은 추가만 하고 현재 상태는 마지막 행). 스냅샷 +2 경로(89→91).
+- **미검증**: 동의가 학습 파이프라인에서 실제로 존중되는지(그런 파이프라인이 아직 없음), 프런트엔드 동의 화면(L-02 프런트, 미구현), PostgreSQL 이식(SQLite 전용).
+- **차단**: 없음.
+
 ### 2026-11-09 · PR #20 (머지 d26aab9) — 설계 창 패치 1/9: legal
 - **CI (head 65fe0ab, run 42608327049)**: backend success — pytest `804 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`. 로그에 `failed` 없음.
 - **완료**: 약관·개인정보 동의 기록 API와 삭제 요청 기록 API(새 경로 5개). 변이 12종 중 11종 적발(1종은 동치). 세부 §14.
@@ -228,4 +234,5 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 | # | 패치 | 처리 | PR | 비고 |
 |---|---|---|---|---|
 | 1 | legal | 반영(새 기능) | #20 (머지 d26aab9) | `git apply`가 충돌 없이 적용됨. 스냅샷 재생성: 새 경로 5개만 추가(84→89, 삭제 0) |
-| 2 | consent | 반영(새 기능, legal.py 덮어씀) | (이 PR) | `legal.py`·시험 파일은 패치 파일 그대로, 스냅샷은 덮어쓰지 않고 재생성(+2 경로: `/v1/me/consents`, `/v1/me/consents/{purpose}`, 삭제 0). 패치 시험 4건 + 내가 추가한 1건(동의 행에 저장되는 문서 버전 검증 — 기존 시험이 이를 확인하지 않아 변이 1종이 살아남았음) |
+| 2 | consent | 반영(새 기능, legal.py 덮어씀) | #21 (머지 3ab4616) | `legal.py`·시험 파일은 패치 파일 그대로, 스냅샷은 덮어쓰지 않고 재생성(+2 경로: `/v1/me/consents`, `/v1/me/consents/{purpose}`, 삭제 0). 패치 시험 4건 + 내가 추가한 1건(동의 행에 저장되는 문서 버전 검증 — 기존 시험이 이를 확인하지 않아 변이 1종이 살아남았음) |
+| 3 | backup | **비교 후 main 구현 유지**, 두 가지만 이식 | (이 PR) | 패치(`backup.py`+`restore.py`+12 시험)와 main의 `scripts/backup_restore.py`(+15 시험)는 둘 다 SQLite 온라인 백업 API, 복사본 `journal_mode=DELETE`, sha256 매니페스트, 새 위치에만 복구, 변조 거부를 독립적으로 갖춤. **패치에만 있던 것(이식)**: ① 파일 영역의 심볼릭 링크를 따라가거나 복사하지 않음(링크로 영역 밖 파일이 백업에 섞이는 것 차단) ② `verify`가 매니페스트에 없는 파일을 보고. **main에만 있는 것(유지)**: 백업 위치가 데이터 안/밖으로 겹치면 거부, 소요시간 기록, 복구 후 파일 재해시, 없는 영역 기록, 읽을 수 없는 DB를 `BackupVerificationError`로 보고. 패치의 `tests/test_backup_restore.py`는 main의 같은 이름 파일과 충돌해 추가하지 않음. 시험 +2(심볼릭 링크, 미기재 파일). 변이 검증: 링크 건너뛰기 제거 → 시험 실패(적발), 미기재 파일 검사 제거 → 시험 실패(적발); 디렉터리 링크 가지치기 제거는 `os.walk(followlinks=False)`가 이미 막아 **동등 변이**라 해당 코드를 삭제함 |
