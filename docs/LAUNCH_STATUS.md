@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #20 (머지 d26aab9) — 설계 창 패치 1/9: legal
+- **CI (head 65fe0ab, run 42608327049)**: backend success — pytest `804 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`. 로그에 `failed` 없음.
+- **완료**: 약관·개인정보 동의 기록 API와 삭제 요청 기록 API(새 경로 5개). 변이 12종 중 11종 적발(1종은 동치). 세부 §14.
+- **미검증**: 동의 화면(프런트) 없음; 다른 라우트에서 동의를 강제하지 않음; 삭제 요청은 기록만 하고 실제 삭제는 패치 5(purge) 몫; SQLite 전용; 법률 본문은 초안이며 빈칸을 채우지 않았음.
+- **차단**: 법률 빈칸(연락처 이메일, 개인정보 보호책임자, 책임 한도, 관할 법원, 시행일, 생성물 권리) — 사용자 결정 필요.
+
 ### 2026-11-09 · PR #18 (머지 3625e18) — FastAPI 0.162.2 / Starlette 1.10 업그레이드
 - **CI (head 239e066, run 42602714915)**: backend success — pytest `792 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`. **dependency-audit(run 42602714668)**: python `No known vulnerabilities found`, node `found 0 vulnerabilities`. 로그에 `failed` 없음.
 - **완료**: Starlette 7건 해결로 백엔드 알려진 취약점 0건(31개 패키지); 보안 표면 시험의 맹점(감싼 라우터를 건너뛰어 `/internal/` 시험이 아무것도 검사하지 않고 통과) 수정 + OpenAPI 대조 자체 검증, 변이 4/4 적발; 주간·PR 자동 점검 워크플로. 세부 §13.
@@ -221,4 +227,5 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 
 | # | 패치 | 처리 | PR | 비고 |
 |---|---|---|---|---|
-| 1 | legal | 반영(새 기능) | (이 PR) | `git apply`가 충돌 없이 적용됨. 스냅샷 재생성: 새 경로 5개만 추가(84→89, 삭제 0) |
+| 1 | legal | 반영(새 기능) | #20 (머지 d26aab9) | `git apply`가 충돌 없이 적용됨. 스냅샷 재생성: 새 경로 5개만 추가(84→89, 삭제 0) |
+| 2 | consent | 반영(새 기능, legal.py 덮어씀) | (이 PR) | `legal.py`·시험 파일은 패치 파일 그대로, 스냅샷은 덮어쓰지 않고 재생성(+2 경로: `/v1/me/consents`, `/v1/me/consents/{purpose}`, 삭제 0). 패치 시험 4건 + 내가 추가한 1건(동의 행에 저장되는 문서 버전 검증 — 기존 시험이 이를 확인하지 않아 변이 1종이 살아남았음) |
