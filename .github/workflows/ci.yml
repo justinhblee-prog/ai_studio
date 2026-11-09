@@ -136,6 +136,12 @@ jobs:
           set -o pipefail
           node e2e/layout_flow.mjs | tee e2e_layout.txt
           grep -q "SUMMARY 11/11 layout checks passed" e2e_layout.txt
+      - name: Legal acceptance gate, AI-training consent and deletion requests in the browser
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          node e2e/legal_flow.mjs | tee e2e_legal.txt
+          grep -q "SUMMARY 5/5 legal screen steps passed" e2e_legal.txt
       - name: Account and data-protection API flows (legal, deletion requests, Character guard)
         working-directory: ai_creator_studio_3d_viewer
         run: |

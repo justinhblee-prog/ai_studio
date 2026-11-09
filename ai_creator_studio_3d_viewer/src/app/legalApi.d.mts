@@ -1,0 +1,12 @@
+export type LegalStatus = { accepted: boolean; required: { document: string; version: string }[]; missing: { document: string; version: string }[]; history: { document: string; version: string; accepted_at: string }[] };
+export type DeletionRequest = { request_id: string; scope: string; workspace_id: string | null; status: 'pending' | 'cancelled' | 'completed'; reason: string | null; requested_at: string; resolved_at: string | null };
+export const DOCUMENT_LABELS: Record<string, string>;
+export function loadLegalStatus(api: string, token: string): Promise<LegalStatus>;
+export function acceptRequired(api: string, token: string, status: LegalStatus): Promise<LegalStatus>;
+export type ConsentItem = { purpose: string; granted: boolean; changed_at: string | null; current_version: string };
+export function loadConsents(api: string, token: string): Promise<ConsentItem[]>;
+export function setConsent(api: string, token: string, purpose: string, granted: boolean): Promise<ConsentItem[]>;
+export function loadDeletionRequests(api: string, token: string): Promise<DeletionRequest[]>;
+export function requestAccountDeletion(api: string, token: string, reason?: string): Promise<DeletionRequest>;
+export function cancelDeletionRequest(api: string, token: string, requestId: string): Promise<null>;
+export function gateState(status: LegalStatus | null, error?: unknown): 'error' | 'loading' | 'open' | 'needs-acceptance';

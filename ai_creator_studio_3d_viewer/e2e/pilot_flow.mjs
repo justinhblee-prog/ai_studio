@@ -22,7 +22,7 @@ try {
     assert.match(state.workspace, /^ws_/);
     await page.getByRole('button', { name: /설정/ }).click();
     await page.locator('section.settings').waitFor();
-    assert.equal(await page.locator('section.settings input').count(), 3, 'settings panel shows only user, workspace and job fields');
+    assert.equal(await page.locator('section.settings > label input').count(), 3, 'the connection fields are only user, workspace and job (the account panel below has its own controls)');
     assert.equal(await page.locator('section.settings', { hasText: 'Backend API 주소' }).count(), 0, 'settings panel must not offer an API address input');
     await page.getByRole('button', { name: /설정/ }).click();
   });
