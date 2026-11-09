@@ -3447,6 +3447,51 @@
         "summary": "Get Operational Alerts"
       }
     },
+    "/internal/ops/health": {
+      "get": {
+        "description": "Deep health (database, storage, disk, workers, backup); 503 when any check fails. Platform operators only.",
+        "operationId": "deep_health_diagnostics_internal_ops_health_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Deep Health Diagnostics"
+      }
+    },
     "/internal/ops/metrics": {
       "get": {
         "operationId": "get_operational_metrics_internal_ops_metrics_get",
