@@ -67,6 +67,17 @@ HEALTH_DISK_WARN_FREE_PERCENT = _non_negative_int("HEALTH_DISK_WARN_FREE_PERCENT
 HEALTH_DISK_FAIL_FREE_PERCENT = _non_negative_int("HEALTH_DISK_FAIL_FREE_PERCENT", 5)
 HEALTH_BACKUP_MAX_AGE_HOURS = _non_negative_int("HEALTH_BACKUP_MAX_AGE_HOURS", 26)
 BACKUP_DIR = Path(os.getenv("BACKUP_DIR")).resolve() if os.getenv("BACKUP_DIR", "").strip() else None
+# Access log (L-05). ACCESS_LOG_DIR set -> a daily-rotating file kept for ACCESS_LOG_RETENTION_DAYS days; unset -> stdout.
+# The retention default is a placeholder, not a legal decision. ACCESS_LOG_ACTOR: hash (default) | plain | none.
+ACCESS_LOG_ENABLED = os.getenv("ACCESS_LOG_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
+ACCESS_LOG_DIR = Path(os.getenv("ACCESS_LOG_DIR")).resolve() if os.getenv("ACCESS_LOG_DIR", "").strip() else None
+ACCESS_LOG_RETENTION_DAYS = _non_negative_int("ACCESS_LOG_RETENTION_DAYS", 30)
+if ACCESS_LOG_DIR is not None and ACCESS_LOG_RETENTION_DAYS < 1:
+    raise ValueError("ACCESS_LOG_RETENTION_DAYS must be at least 1 when ACCESS_LOG_DIR is set (0 would keep every file forever)")
+ACCESS_LOG_ACTOR = os.getenv("ACCESS_LOG_ACTOR", "hash").strip().lower()
+if ACCESS_LOG_ACTOR not in {"hash", "plain", "none"}:
+    raise ValueError("ACCESS_LOG_ACTOR must be hash, plain or none")
+ACCESS_LOG_CLIENT_IP = env_flag(os.getenv("ACCESS_LOG_CLIENT_IP"))
 
 WORKER_STALE_AFTER_SECONDS = int(os.getenv("WORKER_STALE_AFTER_SECONDS", "30"))
 

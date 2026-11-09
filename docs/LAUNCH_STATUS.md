@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #13 (머지 b6c011d) — 심층 점검·런북·워커 판정 수정
+- **CI (head c7faed7, run 42570558102)**: backend success — pytest `777 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`. 로그에 `failed` 없음.
+- **완료**: `GET /internal/ops/health`(DB·저장소·디스크·필수 워커·백업, 실패 시 503), `docs/RUNBOOK.md`, 결함 2건 수정(idle/working 워커의 거짓 critical 알림, 점검이 없는 DB를 만들던 부작용). 변이 20/20 적발. 세부 §10.
+- **미검증**: 런북 절차를 실제 배포에서 실행해 본 적 없음; 점검 임계값 기본값은 근거 없는 출발점; 외부 서비스 가용성은 점검하지 않음.
+- **차단**: 배포 대상 정보(영속 디스크 유무).
+
 ### 2026-11-09 · PR #12 (머지 1567d9e) — L-07 AI 생성물 표시
 - **CI (head 4789581, run 42569714594)**: backend success — pytest `745 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`. 로그에 `failed` 없음.
 - **완료**: Provider 작업 출력의 AI 생성물 표시(목록·검수 API, 내부 manifest, 검수 화면 배지). 사진·룩북의 기존 `is_ai_generated: false`는 중복 구현하지 않고 시험으로 고정. 변이 백엔드 9/9·브라우저 4/4 적발. 세부는 §9.
@@ -158,3 +164,9 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - 시험: `tests/test_deep_health.py` 24건(각 점검의 ok/warn/fail, 없는 DB·손상 DB·quick_check 실패·폴더 아님·쓰기 불가·디스크 임계값·필수 워커 없음/오래됨·수동 조정·백업 신선도·가장 나쁜 값·엔드포인트 인증·503), `tests/test_worker_liveness.py` 8건. 변이 20/20 적발(처음 1건이 살아남아 사유 문구·"DB를 만들지 않음" 단언을 추가해 적발, 그 과정에서 위 결함 ②를 발견). 시험은 실제 디스크 여유에 의존하지 않도록 `disk_usage`를 고정(이 샌드박스는 실제 여유가 11.7%라 경고가 나왔음).
 - OpenAPI 스냅샷: 새 경로 1개만 추가(45줄 추가, 삭제 0).
 - **미검증/한계**: `PRAGMA quick_check`는 전체 `integrity_check`보다 약함; 디스크 임계값·백업 나이 기본값은 근거 있는 값이 아니라 출발점; PG 런타임 점검은 범위 밖(런타임은 SQLite); 점검은 외부 서비스(Supabase Auth, Provider)의 가용성을 보지 않음; 점검 결과를 외부 모니터에 연결하는 일은 하지 않았음.
+
+## 11. 접근 로그와 보관 설정 (큐 15 / L-05, 브랜치 access-log)
+- `app/access_log.py`: 요청마다 JSON 한 줄. 항목·비기록 항목·설정은 `docs/RUNBOOK.md` 3-1절. 요청 ID는 짧은 일반 토큰일 때만 받아들이고(줄바꿈·공백 등은 새 ID로 교체해 로그 위조 방지) 응답 헤더로 돌려줌. 보관: `ACCESS_LOG_DIR` 지정 시 UTC 자정 회전 + `ACCESS_LOG_RETENTION_DAYS`개 유지(0은 시작 시 거부). 인증 의존성이 `request.state.actor`를 채우되 기존 `current_user("Bearer …")` 직접 호출 시그니처는 유지.
+- **발견**: 이 앱에는 로깅이 전혀 없었고 uvicorn 기본 접근 로그는 쿼리 문자열을 남겨 서명 URL의 `signature`가 로그에 들어감 → 런북에 `--no-access-log` 권고.
+- 시험 `tests/test_access_log.py` 14건 + 기존 전체 통과. 변이 19/19 적발(원본 경로 기록, 쿼리·Authorization 기록, 임의 요청 ID 수용, ID 검증 제거, 헤더 미반환, 작업공간 ID 검증 제거, 항상 평문/none 무시, IP 항상 기록, 비활성화 불가, 500 미기록, 오류 메시지 노출, 보관·회전 미적용, 핸들러 중복, 보관 0 허용, 잘못된 actor 모드 허용, actor 미기록). 시험 작성 중 내용 없는 단언(`or True`)을 스스로 발견해 실제 검증으로 교체.
+- **한계/미검증 — 중요**: ① **로그 항목 목록과 보관 기간(30일)은 내가 정한 엔지니어링 선택이며 법적 명세와 대조하지 않았다**(L-05 문서 없음). 법적 보관 기간·접근 통제·열람·삭제 요청 시 처리 정책은 정해지지 않음. ② 보안 이벤트 전용 로그(로그인 실패 집계, 권한 거절 알림)는 없음 — 상태 코드 401/403이 접근 로그에 남을 뿐. ③ 로그 파일 외부 전송·변조 방지·암호화 없음. ④ 워커 프로세스는 접근 로그를 남기지 않음(HTTP 요청이 없음). ⑤ 한 번에 많은 요청이 올 때의 성능 영향은 측정하지 않음. ⑥ 해시는 `ASSET_SIGNING_SECRET`을 솔트로 쓰며, 그 값을 바꾸면 같은 사용자의 해시가 달라짐.

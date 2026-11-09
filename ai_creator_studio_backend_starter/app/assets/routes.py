@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 from app.viewer_responses import AssetListResponse, AssetVersionListResponse, AssetRecordResponse, AssetVersionResponse, AssetVersionMutationResponse
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, Request, UploadFile
 import httpx
 from pydantic import BaseModel, Field
 from starlette.responses import StreamingResponse
@@ -25,7 +25,15 @@ from app.assets.validation import AssetValidationError, validate_asset_upload, v
 router = APIRouter(prefix="/v1/assets", tags=["assets"])
 
 
-def current_user(authorization: str | None = Header(default=None)) -> str:
+def current_user(authorization: str | None = Header(default=None), request: Request = None) -> str:
+    """Authenticate the bearer token; also tells the access log who the actor is (request.state), if a request is given."""
+    user_id = _authenticate(authorization)
+    if request is not None:
+        request.state.actor = user_id
+    return user_id
+
+
+def _authenticate(authorization: str | None) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Bearer authentication is required")
     token = authorization[7:].strip()

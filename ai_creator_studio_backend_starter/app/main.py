@@ -10,6 +10,7 @@ from app.private_file_response import PrivateFileError, open_private_file_respon
 from pydantic import BaseModel, ConfigDict, Field
 from app import config, job_repository
 from app.repositories.job_limits import DailyJobLimitExceeded
+from app.access_log import AccessLogMiddleware, configure_access_log
 from app.ai_disclosure import disclose_job_outputs, is_ai_generated_provider
 from app.deep_health import run_deep_health
 from app.schemas import CreateTryOnJob, JobResponse, EngineInfo, ReconcileProviderSubmission, RetryPollTaskRequest, CancelGenerationJobRequest
@@ -109,6 +110,8 @@ class GeneratedOutputReviewResponse(BaseModel):
 
 
 app = FastAPI(title="AI CREATOR STUDIO API", version="0.7.0")
+configure_access_log()
+app.add_middleware(AccessLogMiddleware)
 app.include_router(assets_router)
 app.include_router(workspaces_router)
 app.include_router(characters_router)
