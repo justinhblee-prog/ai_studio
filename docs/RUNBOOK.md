@@ -61,6 +61,12 @@ python scripts/backup_restore.py restore "$BACKUP_DIR/backup-<타임스탬프>" 
 - **자동 스케줄·외부 보관·암호화·보존 기간은 아직 없다.** 하루 한 번 백업을 돌리고 결과를 서버 밖으로 복사하는 것은 운영자가 정해야 한다. 예시(시험하지 않음): `17 3 * * * cd /srv/acs/backend && python scripts/backup_restore.py backup --dest "$BACKUP_DIR"`
 - **복구 훈련**: 분기마다 새 폴더로 복구해 `GET /internal/ops/health`와 자산 하나의 미리보기가 정상인지 확인한다(아직 실제 환경에서 해 본 적 없음).
 
+### 점검 스크립트 (`scripts/ops_check.py`, cron·모니터용)
+```bash
+python scripts/ops_check.py --db "$ASSET_DATABASE_PATH" --backup-dir "$BACKUP_DIR"   # 종료 코드 0 정상 / 1 경고 / 2 치명, --json 가능
+```
+읽기 전용이다. 하트비트·막힌 작업·월 유료 작업 수(상한의 80%에서 경고, 도달하면 치명)·유예기간 지난 삭제 요청·최신 백업 나이(36시간)를 본다. 알림은 보내지 않으니 종료 코드를 보고 알리는 것은 운영자가 정한다(시험하지 않은 제안).
+
 ### 삭제 요청 처리 (`scripts/purge_requests.py`)
 ```bash
 python scripts/purge_requests.py                                   # 유예기간(7일)이 지난 pending 요청의 계획만 출력(dry-run)
