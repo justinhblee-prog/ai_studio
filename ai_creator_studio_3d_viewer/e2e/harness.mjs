@@ -93,7 +93,17 @@ export async function mockSupabase(context, who = USERS.owner) {
   });
 }
 
-export async function loginThroughUi(page, webUrl, who, { beforeSubmit } = {}) {
+export async function acceptLegalThroughUi(page, { aiTraining = false } = {}) {
+  const gate = page.locator('.legal-gate');
+  await gate.waitFor({ timeout: 20000 });
+  for (const box of await gate.locator('.legal-list input[type=checkbox]').all()) await box.check();
+  if (aiTraining) await gate.locator('.legal-optional input[type=checkbox]').check();
+  await gate.getByRole('button', { name: '동의하고 계속' }).click();
+}
+
+// By default a user who has not accepted the legal documents is taken through the real gate screen, so every flow
+// exercises it. Pass acceptLegal: false to stop at the gate.
+export async function loginThroughUi(page, webUrl, who, { beforeSubmit, acceptLegal = true } = {}) {
   await page.goto(webUrl);
   await page.getByRole('button', { name: '로그인' }).first().click();
   await page.locator('input[type=email]').waitFor();
@@ -101,6 +111,11 @@ export async function loginThroughUi(page, webUrl, who, { beforeSubmit } = {}) {
   await page.locator('input[type=email]').fill(who.email);
   await page.locator('input[type=password]').fill('password-123');
   await page.locator('button.auth-submit').click();
+  await page.locator('.workspace-select, .legal-gate').first().waitFor({ timeout: 20000 });
+  if (await page.locator('.legal-gate').count()) {
+    if (!acceptLegal) return;
+    await acceptLegalThroughUi(page);
+  }
   await page.locator('.workspace-select').waitFor({ timeout: 20000 });
 }
 
