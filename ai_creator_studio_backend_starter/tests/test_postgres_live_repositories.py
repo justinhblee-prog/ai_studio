@@ -3412,3 +3412,105 @@ def test_outbox_expired_lease_is_quarantined_and_stale_worker_cannot_complete(re
     assert status == "needs_reconciliation"
     final = jobs.get(jid)
     assert final["status"] == "queued" and final["error_code"] == "PROVIDER_START_UNKNOWN"
+
+
+def test_job_list_pagination_is_total_ordered_and_workspace_scoped(repos):
+    """Stable data: pages are disjoint, cover every job, newest first, ties broken by job_id DESC."""
+    import psycopg
+    ws, owner, *_ = _workspace(repos)
+    other_ws, other_owner, *_ = _workspace(repos)
+    jobs, _ = _job_repos()
+    mine = [jobs.create(_job_payload(ws, owner))[0]["job_id"] for _ in range(23)]
+    for _ in range(5):
+        jobs.create(_job_payload(other_ws, other_owner))
+    with psycopg.connect(DSN, autocommit=True) as conn:  # force created_at ties on 10 jobs
+        conn.execute("UPDATE generation_jobs SET created_at=now()+interval '1 hour' WHERE job_id = ANY(%s)", (mine[:10],))
+    seen = []
+    for offset in range(0, 30, 7):
+        page = jobs.list_for_workspace(ws, limit=7, offset=offset)
+        assert len(page) <= 7
+        seen.extend(page)
+    ids = [j["job_id"] for j in seen]
+    assert sorted(ids) == sorted(mine) and len(set(ids)) == len(ids)
+    keys = [(j["created_at"], j["job_id"]) for j in seen]
+    assert keys == sorted(keys, reverse=True)
+    assert jobs.list_for_workspace(ws, limit=7, offset=23) == []
+    for bad in ({"limit": 0}, {"limit": 201}, {"offset": -1}):
+        with pytest.raises(ValueError):
+            jobs.list_for_workspace(ws, **bad)
+
+
+def test_job_list_pagination_under_concurrent_creates_never_skips_existing_jobs(repos):
+    """Offset paging may repeat a job when new jobs land at the head, but must never skip an existing one."""
+    import threading
+    ws, owner, *_ = _workspace(repos)
+    jobs, _ = _job_repos()
+    existing = {jobs.create(_job_payload(ws, owner))[0]["job_id"] for _ in range(30)}
+    stop, errors, created = threading.Event(), [], []
+
+    def writer():
+        try:
+            while not stop.is_set():
+                created.append(jobs.create(_job_payload(ws, owner))[0]["job_id"])
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+    t = threading.Thread(target=writer); t.start()
+    try:
+        for _ in range(10):
+            seen, offset = [], 0
+            for _ in range(200):  # bound: a broken offset must fail the test, not loop forever
+                page = jobs.list_for_workspace(ws, limit=5, offset=offset)
+                assert len(page) <= 5 and len({j["job_id"] for j in page}) == len(page)
+                keys = [(j["created_at"], j["job_id"]) for j in page]
+                assert keys == sorted(keys, reverse=True)
+                seen.extend(j["job_id"] for j in page)
+                if len(page) < 5:
+                    break
+                offset += 5
+            else:
+                raise AssertionError("pagination did not terminate")
+            assert existing <= set(seen), existing - set(seen)
+    finally:
+        stop.set(); t.join()
+    assert not errors, errors
+    assert created
+
+
+def test_job_execution_cursor_is_stable_while_new_attempts_arrive(repos):
+    """Keyset cursor on attempt_no: attempts that existed at the first page appear exactly once, in order."""
+    import psycopg, threading
+    ws, owner, *_ = _workspace(repos)
+    jobs, _ = _job_repos()
+    job, _ = jobs.create(_job_payload(ws, owner))
+    jid = job["job_id"]
+
+    def add_attempt(n):
+        with psycopg.connect(DSN, autocommit=True) as conn:
+            conn.execute("""INSERT INTO generation_executions (execution_id,job_id,attempt_no,status,provider,started_at,finished_at)
+                VALUES (%s,%s,%s,'failed','mock',now(),now())""", ("exec_" + uuid.uuid4().hex, jid, n))
+    for n in range(2, 13):
+        add_attempt(n)
+    first = jobs.list_executions(jid, limit=4)
+    assert [e["attempt_number"] for e in first["data"]] == [12, 11, 10, 9]
+    stop, errors, nxt = threading.Event(), [], [100]
+
+    def writer():
+        try:
+            while not stop.is_set():
+                add_attempt(nxt[0]); nxt[0] += 1
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+    t = threading.Thread(target=writer); t.start()
+    try:
+        got, cursor = [e["attempt_number"] for e in first["data"]], first["meta"]["next_cursor"]
+        while cursor:
+            page = jobs.list_executions(jid, limit=4, cursor=cursor)
+            got.extend(e["attempt_number"] for e in page["data"])
+            cursor = page["meta"]["next_cursor"]
+    finally:
+        stop.set(); t.join()
+    assert not errors, errors
+    assert got == list(range(12, 0, -1)), got
+    for bad in ("garbage", "ZXhlYzow"):
+        with pytest.raises(ValueError):
+            jobs.list_executions(jid, cursor=bad)
