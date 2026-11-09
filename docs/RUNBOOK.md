@@ -68,6 +68,12 @@ python scripts/ops_check.py --db "$ASSET_DATABASE_PATH" --backup-dir "$BACKUP_DI
 ```
 읽기 전용이다. 하트비트·막힌 작업·월 유료 작업 수(상한의 80%에서 경고, 도달하면 치명)·유예기간 지난 삭제 요청·최신 백업 나이(36시간)를 본다. 알림은 보내지 않으니 종료 코드를 보고 알리는 것은 운영자가 정한다(시험하지 않은 제안).
 
+### 출시 전 게이트 (`scripts/launch_gate.py`)
+```bash
+python scripts/launch_gate.py            # 시험 + 의존성 점검 + 백업 훈련(일회용 DB). 종료 코드 0/1/2, --json 가능
+```
+Provider 검증·법률 빈칸·배포 스모크·GitHub CI·첫 삭제 승인은 **항상 NOT_RUN**이다(사람이 확인). 이 스크립트는 출시를 승인하지 않는다. `pip-audit`이 설치된 환경에서 돌려야 의존성 단계가 실행된다.
+
 ### 삭제 요청 처리 (`scripts/purge_requests.py`)
 ```bash
 python scripts/purge_requests.py                                   # 유예기간(7일)이 지난 pending 요청의 계획만 출력(dry-run)
