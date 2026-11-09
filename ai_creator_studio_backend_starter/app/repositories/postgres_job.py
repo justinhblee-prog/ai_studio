@@ -44,7 +44,7 @@ class PostgreSQLJobRepository:
         from app.postgres import apply_migrations
         apply_migrations()
 
-    def create(self, job: dict[str, Any], idempotency_key: str | None = None):
+    def create(self, job: dict[str, Any], idempotency_key: str | None = None, daily_job_limit: int | None = None):
         now = self._now()
         with connect() as conn:
             if idempotency_key:
@@ -61,6 +61,14 @@ class PostgreSQLJobRepository:
                     if existing["idem_payload_hash"] != job["payload_hash"]:
                         raise ValueError("Idempotency key was already used with a different payload")
                     return self._decode(existing), False
+
+            if daily_job_limit:
+                from app.repositories.job_limits import check_limit, utc_day_start
+                # Serialize cap checks per workspace so concurrent creates cannot all pass the count.
+                conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", ("daily-cap:" + job["workspace_id"],))
+                used = conn.execute("SELECT COUNT(*) AS n FROM generation_jobs WHERE workspace_id=%s AND created_at>=%s",
+                                    (job["workspace_id"], utc_day_start(now))).fetchone()["n"]
+                check_limit(daily_job_limit, int(used), now)
 
             conn.execute(
                 """INSERT INTO generation_jobs

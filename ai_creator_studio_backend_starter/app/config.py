@@ -46,6 +46,22 @@ APP_CORS_ORIGINS = tuple(origin.strip() for origin in os.getenv("APP_CORS_ORIGIN
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "").strip()
 
+def _non_negative_int(name: str, default: int) -> int:
+    raw = os.getenv(name, str(default)).strip()
+    if raw == "":
+        return default
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a non-negative integer, got {raw!r}") from exc
+    if value < 0:
+        raise ValueError(f"{name} must be a non-negative integer, got {raw!r}")
+    return value
+
+
+# Cost control: maximum generation jobs a workspace may create per UTC day. 0 = unlimited (default, backward compatible).
+GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE = _non_negative_int("GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE", 0)
+
 WORKER_STALE_AFTER_SECONDS = int(os.getenv("WORKER_STALE_AFTER_SECONDS", "30"))
 
 # Durable provider polling worker controls. Backoff is bounded; Retry-After is honored only from verified response headers.
