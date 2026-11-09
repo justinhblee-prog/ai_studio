@@ -30,6 +30,7 @@ try {
   const photo = page.locator('section[aria-label="Photo Engine 준비 작업실"]');
   await run('upload a product image in the photo studio', async () => {
     await gotoPage(page, '포토 스튜디오');
+    await photo.getByLabel(/사용할 권리가 있음을 확인/).check(); // uploads must declare rights by default (D2)
     await photo.locator('input[type=file]').setInputFiles({ name: 'shirt.png', mimeType: 'image/png', buffer: makePng(48, 32, [200, 40, 40]) });
     await photo.locator('select').first().locator('option', { hasText: 'shirt.png' }).waitFor({ state: 'attached' });
     const assets = await apiCall(stack, USERS.owner.token, `/v1/assets?workspace_id=${state.workspace}&kind=image`);

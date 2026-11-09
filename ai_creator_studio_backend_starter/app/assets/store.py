@@ -96,6 +96,13 @@ def initialize() -> None:
             details_json TEXT NOT NULL, created_at TEXT NOT NULL
         )""")
         db.execute("CREATE INDEX IF NOT EXISTS idx_asset_provenance_asset ON asset_provenance(asset_id, created_at DESC)")
+        # D2: one row per image whose uploader confirmed the rights. Deleting the asset deletes its row; if the asset stays
+        # (shared workspace) an account purge replaces user_id with 'deleted-user' (see scripts/purge_requests.py).
+        db.execute("""CREATE TABLE IF NOT EXISTS upload_rights_confirmations (
+            asset_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, user_id TEXT NOT NULL,
+            depicts_person INTEGER NOT NULL, likeness_consent INTEGER NOT NULL,
+            policy_version TEXT NOT NULL, confirmed_at TEXT NOT NULL
+        )""")
         # Backfill one immutable baseline version for assets created before versioning existed.
         db.execute("""INSERT OR IGNORE INTO asset_versions(version_id, asset_id, workspace_id, version_number,
             storage_key, media_type, size_bytes, checksum_sha256, created_by, created_at)
@@ -155,6 +162,12 @@ def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: byte
                 VALUES(?,?,?,?,?,?,?,?)""",
                 ("ap_" + uuid.uuid4().hex, workspace_id, asset_id, 1, "asset.uploaded",
                  owner_id, upload_details_json, now))
+            if upload_confirmation is not None and upload_confirmation.get("rights_confirmed"):
+                from app.legal import current_versions
+                db.execute("""INSERT OR IGNORE INTO upload_rights_confirmations(asset_id, workspace_id, user_id,
+                    depicts_person, likeness_consent, policy_version, confirmed_at) VALUES(?,?,?,?,?,?,?)""",
+                    (asset_id, workspace_id, owner_id, int(bool(upload_confirmation.get("depicts_person"))),
+                     int(bool(upload_confirmation.get("likeness_consent"))), current_versions()["content_policy"], now))
     except Exception:
         destination.unlink(missing_ok=True)
         raise
@@ -308,6 +321,21 @@ def get_asset(asset_id: str, workspace_id: str) -> dict[str, Any] | None:
     return _public(row) if row else None
 
 
+def get_rights_confirmation(asset_id: str, workspace_id: str) -> dict[str, Any] | None:
+    """The upload rights record of a live asset in this workspace, or None when no confirmation was recorded
+    (assets uploaded before enforcement have none; they stay usable and read as unconfirmed)."""
+    initialize()
+    with _connect() as db:
+        if not db.execute("SELECT 1 FROM assets WHERE asset_id=? AND workspace_id=? AND deleted_at IS NULL", (asset_id, workspace_id)).fetchone():
+            raise KeyError(asset_id)
+        row = db.execute("""SELECT depicts_person, likeness_consent, policy_version, confirmed_at FROM upload_rights_confirmations
+            WHERE asset_id=? AND workspace_id=?""", (asset_id, workspace_id)).fetchone()
+    if row is None:
+        return None
+    return {"depicts_person": bool(row["depicts_person"]), "likeness_consent": bool(row["likeness_consent"]),
+            "policy_version": row["policy_version"], "confirmed_at": row["confirmed_at"]}
+
+
 def list_assets(workspace_id: str, *, kind: str = "all") -> list[dict[str, Any]]:
     initialize()
     if kind not in {"all", "model", "image"}:
@@ -390,6 +418,8 @@ def delete_asset(asset_id: str, workspace_id: str, actor_id: str = "system") -> 
         keys = {row["storage_key"], *(item["storage_key"] for item in version_rows)}
         now = datetime.now(timezone.utc).isoformat()
         db.execute("UPDATE assets SET deleted_at=? WHERE asset_id=? AND workspace_id=?", (now, asset_id, workspace_id))
+        # D2 / 30-day deletion decision: when the asset is deleted its rights record is deleted with it.
+        db.execute("DELETE FROM upload_rights_confirmations WHERE asset_id=? AND workspace_id=?", (asset_id, workspace_id))
         db.execute("INSERT INTO asset_provenance(provenance_id, workspace_id, asset_id, version_number, event_type, actor_id, details_json, created_at) VALUES(?,?,?,?,?,?,?,?)",
                    ("ap_" + uuid.uuid4().hex, workspace_id, asset_id, None, "asset.deleted", actor_id, '{"source":"user_delete"}', now))
     root = config.ASSET_STORAGE_DIR.resolve()

@@ -55,7 +55,7 @@ def stored_files(env):
     return sorted(p.name for p in root.iterdir()) if root.exists() else []
 
 
-def test_default_keeps_old_clients_working_and_the_old_provenance_format(env):
+def test_legacy_mode_keeps_old_clients_working_and_the_old_provenance_format(env):
     res = upload_image()
     assert res.status_code == 201, res.text
     assert uploaded_details(res.json()["asset_id"]) == [{"source": "upload"}]
@@ -121,7 +121,9 @@ def test_rights_flag_is_wired_to_its_environment_variable():
         out = subprocess.run([sys.executable, "-I", "-c", "import sys; sys.path.insert(0, '.'); import app.config as c; print(c.ASSET_REQUIRE_RIGHTS_CONFIRMATION)"],
                              capture_output=True, text=True, env=env, check=True)
         return out.stdout.strip()
-    assert read(None) == "False" and read("true") == "True"
+    assert read(None) == "True" and read("true") == "True"  # required unless explicitly switched off (D2)
+    assert read("0") == "False" and read("false") == "False" and read("off") == "False"
+    assert read("garbage") == "True" and read("") == "True"  # anything but an explicit off keeps it required
 
 
 def test_assets_uploaded_before_enforcement_are_not_blocked_retroactively(env, monkeypatch):

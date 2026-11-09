@@ -1,8 +1,8 @@
 """Rights / likeness confirmation recorded when an image is uploaded (L-04).
 
 Nothing here is legal wording. The API only records what the uploader declared and, when
-``ASSET_REQUIRE_RIGHTS_CONFIRMATION`` is on, refuses uploads that lack the declaration.
-Default is off, so existing clients keep working unchanged.
+``ASSET_REQUIRE_RIGHTS_CONFIRMATION`` is on (the default), refuses uploads that lack the declaration (D2).
+Setting it to 0 keeps old clients working; assets uploaded earlier are never blocked retroactively.
 """
 from __future__ import annotations
 

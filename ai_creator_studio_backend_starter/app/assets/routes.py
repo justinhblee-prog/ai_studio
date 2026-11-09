@@ -170,8 +170,8 @@ async def upload_image_asset(workspace_id: str = Form(min_length=2, max_length=6
                              likeness_consent: bool | None = Form(default=None)):
     """Store a validated source image for the independent Photo Engine workflow.
 
-    The optional rights fields are recorded in the asset provenance; they are required only when
-    ASSET_REQUIRE_RIGHTS_CONFIRMATION is enabled (L-04).
+    The rights fields are recorded in the asset provenance and, when confirmed, in upload_rights_confirmations (D2).
+    ``rights_confirmed=true`` is required unless ASSET_REQUIRE_RIGHTS_CONFIRMATION is explicitly switched off (L-04).
     """
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
     filename = Path(file.filename or "image").name
@@ -284,6 +284,21 @@ async def asset_provenance(
         return get_asset_metadata_port().provenance(asset_id, user_id, limit, offset)
     except Exception as exc:
         raise_http(exc)
+
+
+@router.get("/{asset_id}/rights-confirmation")
+async def asset_rights_confirmation(asset_id: str, user_id: str = Depends(current_user)):
+    """D2: whether the uploader confirmed the rights to this image. Assets uploaded before enforcement read as unconfirmed."""
+    from app.assets.store import get_rights_confirmation
+    workspace_id = get_asset_bytes_port().workspace_of(asset_id)
+    if not workspace_id:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    require_role(workspace_id, user_id, {"owner", "admin", "editor", "viewer"})
+    try:
+        record = get_rights_confirmation(asset_id, workspace_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Asset not found") from None
+    return {"asset_id": asset_id, "status": "confirmed" if record else "unconfirmed", **(record or {})}
 
 
 @router.get("/{asset_id}/relations")
