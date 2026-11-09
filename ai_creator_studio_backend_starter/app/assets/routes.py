@@ -25,11 +25,23 @@ from app.assets.validation import AssetValidationError, validate_asset_upload, v
 router = APIRouter(prefix="/v1/assets", tags=["assets"])
 
 
+# Paths a user may call without having accepted the current legal documents: accepting them, seeing who they are,
+# withdrawing consent, requesting deletion, and the operator diagnostics (which are gated by their own operator allow-list).
+LEGAL_EXEMPT_PREFIXES = ("/v1/auth/me", "/v1/me/legal-status", "/v1/me/legal-acceptances", "/v1/me/consents",
+                         "/v1/me/deletion-requests", "/internal/")
+
+
 def current_user(authorization: str | None = Header(default=None), request: Request = None) -> str:
     """Authenticate the bearer token; also tells the access log who the actor is (request.state), if a request is given."""
     user_id = _authenticate(authorization)
     if request is not None:
         request.state.actor = user_id
+        if config.LEGAL_REQUIRE_ACCEPTANCE and not request.url.path.startswith(LEGAL_EXEMPT_PREFIXES):
+            from app.legal import _initialize, _status_for
+            _initialize()
+            if not _status_for(user_id)["accepted"]:
+                raise HTTPException(status_code=403, detail={"code": "LEGAL_ACCEPTANCE_REQUIRED",
+                                                             "message": "Accept the current legal documents to continue."})
     return user_id
 
 

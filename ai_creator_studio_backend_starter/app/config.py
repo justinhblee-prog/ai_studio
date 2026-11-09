@@ -26,6 +26,9 @@ def env_flag(value: str | None) -> bool:
 
 
 ASSET_REQUIRE_RIGHTS_CONFIRMATION = env_flag(os.getenv("ASSET_REQUIRE_RIGHTS_CONFIRMATION"))
+# L-02: when true, an authenticated user who has not accepted the current legal document versions is refused (403
+# LEGAL_ACCEPTANCE_REQUIRED) on every route except the ones needed to accept, withdraw consent or request deletion. Default off.
+LEGAL_REQUIRE_ACCEPTANCE = env_flag(os.getenv("LEGAL_REQUIRE_ACCEPTANCE"))
 
 def asset_api_tokens() -> dict[str, str]:
     """Return configured bearer-token -> user-id mappings; no development token is implicit."""
