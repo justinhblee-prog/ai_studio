@@ -9,6 +9,7 @@ from fastapi.responses import PlainTextResponse
 from app.private_file_response import PrivateFileError, open_private_file_response
 from pydantic import BaseModel, ConfigDict, Field
 from app import config, job_repository
+from app.repositories.job_limits import DailyJobLimitExceeded
 from app.schemas import CreateTryOnJob, JobResponse, EngineInfo, ReconcileProviderSubmission, RetryPollTaskRequest, CancelGenerationJobRequest
 from app.providers.mock import MockProvider
 from app.providers.fashn import FashnProvider
@@ -235,7 +236,10 @@ async def create_job(body: CreateTryOnJob, idempotency_key: str | None = Header(
         "payload_hash": payload_hash, "payload": payload, "provider_output_url": None,
     }
     try:
-        persisted, created = repository.create(job, idempotency_key)
+        persisted, created = repository.create(job, idempotency_key, daily_job_limit=config.GENERATION_DAILY_JOB_LIMIT_PER_WORKSPACE or None)
+    except DailyJobLimitExceeded as exc:
+        raise HTTPException(status_code=429, headers={"Retry-After": str(exc.retry_after_seconds)}, detail={
+            "code": "DAILY_JOB_LIMIT_EXCEEDED", "message": str(exc), "limit": exc.limit, "used": exc.used}) from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Job persistence is temporarily unavailable.") from exc
     if not created:

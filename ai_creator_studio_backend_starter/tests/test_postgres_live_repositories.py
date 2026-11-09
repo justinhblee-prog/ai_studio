@@ -3865,3 +3865,42 @@ def test_upload_declaration_record_survives_deleting_the_asset_in_postgresql(rep
                             (asset["asset_id"],)).fetchall()
     assert [r[0] for r in rows] == ["asset.uploaded", "asset.deleted"]
     assert rows[0][1]["rights"] == conf
+
+
+def test_daily_job_cap_is_enforced_atomically_under_concurrent_creates_in_postgresql(repos):
+    import psycopg
+
+    from app.repositories.job_limits import DailyJobLimitExceeded
+    jobs, _outbox = _job_repos()
+    ws, owner, *_ = _workspace(repos)
+    other_ws, other_owner, *_ = _workspace(repos)
+    results, errors = _race(10, lambda i: jobs.create(_job_payload(ws, owner, key=f"cap{i}"), daily_job_limit=3))
+    blocked = [e for e in errors if isinstance(e, DailyJobLimitExceeded)]
+    assert len(results) == 3 and len(blocked) == 7 and len(errors) == 7, (len(results), [repr(e) for e in errors if e not in blocked])
+    assert all(e.limit == 3 and e.used == 3 and e.retry_after_seconds >= 1 for e in blocked)
+    with psycopg.connect(DSN) as conn:
+        assert conn.execute("SELECT count(*) FROM generation_jobs WHERE workspace_id=%s", (ws,)).fetchone()[0] == 3
+        assert conn.execute("SELECT count(*) FROM generation_outbox o JOIN generation_jobs j USING(job_id) WHERE j.workspace_id=%s", (ws,)).fetchone()[0] == 3
+    # another workspace has its own budget
+    assert jobs.create(_job_payload(other_ws, other_owner), daily_job_limit=3)[1] is True
+
+
+def test_daily_job_cap_ignores_replays_and_yesterdays_jobs_in_postgresql(repos):
+    import psycopg
+
+    from app.repositories.job_limits import DailyJobLimitExceeded
+    jobs, _outbox = _job_repos()
+    ws, owner, *_ = _workspace(repos)
+    first, created = jobs.create(_job_payload(ws, owner, key="a"), idempotency_key="idem-1", daily_job_limit=2)
+    assert created is True
+    assert jobs.create(_job_payload(ws, owner, key="b"), daily_job_limit=2)[1] is True  # 2/2 now
+    payload = _job_payload(ws, owner, key="a")
+    payload["payload_hash"] = first["payload_hash"]
+    replay, created = jobs.create(payload, idempotency_key="idem-1", daily_job_limit=2)
+    assert created is False and replay["job_id"] == first["job_id"], "a replay at the limit must return the existing job"
+    with pytest.raises(DailyJobLimitExceeded):
+        jobs.create(_job_payload(ws, owner, key="c"), daily_job_limit=2)
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        conn.execute("UPDATE generation_jobs SET created_at = date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' - interval '1 second' WHERE workspace_id=%s", (ws,))
+    assert jobs.create(_job_payload(ws, owner, key="d"), daily_job_limit=2)[1] is True, "yesterday's jobs must not count"
+    assert jobs.create(_job_payload(ws, owner, key="e"), daily_job_limit=None)[1] is True, "no limit means unlimited"

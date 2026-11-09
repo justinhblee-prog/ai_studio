@@ -7,7 +7,7 @@ import uuid
 
 @runtime_checkable
 class JobRepository(Protocol):
-    def create(self, job: dict[str, Any], idempotency_key: str | None = None) -> tuple[dict[str, Any], bool]: ...
+    def create(self, job: dict[str, Any], idempotency_key: str | None = None, daily_job_limit: int | None = None) -> tuple[dict[str, Any], bool]: ...
     def get(self, job_id: str) -> dict[str, Any] | None: ...
     def list_executions(self, job_id: str, *, limit: int = 20, cursor: str | None = None) -> dict[str, Any]: ...
     def list_outputs(self, job_id: str) -> dict[str, Any]: ...
@@ -46,7 +46,8 @@ class SQLiteJobRepository:
         with storage.transaction(path) as conn:
             initialize_schema(conn)
 
-    def create(self, job, idempotency_key=None):
+    def create(self, job, idempotency_key=None, daily_job_limit=None):
+        # The v0.31 compatibility seam (_impl) predates the cap; it is not used by the runtime.
         if self._impl is not None: return self._impl.create_job(job, idempotency_key)
         from app.repositories.event import SQLiteEventRepository
         from app.repositories.execution import SQLiteExecutionRepository
@@ -62,6 +63,13 @@ class SQLiteJobRepository:
                 if existing:
                     value = self._decode_job(existing)
                     return value, False
+            if daily_job_limit:
+                from datetime import datetime as _dt, timezone as _tz
+                from app.repositories.job_limits import check_limit, utc_day_start
+                current = _dt.now(_tz.utc)
+                used = conn.execute("SELECT COUNT(*) AS n FROM generation_jobs WHERE workspace_id=? AND created_at>=?",
+                                    (job["workspace_id"], utc_day_start(current).isoformat())).fetchone()["n"]
+                check_limit(daily_job_limit, int(used), current)
             conn.execute("""INSERT INTO generation_jobs
                 (job_id,workspace_id,owner_id,status,provider,model,provider_request_id,output_url,error_code,message,payload_hash,payload_json,provider_output_url,created_at,updated_at)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
