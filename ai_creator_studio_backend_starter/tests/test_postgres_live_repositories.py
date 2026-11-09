@@ -3037,6 +3037,62 @@ def test_character_delete_vs_lookbook_draft_create_never_leaves_a_deleted_refere
     assert not violations, violations
 
 
+def test_project_archive_vs_lookbook_draft_create_never_leaves_an_archived_reference(repos):
+    import threading
+
+    import psycopg
+    violations, errors = [], []
+    for i in range(20):
+        ws, owner, editor, viewer, outsider, prod, proj, chr_ = _lookbook_world(repos)
+        barrier = threading.Barrier(2)
+
+        def child():
+            try:
+                barrier.wait()
+                repos["lookbooks"].create_draft(ws, editor, {"title": "T", "product_ids": [prod], "project_id": proj})
+            except Exception as exc:  # noqa: BLE001
+                if not isinstance(exc, ValueError) and type(exc).__name__ != "LookbookStateError":
+                    errors.append(repr(exc))
+
+        def parent():
+            try:
+                barrier.wait()
+                repos["projects"].update(proj, editor, name="Campaign", project_type="campaign", status="ARCHIVED")
+            except Exception as exc:  # noqa: BLE001
+                if type(exc).__name__ != "ProjectConflictError":
+                    errors.append(repr(exc))
+        ts = [threading.Thread(target=child), threading.Thread(target=parent)]
+        [t.start() for t in ts]; [t.join() for t in ts]
+        with psycopg.connect(DSN) as conn:
+            if conn.execute("""SELECT count(*) FROM lookbook_draft_entities e JOIN lookbook_drafts d ON d.draft_id=e.draft_id
+                JOIN projects p ON p.project_id=e.entity_id WHERE e.entity_type='project' AND e.entity_id=%s
+                AND d.archived_at IS NULL AND p.status<>'ACTIVE'""", (proj,)).fetchone()[0]:
+                violations.append(i)
+    assert not errors, errors
+    assert not violations, violations
+
+
+_CHARACTER_DANGLING_SQL = """SELECT count(*) FROM character_assets ca JOIN characters c ON c.character_id=ca.character_id
+    JOIN assets a ON a.asset_id=ca.asset_id WHERE ca.asset_id=%s AND c.deleted_at IS NULL AND a.deleted_at IS NOT NULL"""
+
+
+def test_asset_delete_vs_character_create_never_leaves_a_dangling_reference(repos):
+    def make(ws, owner, editor, asset, i):
+        repos["characters"].create(workspace_id=ws, actor_id=editor, payload=_char(name=f"R{i}"), asset_ids=[asset])
+    violations, errors = _asset_delete_race(repos, make, _CHARACTER_DANGLING_SQL, "crace")
+    assert not errors, errors
+    assert not violations, violations
+
+
+def test_asset_delete_vs_character_update_never_leaves_a_dangling_reference(repos):
+    def make(ws, owner, editor, asset, i):
+        cid = repos["characters"].create(workspace_id=ws, actor_id=editor, payload=_char(name=f"U{i}"))["character_id"]
+        repos["characters"].update(cid, ws, editor, payload=_char(name=f"U{i}b"), asset_ids=[asset])
+    violations, errors = _asset_delete_race(repos, make, _CHARACTER_DANGLING_SQL, "curace")
+    assert not errors, errors
+    assert not violations, violations
+
+
 def _job_repos():
     from app.repositories.postgres_job import PostgreSQLJobRepository
     from app.repositories.postgres_outbox import PostgreSQLOutboxRepository
@@ -3160,6 +3216,7 @@ def _job_at_persist_output(repos, jobs, outbox, ws, owner):
     task = poll.claim_next_poll_task(worker, 60)
     assert task is not None and task["job_id"] == job["job_id"], "test must claim its own poll task"
     poll.reschedule_poll_task(task["task_id"], worker, delay_seconds=0, phase="persist_output")
+    _isolate_queue(job["job_id"])
     task = poll.claim_next_poll_task(worker, 60)
     assert task["job_id"] == job["job_id"] and task["phase"] == "persist_output"
     jobs.transition(job["job_id"], "post_processing", actor_id=owner)
@@ -3356,3 +3413,171 @@ def test_outbox_expired_lease_is_quarantined_and_stale_worker_cannot_complete(re
     assert status == "needs_reconciliation"
     final = jobs.get(jid)
     assert final["status"] == "queued" and final["error_code"] == "PROVIDER_START_UNKNOWN"
+
+
+def test_job_list_pagination_is_total_ordered_and_workspace_scoped(repos):
+    """Stable data: pages are disjoint, cover every job, newest first, ties broken by job_id DESC."""
+    import psycopg
+    ws, owner, *_ = _workspace(repos)
+    other_ws, other_owner, *_ = _workspace(repos)
+    jobs, _ = _job_repos()
+    mine = [jobs.create(_job_payload(ws, owner))[0]["job_id"] for _ in range(23)]
+    for _ in range(5):
+        jobs.create(_job_payload(other_ws, other_owner))
+    with psycopg.connect(DSN, autocommit=True) as conn:  # force created_at ties on 10 jobs
+        conn.execute("UPDATE generation_jobs SET created_at=now()+interval '1 hour' WHERE job_id = ANY(%s)", (mine[:10],))
+    seen = []
+    for offset in range(0, 30, 7):
+        page = jobs.list_for_workspace(ws, limit=7, offset=offset)
+        assert len(page) <= 7
+        seen.extend(page)
+    ids = [j["job_id"] for j in seen]
+    assert sorted(ids) == sorted(mine) and len(set(ids)) == len(ids)
+    keys = [(j["created_at"], j["job_id"]) for j in seen]
+    assert keys == sorted(keys, reverse=True)
+    assert jobs.list_for_workspace(ws, limit=7, offset=23) == []
+    for bad in ({"limit": 0}, {"limit": 201}, {"offset": -1}):
+        with pytest.raises(ValueError):
+            jobs.list_for_workspace(ws, **bad)
+
+
+def test_asset_delete_is_refused_while_an_active_character_links_it(repos):
+    ws, owner, editor, *_ = _workspace(repos)
+    img = _image(repos, ws, owner, "chr-link")
+    chr_ = repos["characters"].create(workspace_id=ws, actor_id=editor, payload=_char(), asset_ids=[img])["character_id"]
+    with pytest.raises(Exception) as err:
+        repos["assets"].soft_delete_asset(img, ws, actor_id=owner)
+    assert type(err.value).__name__ == "AssetConflictError" and "Character" in str(err.value)
+    repos["characters"].soft_delete(chr_, ws, editor)
+    assert repos["assets"].soft_delete_asset(img, ws, actor_id=owner) is True
+
+
+def test_job_list_pagination_under_concurrent_creates_never_skips_existing_jobs(repos):
+    """Offset paging may repeat a job when new jobs land at the head, but must never skip an existing one."""
+    import threading
+    ws, owner, *_ = _workspace(repos)
+    jobs, _ = _job_repos()
+    existing = {jobs.create(_job_payload(ws, owner))[0]["job_id"] for _ in range(30)}
+    stop, errors, created = threading.Event(), [], []
+
+    def writer():
+        try:
+            while not stop.is_set():
+                created.append(jobs.create(_job_payload(ws, owner))[0]["job_id"])
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+    t = threading.Thread(target=writer); t.start()
+    try:
+        for _ in range(10):
+            seen, offset = [], 0
+            for _ in range(200):  # bound: a broken offset must fail the test, not loop forever
+                page = jobs.list_for_workspace(ws, limit=5, offset=offset)
+                assert len(page) <= 5 and len({j["job_id"] for j in page}) == len(page)
+                keys = [(j["created_at"], j["job_id"]) for j in page]
+                assert keys == sorted(keys, reverse=True)
+                seen.extend(j["job_id"] for j in page)
+                if len(page) < 5:
+                    break
+                offset += 5
+            else:
+                raise AssertionError("pagination did not terminate")
+            assert existing <= set(seen), existing - set(seen)
+    finally:
+        stop.set(); t.join()
+    assert not errors, errors
+    assert created
+
+
+def test_job_execution_cursor_is_stable_while_new_attempts_arrive(repos):
+    """Keyset cursor on attempt_no: attempts that existed at the first page appear exactly once, in order."""
+    import psycopg, threading
+    ws, owner, *_ = _workspace(repos)
+    jobs, _ = _job_repos()
+    job, _ = jobs.create(_job_payload(ws, owner))
+    jid = job["job_id"]
+
+    def add_attempt(n):
+        with psycopg.connect(DSN, autocommit=True) as conn:
+            conn.execute("""INSERT INTO generation_executions (execution_id,job_id,attempt_no,status,provider,started_at,finished_at)
+                VALUES (%s,%s,%s,'failed','mock',now(),now())""", ("exec_" + uuid.uuid4().hex, jid, n))
+    for n in range(2, 13):
+        add_attempt(n)
+    first = jobs.list_executions(jid, limit=4)
+    assert [e["attempt_number"] for e in first["data"]] == [12, 11, 10, 9]
+    stop, errors, nxt = threading.Event(), [], [100]
+
+    def writer():
+        try:
+            while not stop.is_set():
+                add_attempt(nxt[0]); nxt[0] += 1
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+    t = threading.Thread(target=writer); t.start()
+    try:
+        got, cursor = [e["attempt_number"] for e in first["data"]], first["meta"]["next_cursor"]
+        while cursor:
+            page = jobs.list_executions(jid, limit=4, cursor=cursor)
+            got.extend(e["attempt_number"] for e in page["data"])
+            cursor = page["meta"]["next_cursor"]
+    finally:
+        stop.set(); t.join()
+    assert not errors, errors
+    assert got == list(range(12, 0, -1)), got
+    for bad in ("garbage", "ZXhlYzow"):
+        with pytest.raises(ValueError):
+            jobs.list_executions(jid, cursor=bad)
+
+
+def _claimed_outbox(repos):
+    ws, owner, *_ = _workspace(repos)
+    jobs, outbox = _job_repos()
+    job, _ = jobs.create(_job_payload(ws, owner))
+    _isolate_queue(job["job_id"])
+    owner_worker = f"worker-{uuid.uuid4().hex[:8]}"
+    claimed = outbox.claim_next_outbox(owner_worker, 60)
+    assert claimed["job_id"] == job["job_id"]
+    return jobs, outbox, job["job_id"], claimed["event_id"], owner_worker
+
+
+def _park_job_rows(job_id):
+    """Leave no claimable dispatch/poll row behind for tests that share this database."""
+    import psycopg
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        conn.execute("UPDATE generation_outbox SET available_at=now()+interval '100 years' WHERE status='pending' AND job_id=%s", (job_id,))
+        conn.execute("UPDATE generation_poll_tasks SET available_at=now()+interval '100 years' WHERE status='pending' AND job_id=%s", (job_id,))
+
+
+def _outbox_row(event_id):
+    import psycopg
+    with psycopg.connect(DSN) as conn:
+        return conn.execute("SELECT status, claimed_by FROM generation_outbox WHERE event_id=%s", (event_id,)).fetchone()
+
+
+def test_outbox_completion_and_unknown_are_fenced_to_the_claiming_worker(repos):
+    """A different worker with its own valid claim elsewhere must not finish an event it does not hold."""
+    jobs, outbox, jid, event_id, holder = _claimed_outbox(repos)
+    intruder = f"worker-{uuid.uuid4().hex[:8]}"
+    with pytest.raises(RuntimeError):
+        outbox.complete_outbox_submission(event_id, jid, "prov-intruder", intruder)
+    assert outbox.mark_outbox_unknown(event_id, jid, "intruder", intruder) is False
+    assert tuple(_outbox_row(event_id)) == ("processing", holder) and jobs.get(jid)["status"] == "queued"
+    try:
+        assert outbox.complete_outbox_submission(event_id, jid, "prov-holder", holder)["status"] == "running"
+        assert tuple(_outbox_row(event_id))[0] == "processed"
+    finally:
+        _park_job_rows(jid)
+
+
+def test_outbox_expired_but_unreclaimed_lease_cannot_complete_or_mark_unknown(repos):
+    """Expiry alone (no later claim has quarantined the row yet) must already fence the old owner."""
+    import psycopg
+    jobs, outbox, jid, event_id, holder = _claimed_outbox(repos)
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        conn.execute("UPDATE generation_outbox SET lease_expires_at=now()-interval '1 second' WHERE event_id=%s", (event_id,))
+    with pytest.raises(RuntimeError):
+        outbox.complete_outbox_submission(event_id, jid, "prov-late", holder)
+    assert outbox.mark_outbox_unknown(event_id, jid, "late", holder) is False
+    assert tuple(_outbox_row(event_id)) == ("processing", holder) and jobs.get(jid)["status"] == "queued"
+    with psycopg.connect(DSN, autocommit=True) as conn:  # settle the row so no later claim has to quarantine it
+        conn.execute("UPDATE generation_outbox SET status='needs_reconciliation', claimed_by=NULL, lease_expires_at=NULL WHERE event_id=%s", (event_id,))
+

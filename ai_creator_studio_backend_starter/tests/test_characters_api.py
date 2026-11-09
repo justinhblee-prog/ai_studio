@@ -59,3 +59,21 @@ def test_invalid_active_outfit_rejected(character_env):
 
 def test_character_requires_auth(character_env):
     assert client.get("/v1/workspaces/char-ws/characters").status_code == 401
+
+
+def test_asset_delete_is_blocked_while_an_active_character_references_it(character_env):
+    from io import BytesIO
+    from PIL import Image
+    buf = BytesIO(); Image.new("RGB", (32, 24), (20, 80, 140)).save(buf, format="PNG")
+    up = client.post("/v1/assets/images", headers=auth(), data={"workspace_id": "char-ws"},
+                     files={"file": ("m.png", buf.getvalue(), "application/octet-stream")})
+    assert up.status_code in (200, 201), up.text
+    asset_id = up.json()["asset_id"]
+    body = payload(); body["asset_ids"] = [asset_id]
+    char = client.post("/v1/workspaces/char-ws/characters", headers=auth(), json=body)
+    assert char.status_code == 201, char.text
+    blocked = client.delete(f"/v1/assets/{asset_id}", headers=auth())
+    assert blocked.status_code == 409, blocked.text
+    assert "Character" in blocked.text
+    assert client.delete(f"/v1/workspaces/char-ws/characters/{char.json()['character_id']}", headers=auth()).status_code == 204
+    assert client.delete(f"/v1/assets/{asset_id}", headers=auth()).status_code == 204
