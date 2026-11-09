@@ -4,6 +4,30 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #34 (머지 4b33004) — 설계 창 패치 9: authz_seeded
+- **CI (head 8c07d38, run 42626231677)**: backend success — pytest `851 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, `5/5 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 실제 객체가 있는 상태의 인가 시험 3건(상품 변형, Lookbook, Photo process-local; 비멤버·뷰어). 패치 README의 변이는 이 경로들이 쓰지 않는 층(`routes.require_role`)을 깨는 것이라 적발되지 않아, 실제로 쓰는 층(`ports/workspace.require_role` 등)에서 4종을 다시 시행해 모두 적발.
+- **미검증**: Lookbook 내보내기 다운로드(서명 토큰)와 `POST /v1/workspaces`는 이 시험이 판정하지 못함; Photo 초안 생성의 쓰기 검사 약화는 이 시험이 못 잡음(인가 행렬 몫).
+- **차단**: 없음.
+
+### 2026-11-09 · PR #32 (머지 cdc13f3) — 레이아웃 시험에 게이트·계정 패널 추가
+- **CI (head e80f65e, run 42626726671)**: backend success — pytest `848 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, **`13/13 layout`**, `5/5 legal screen`, `4/4 account flow`. 로그에 `failed` 없음. (첫 CI 실행에서 e2e가 `pilot_flow`의 시험 경합으로 한 번 실패 → PR #33으로 수정한 뒤 main을 병합해 다시 돌린 결과.)
+- **완료**: 설정(계정 패널)과 동의 게이트가 열 개 폭(360~1280 px)에서 가로로 넘치지 않음을 확인(변이 2종 적발).
+- **미검증**: 가로 넘침만 봄(시각 품질 아님), 3D 스튜디오·검수 화면은 대상 아님.
+- **차단**: 없음.
+
+### 2026-11-09 · PR #33 (머지 032bb2b) — E2E 시험의 경합 하나 수정 (`pilot_flow` 초안 저장)
+- **CI (head 7375e00, run 42625907062)**: backend success — pytest `848 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, `5/5 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **배경**: PR #32의 CI e2e가 이 단계에서 한 번 실패(`0 !== 1`) — 제품 결함이 아니라 시험의 경합(목록 대기 ≠ 저장 요청 완료 대기). POST를 600 ms 지연시켜 재현, 응답을 기다리도록 수정하고 같은 지연으로 통과 확인.
+- **미검증**: 같은 모양의 다른 단계는 전수 점검하지 않음(실제로 실패한 한 곳만 수정).
+- **차단**: 없음.
+
+### 2026-11-09 · PR #31 (머지 2e8d8a1) — 서버의 동의 강제 (`LEGAL_REQUIRE_ACCEPTANCE`)
+- **CI (head 9e872f3, run 42624754322)**: backend success — pytest `848 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, `5/5 legal screen`(서버를 강제 모드로 띄움), `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 설정을 켜면 동의 안 한 사용자의 API 호출이 403 `LEGAL_ACCEPTANCE_REQUIRED`(동의·철회·삭제 요청·`/internal/` 제외). 프런트는 동의 확인 뒤에 워크스페이스를 불러오거나 만든다. 변이 7종 적발.
+- **미검증**: 운영에서 켤지는 결정 필요(**기본 꺼짐**), 요청당 SQLite 질의 1회의 부하, 켠 상태의 전체 E2E, PostgreSQL.
+- **차단**: 없음.
+
 ### 2026-11-09 · PR #30 (머지 5300688) — 동의 화면·삭제 요청 화면 (L-02 프런트 / L-01 화면)
 - **CI (head 2557512, run 42623611639)**: backend success — pytest `842 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 통과(`legalApi.test.mjs` 5건 포함), `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`, **`5/5 legal screen`**, `4/4 account flow`; 의존성 점검 워크플로의 `python`·`node` 잡도 success. 로그에 `failed` 없음.
 - **완료**: 필수 문서 3개에 모두 체크해야 스튜디오가 열리는 게이트, 선택 항목(AI 학습, 기본 해제), 설정에서 철회·계정 삭제 요청·취소. 화면 변이 6종 적발.
@@ -292,6 +316,7 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 | 7 | ops_check | 반영(새 스크립트) + **패치 결함 수정 3건** | #26 (머지 e802f6c) | `scripts/ops_check.py`(읽기 전용, 종료 코드 0/1/2: 작업자 하트비트, 막힌 작업, 출력함 적체, 월 유료 작업 수 대 상한, 유예기간 지난 삭제 요청, 최신 백업 나이)와 시험. main의 `/internal/ops/health`(PR #14)와 겹치는 작업자·백업 점검은 있으나, 월 유료 작업·막힌 작업·삭제 대기·종료 코드는 main에 없어 추가. **패치 그대로는 결함이 있어 고침**: ① 작업자를 `state='running'`만 살아 있다고 봄 → `idle`·`working` 작업자가 있어도 **거짓 치명(CRIT)** (main이 PR #14에서 고친 것과 같은 결함; `ALIVE_WORKER_STATES` 사용으로 수정) ② 백업 나이를 폴더 수정 시각으로 계산 → 쓰다 만 폴더·복사한 폴더가 "최신 백업"으로 인정됨; main처럼 `manifest.json`의 `created_at`으로 변경 ③ 한도 환경 변수가 숫자가 아니면 예외로 종료 → `cost_cap`의 안전한 파서 사용. 시험 6 → 9건(+idle/working, 매니페스트 없는 폴더, 잘못된 한도 값). 변이 10종 전부 적발. **한계**: 알림 전송은 없음(cron·외부 모니터가 종료 코드를 봄), PostgreSQL 미지원, 실제 환경에서 실행한 적 없음 |
 | 8 | deps_upgrade | **이미 반영됨(PR #18); 변경 없음, 확인만** | #27 (머지 c074810, 문서만) | 패치의 `requirements.txt`는 main과 같은 버전 제약(fastapi 0.162.2, starlette>=1.3.1, Pillow 13, pytest>=9.0.3; 차이는 `<10.0`↔`<10`, `>=13.0`↔`>=13` 표기뿐). 패치의 `test_api_security_surface.py`는 라우터를 따라 내려가는 도우미만 추가했지만, main 것은 감싼 라우터를 재귀로 따라가고 OpenAPI와 대조하며 `/internal/` 라우트 수 하한까지 검사(PR #18, 변이 4/4 적발)해 **더 강하므로 덮어쓰지 않음**. 패치의 OpenAPI 스냅샷은 legal·consent 시점의 것이라 main의 현재 스냅샷(이후 패치 경로 포함)과 달라 **덮어쓰지 않음**(main의 스냅샷은 자신의 시험을 통과). 확인: `pip-audit -r requirements.txt` → `No known vulnerabilities found`(2026-11-09 재실행). **한계**: 알려진 취약점 DB 기준, 잠금 파일 없음, 프런트 API 클라이언트가 `contentMediaType`을 쓰는지는 확인 못 함(프런트 빌드·소스 시험은 통과), 배포 환경이 같은 requirements를 쓰는지 미확인 |
 | 9 | e2e | **비교 후 main의 `e2e/`(Node) 유지, 빠진 시나리오만 이식** | #28 (머지 669dd09) | 패치는 Python/pytest 하네스 + 시험 5건(로그인→대시보드, 3D 자산 업로드·목록·삭제 화면, 다른 사용자의 워크스페이스·자산 격리 2건, Character 연결 자산 삭제 409). main은 Node/Playwright 흐름 5개(10/10, 6/6 권리 확인, 6/6 역할, 4/4 AI 표시, 11/11 반응형)가 CI에서 돌고 있어 **하네스를 둘 두지 않음**(패치의 `conftest.py`·`test_e2e_smoke.py`는 추가 안 함). 패치가 겹치는 부분: 로그인·3D 업로드·격리는 main의 pilot/roles 흐름이 다룸. **main에 없던 것을 이식**: Character 연결 자산 삭제 409 + D4의 나머지 시나리오 중 화면 없이 가능한 것(법률 문서 수락, 삭제 요청 생성·재요청·목록·취소·타인 접근 차단·워크스페이스 범위는 소유자만) → `e2e/account_flow.mjs` 4단계, CI에 단계 추가(`SUMMARY 4/4 account flow steps passed`). 변이 6종 시행: 5종 적발(오래된 문서 버전 수락, 취소 두 번 허용, 타인이 취소 가능, 편집자가 워크스페이스 삭제 요청, Character 보호 제거), 1종은 **동등 변이**로 미적발(중복 요청 재사용 분기 제거: 열린 요청 유니크 인덱스가 같은 결과를 내서 시험이 구분 못 함). **한계**: 이 흐름은 API 수준이며 **화면은 없다**(동의 화면·삭제 요청 화면 미구현이라 화면 시험 불가; 가입·동의 화면 시나리오는 여전히 미작성), Supabase는 모의 |
+| 10 | authz_seeded | 반영(새 시험; 새 패키지 `window_a_package` 2차에서 추가됨) | (이 PR) | 새 파일 1개(`tests/test_authz_seeded_objects.py`, 시험 3건), 앱 코드 수정 없음. 실제 객체가 있는 상태에서 인가 행렬이 판정하지 못했던 경로(상품 변형 생성·수정, Lookbook 생성·수정, Photo process-local)를 비멤버(403/404)·뷰어(쓰기 403)로 확인. main에서 수정 없이 통과. 변이: **패치 README의 변이는 `routes.require_role`을 깨는 것인데 이 경로들은 `app/ports/workspace.require_role`로 인가해서 여기선 적발되지 않음**(그 층에서는 3건 통과) → 올바른 층에서 다시 시행: 쓰기 역할 검사 제거, 비멤버를 owner로 취급, Lookbook 생성의 쓰기 검사 약화, process-local의 쓰기 검사 약화 — 4종 모두 적발; Photo **초안 생성**의 쓰기 검사 약화는 이 시험이 다루지 않아(인가 행렬 시험 몫) 적발 안 됨. **한계(패치 그대로)**: Lookbook 내보내기 다운로드(서명 토큰 경로)와 `POST /v1/workspaces`(자기 범위)는 여전히 판정 못 함 — 다운로드 인가는 `tests/test_assets_api.py`가 확인(익명 401, 변조·만료 서명 403, 멤버 취소 후 404) |
 
 ## 17. E2E 시험의 경합 하나 수정 (`pilot_flow` "save a photo draft", 브랜치 fix-pilot-flake)
 - **발견**: PR #32의 CI e2e가 `save a photo draft for the product image`에서 `0 !== 1`로 실패(같은 시험은 이전 CI 실행 여러 번과 로컬에서 통과). 원인은 제품 결함이 아니라 **시험의 경합**: "저장된 Photo Draft" 목록은 초안이 0개여도 화면에 있으므로, 그 목록을 기다린 뒤 API로 초안 수를 세면 저장 요청이 끝나기 전에 셀 수 있다.
@@ -304,7 +329,7 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **실패 시 닫힘**: 동의 상태 조회가 실패하면 연결 전체가 실패하고 화면이 열리지 않는다(동의된 것으로 취급하지 않음).
 - **시험**: `legalApi.test.mjs` 5건(실제 호출 본문·토큰·버전, 게이트 판정), 브라우저 E2E `legal_flow.mjs` 5단계(게이트 뒤에 스튜디오가 그려지지 않음, 필수 3개 모두 필요, 선택은 기본 해제, 선택 체크 시 기록·설정에서 철회, 삭제 요청 생성·취소와 워크스페이스 유지, 거부 후 로그아웃은 아무것도 기록하지 않음). 다른 E2E 흐름은 `loginThroughUi`가 같은 게이트를 화면으로 통과한다(그래서 모든 흐름이 게이트를 지난다). 기존 `pilot_flow`의 "설정 패널 입력 3개" 확인은 연결 정보 입력만 세도록 좁혔다(새 계정 패널이 입력을 더 가지므로; 목적은 API 주소 입력이 없음을 보는 것).
 - **변이 검증**: 화면 쪽 6종 모두 적발 — 게이트 우회(E2E 1단계), 필수 중 하나만 체크해도 활성화(E2E 1단계), 선택 항목 기본 체크(E2E 1단계), 선택을 항상 전송(E2E 2단계), 조회 실패를 '열림'으로 판정(단위), 필요한 것 전부 전송(단위). 첫 시도의 게이트 우회 변이는 빌드가 실패해 옛 번들로 돌아 **무효**였고 다시 했다.
-- **미검증·한계**: **화면 차단일 뿐 서버가 강제하지 않는다** — 토큰으로 API를 직접 호출하면 동의 없이 쓸 수 있다(서버 강제는 별도 결정 필요). **문서 본문이 앱에 없다**(초안 버전 번호만 표시; 본문을 어디서 보여 줄지는 정해지지 않았고 임의로 채우지 않았다). 문서 버전이 올라간 뒤 재동의 흐름은 PR #30 시점엔 서버 시험만 있었고, **이후 `legal_flow` 6번째 단계로 추가**(버전 상승을 DB의 수락 기록을 옛 버전으로 바꿔 흉내 냄 — 실제 환경 변수로 서버를 다시 띄운 것은 아님; 바뀐 문서만 다시 묻고, 서버도 다시 닫히고, 이력은 옛 수락을 남김; 모든 문서를 다시 묻는 변이로 실패 확인). 모바일 폭에서 게이트 화면의 레이아웃은 반응형 시험 대상에 넣지 않았다. 동의 문구 자체는 법무 승인 전 임시 문구.
+- **미검증·한계**: **화면 차단일 뿐 서버가 강제하지 않는다** — 토큰으로 API를 직접 호출하면 동의 없이 쓸 수 있다(서버 강제는 별도 결정 필요). **문서 본문이 앱에 없다**(초안 버전 번호만 표시; 본문을 어디서 보여 줄지는 정해지지 않았고 임의로 채우지 않았다). 문서 버전이 올라간 뒤 재동의 흐름은 PR #30 시점엔 서버 시험만 있었고, **이후 `legal_flow` 6번째 단계로 추가**(버전 상승을 DB의 수락 기록을 옛 버전으로 바꿔 흉내 냄 — 실제 환경 변수로 서버를 다시 띄운 것은 아님; 바뀐 문서만 다시 묻고, 서버도 다시 닫히고, 이력은 옛 수락을 남김; 모든 문서를 다시 묻는 변이로 실패 확인). 모바일 폭에서 게이트 화면의 레이아웃은 PR #30 시점엔 반응형 시험 대상이 아니었고, **이후 `layout_flow`에 설정(계정 패널)과 게이트를 열 개 폭(360~1280 px)으로 추가**(13/13; 각각 `min-width` 변이로 실패함을 확인, 가로 넘침 없음). 동의 문구 자체는 법무 승인 전 임시 문구.
 
 ## 16. 서버의 동의 강제 (`LEGAL_REQUIRE_ACCEPTANCE`, 브랜치 feat-legal-enforce)
 - **구현**: 설정이 켜지면 인증된 사용자가 현재 문서 버전에 모두 동의하지 않았을 때 `/v1/auth/me`, `/v1/me/legal-status`, `/v1/me/legal-acceptances`, `/v1/me/consents`, `/v1/me/deletion-requests`, `/internal/`를 뺀 모든 경로가 **403 `LEGAL_ACCEPTANCE_REQUIRED`**. 모든 라우트가 `current_user`를 거치므로 한곳(`app/assets/routes.py`)에서 처리. **기본은 꺼짐**(기존 클라이언트 호환). 인증이 먼저(401이 403보다 앞). 문서 버전이 올라가면 다시 닫히고 재동의 뒤 열린다.
