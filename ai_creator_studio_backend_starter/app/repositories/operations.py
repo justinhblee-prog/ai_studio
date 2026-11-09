@@ -97,6 +97,15 @@ def build_alert_delivery_repository(backend: str | None = None) -> AlertDelivery
     get_storage()
     return SQLiteAlertDeliveryRepository()
 
+# A worker is alive when its heartbeat is fresh and it is not reporting a failure. Workers report "running" (outbox, poll,
+# monitor) or "idle"/"working" (asset linker); "error" and anything else, such as "stopped", is not alive.
+ALIVE_WORKER_STATES = frozenset({"running", "idle", "working"})
+
+
+def worker_is_alive(state: str, last_seen_at: str, cutoff: str) -> bool:
+    return state in ALIVE_WORKER_STATES and last_seen_at >= cutoff
+
+
 @runtime_checkable
 class WorkerHealthRepository(Protocol):
     def outbox_counts(self) -> dict[str, int]: ...
@@ -134,7 +143,7 @@ class SQLiteWorkerHealthRepository:
             rows=conn.execute(sql.HEARTBEATS).fetchall()
         workers=[]
         for row in rows:
-            item=dict(row); item["metadata"]=json.loads(item.pop("metadata_json")); item["healthy"]=item["state"]=="running" and item["last_seen_at"]>=cutoff; workers.append(item)
+            item=dict(row); item["metadata"]=json.loads(item.pop("metadata_json")); item["healthy"]=worker_is_alive(item["state"],item["last_seen_at"],cutoff); workers.append(item)
         return {"workers":workers,"outbox_counts":self.outbox_counts(),"poll_task_counts":self.poll_task_counts(),"stale_after_seconds":stale_after_seconds}
 
 def build_worker_health_repository(backend: str | None = None) -> WorkerHealthRepository:
@@ -211,7 +220,7 @@ class SQLiteOperationsMonitoringRepository:
             try: metadata=json.loads(item.pop("metadata_json"))
             except Exception: metadata={}
             item["metadata"]=metadata; item["worker_type"]=metadata.get("worker_type","unknown")
-            item["healthy"]=item["state"]=="running" and item["last_seen_at"]>=cutoff
+            item["healthy"]=worker_is_alive(item["state"],item["last_seen_at"],cutoff)
             workers.append(item)
         outbox={key:0 for key in ("pending","processing","processed","needs_reconciliation")}
         outbox.update({r["status"]:int(r["n"]) for r in outbox_rows})
