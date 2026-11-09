@@ -70,6 +70,8 @@ class SQLiteJobRepository:
                 used = conn.execute("SELECT COUNT(*) AS n FROM generation_jobs WHERE workspace_id=? AND created_at>=?",
                                     (job["workspace_id"], utc_day_start(current).isoformat())).fetchone()["n"]
                 check_limit(daily_job_limit, int(used), current)
+            from app.cost_cap import enforce_in_transaction
+            enforce_in_transaction(conn, job)
             conn.execute("""INSERT INTO generation_jobs
                 (job_id,workspace_id,owner_id,status,provider,model,provider_request_id,output_url,error_code,message,payload_hash,payload_json,provider_output_url,created_at,updated_at)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
