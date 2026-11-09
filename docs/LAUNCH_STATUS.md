@@ -4,6 +4,24 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #18 (머지 3625e18) — FastAPI 0.162.2 / Starlette 1.10 업그레이드
+- **CI (head 239e066, run 42602714915)**: backend success — pytest `792 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `11/11 layout`. **dependency-audit(run 42602714668)**: python `No known vulnerabilities found`, node `found 0 vulnerabilities`. 로그에 `failed` 없음.
+- **완료**: Starlette 7건 해결로 백엔드 알려진 취약점 0건(31개 패키지); 보안 표면 시험의 맹점(감싼 라우터를 건너뛰어 `/internal/` 시험이 아무것도 검사하지 않고 통과) 수정 + OpenAPI 대조 자체 검증, 변이 4/4 적발; 주간·PR 자동 점검 워크플로. 세부 §13.
+- **미검증**: 주요 버전 점프(Starlette 0.46 → 1.10)의 시험 밖 동작 변화, 주간 예약 실행(아직 한 번도 안 돌았음), 잠금 파일 없음.
+- **차단**: 없음.
+
+### 2026-11-09 · PR #17 (머지 a20944c) — Pillow 13·pytest 9
+- **CI (head d8cdf6b, run 42573509167)**: backend success — pytest `791 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `10/10`, `6/6`, `6/6`, `4/4`, `11/11 layout`. 로그에 `failed` 없음.
+- **완료**: `pip-audit`가 찾은 `pillow` 39건(이미지 처리 라이브러리)·`pytest` 1건을 상향으로 해결(`Pillow>=13,<14`, `pytest>=9.0.3,<10`); 프런트 `npm audit` 0건 확인.
+- **미검증·남은 것**: 이 시점에는 `starlette` 7건이 남아 있었음(PR #18에서 해결).
+- **차단**: 없음.
+
+### 2026-11-09 · PR #16 (머지 e15871d) — 태블릿 폭 레이아웃 수정
+- **CI (head df7dd19, run 42572608929)**: backend success — pytest `791 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6`, `6/6`, `4/4`, **`11/11 layout checks (10 widths x 7 screens)`**. 로그에 `failed` 없음.
+- **완료**: 768px에서 4개 화면이 가로로 넘치던 실제 결함 수정(2열→1열 기준 760→900px), 반응형 E2E 추가, 변이 3/3 적발. 세부 §12.
+- **미검증**: 3D 스튜디오·검수 화면 미포함, 터치 크기·가독성 미확인, 헤드리스 Chromium만.
+- **차단**: 없음.
+
 ### 2026-11-09 · PR #15 (머지 5593ea1) — 출시 체크리스트 초판
 - **CI (head 8755d93, run 42571538514)**: backend success — pytest `791 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 + 3 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`. 로그에 `failed` 없음. (문서만 바뀐 PR이라 코드 시험 수치는 직전과 같음.)
 - **완료**: `docs/LAUNCH_CHECKLIST.md` 32개 항목을 증거 유무로 분류(완료 6·부분 12·미완료 8·차단 6), L-08 차단 기록.
