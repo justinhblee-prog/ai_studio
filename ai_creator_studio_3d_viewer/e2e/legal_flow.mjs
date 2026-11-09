@@ -1,7 +1,7 @@
 // L-02 / L-01 in the browser: the acceptance gate, the optional AI-training consent, and account deletion requests.
 // Real: web bundle, backend (started with LEGAL_REQUIRE_ACCEPTANCE=1, so the server enforces acceptance), SQLite. Mocked: Supabase Auth. The legal documents are drafts and their text is not in the app.
 import assert from 'node:assert/strict';
-import { startStack, chromium, newUserPage, loginThroughUi, acceptLegalThroughUi, makeRunner, apiCall, USERS } from './harness.mjs';
+import { startStack, chromium, newUserPage, loginThroughUi, acceptLegalThroughUi, makeRunner, apiCall, sqliteExec, USERS } from './harness.mjs';
 
 const stack = await startStack({ extraEnv: { LEGAL_REQUIRE_ACCEPTANCE: '1' } });
 const browser = await chromium.launch();
@@ -80,6 +80,23 @@ try {
     await c.page.getByRole('button', { name: '로그인' }).first().waitFor({ timeout: 20000 });
     assert.equal((await status(USERS.viewer)).body.accepted, false);
     await c.context.close();
+  });
+
+  await run('after a document version changes only that document is asked again, and the studio stays closed until it is accepted', async () => {
+    // Simulate a version bump of the privacy policy: the user's recorded acceptance is for an older version now.
+    sqliteExec(stack, "UPDATE legal_acceptances SET version='older-version' WHERE user_id=? AND document='privacy'", [USERS.owner.id]);
+    const st = (await status(USERS.owner)).body;
+    assert.equal(st.accepted, false); assert.deepEqual(st.missing.map(d => d.document), ['privacy']);
+    assert.equal((await apiCall(stack, USERS.owner.token, '/v1/workspaces')).status, 403, 'the server closes again too');
+    await a.page.reload();
+    await gate().waitFor({ timeout: 20000 });
+    assert.equal(await a.page.locator('.workspace-select').count(), 0, 'the studio is closed again');
+    assert.equal(await gate().locator('.legal-list input[type=checkbox]').count(), 1, 'only the changed document is asked for');
+    assert.match(await gate().locator('.legal-list').innerText(), /개인정보 처리방침/);
+    await acceptLegalThroughUi(a.page);
+    await a.page.locator('.workspace-select').waitFor({ timeout: 20000 });
+    assert.equal((await status(USERS.owner)).body.accepted, true);
+    assert.equal((await status(USERS.owner)).body.history.filter(h => h.document === 'privacy').length, 2, 'history keeps the old acceptance and adds the new one');
   });
 
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} legal screen steps passed`);

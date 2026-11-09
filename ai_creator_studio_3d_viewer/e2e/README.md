@@ -31,7 +31,7 @@ Supabase Auth is mocked as in the other flows.
 **The mock provider never produces an image, so the finished job output is seeded** (`seed_job_output.py`, the same method the backend unit
 tests use) and the real provider path is not exercised.
 
-`legal_flow.mjs` (L-02 / L-01 screens) drives the legal acceptance gate (the studio is not rendered behind it; every required box is needed; the optional AI-training consent is off by default and is recorded only when ticked), withdrawing that consent in settings, and an account deletion request (recorded only, nothing deleted; cancellable). The other flows pass through the same gate via `loginThroughUi`. The legal documents are drafts and their text is not in the app; the gate says so.
+`legal_flow.mjs` (L-02 / L-01 screens) drives the legal acceptance gate (the studio is not rendered behind it; every required box is needed; the optional AI-training consent is off by default and is recorded only when ticked), withdrawing that consent in settings, re-acceptance after a document version changes (simulated by editing the stored acceptance, not by restarting the server with a new version), and an account deletion request (recorded only, nothing deleted; cancellable). The other flows pass through the same gate via `loginThroughUi`. The legal documents are drafts and their text is not in the app; the gate says so.
 
 `account_flow.mjs` runs four API-level flows against the real backend over HTTP (no browser page, because none of these has a screen yet): legal acceptance (current vs stale version), deletion requests (create, replay, list, cancel, privacy between users, owner-only workspace scope), and the Character reference guard on asset deletion. It does not prove any screen exists.
 
