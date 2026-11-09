@@ -2,6 +2,24 @@
 
 > 이 파일은 2026-11-09 세션에서 **새로 만들었다**. 이전에는 저장소의 어느 브랜치와 로컬 파일시스템에도 `docs/LAUNCH_STATUS.md`가 없었다(검색으로 확인). 따라서 이전 내용을 기준으로 정리한 것이 아니라, 이 세션에서 직접 확인한 사실만 적는다. 이전 버전이 따로 있다면 그 내용은 반영되지 않았다.
 
+## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
+
+### 2026-11-09 · PR #5 (머지 294b6dd) — L-13, T56, CI 실패 은폐 수정
+- **CI (head bf6ed25, run 42548956699)**: backend success — pytest `692 passed, 1 warning`, 실DB 단계 `66 passed, 1 warning`(failed 없음); frontend success — `tsc --noEmit` 통과, `test:source` node 시험 8 pass/0 fail + 4 pass/0 fail, `vite build` 통과.
+- **완료**: L-13(출시 빌드는 `VITE_API_BASE_URL`만 사용, 주소 입력란·저장 값·localhost 대체 제거, 개발 빌드는 유지); T56(SQLite↔PG 새 버전 생성 메타데이터 비교 시험, 변이 7/7 적발); CI "Live tests must not be silently skipped" 단계가 실패를 가리던 문제 수정(4가지 경우 시뮬레이션); 간헐 실패 시험(Lookbook 조립 경합) 설계 결함 수정(기존 시험 40회 중 1회·순서 뒤집으면 10회 중 6회 실패 → 수정 후 두 순서 모두 40회 중 0회).
+- **미검증**: L-13은 브라우저 설정만 제거한 것이며 서버가 주소를 강제하지 않음; 헤드리스 Chromium 검증은 로컬 1회(CI에는 브라우저 시험 없음). work-20261109 핸드오프의 "원인 불명 1회 실패"가 위 시험인지는 시험 이름 미기록으로 확인 못 함.
+- **차단**: 아래 "차단" 섹션 참조.
+
+## 차단 (입력·승인이 없어 하지 못한 것; 다른 작업은 계속 진행)
+| 항목 | 이유 | 필요한 것 |
+|---|---|---|
+| `ai_studio_legal_patch_20261109.zip` 적용(큐 2) | 세션에 파일 없음(업로드 폴더 `.saved-uploads`에 `NEXT_SESSION_START.md`뿐, 파일시스템 검색에도 없음). 2회 확인 | zip을 저장소에 커밋하거나 세션에 업로드 |
+| L-02 서버 API(`/v1/legal/documents`, `/v1/me/legal-status`, `/v1/me/legal-acceptances`) | 저장소에 해당 라우트 없음(패치 zip에 들어 있을 것으로 추정 — 미확인). 법률 문서 본문·버전은 빈칸을 임의로 채우지 않음 | 패치 zip 또는 문서 본문 |
+| `claude/LEGAL_IMPLEMENTATION_GAPS.md`(L-항목 정의) | 저장소에 없음 | 문서 |
+| 배포 환경(영속 디스크 유무) | 파일럿은 SQLite 단일 인스턴스를 전제. 서버리스뿐이면 결론이 바뀜 | 배포 대상 정보 |
+| TEST Supabase에 0011–0013 적용 | 금지 항목(접속 정보·승인 필요) | — |
+| Production Supabase/Vercel, 유료 Provider, Production `DATABASE_BACKEND=postgresql`, 실데이터 영구 삭제, 비밀·키 | 금지 항목 | — |
+
 ## 1. PR #5 머지 전 확인 (head 436792c, CI run 42547697665)
 
 | 확인 | 결과 |
