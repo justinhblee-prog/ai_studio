@@ -19,6 +19,7 @@ from app.repo_errors import raise_http
 
 from app import config
 from app.assets.store import (AssetVersionIntegrityError, audit_workspace_assets, create_asset_relation, create_asset_version, delete_asset, get_asset, list_asset_provenance, list_asset_relations, list_asset_versions, list_assets, restore_asset_version, save_asset, storage_path, workspace_for_asset, workspace_role, get_asset_version_record)
+from app.assets.rights import build_upload_confirmation
 from app.assets.validation import AssetValidationError, validate_asset_upload, validate_gltf_upload, validate_image_upload
 
 router = APIRouter(prefix="/v1/assets", tags=["assets"])
@@ -143,8 +144,15 @@ async def upload_asset(workspace_id: str = Form(min_length=2, max_length=64), fi
 
 @router.post("/images", status_code=201, response_model=AssetRecordResponse)
 async def upload_image_asset(workspace_id: str = Form(min_length=2, max_length=64),
-                             file: UploadFile = File(...), user_id: str = Depends(current_user)):
-    """Store a validated source image for the independent Photo Engine workflow."""
+                             file: UploadFile = File(...), user_id: str = Depends(current_user),
+                             rights_confirmed: bool | None = Form(default=None),
+                             depicts_person: bool | None = Form(default=None),
+                             likeness_consent: bool | None = Form(default=None)):
+    """Store a validated source image for the independent Photo Engine workflow.
+
+    The optional rights fields are recorded in the asset provenance; they are required only when
+    ASSET_REQUIRE_RIGHTS_CONFIRMATION is enabled (L-04).
+    """
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
     filename = Path(file.filename or "image").name
     content = await file.read(config.ASSET_MAX_UPLOAD_BYTES + 1)
@@ -156,7 +164,11 @@ async def upload_image_asset(workspace_id: str = Form(min_length=2, max_length=6
     except AssetValidationError as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": str(exc)}) from exc
     try:
-        return get_asset_bytes_port().save(workspace_id, user_id, filename, content, validated)
+        confirmation = build_upload_confirmation(rights_confirmed, depicts_person, likeness_consent)
+    except AssetValidationError as exc:
+        raise HTTPException(status_code=422, detail={"code": exc.code, "message": str(exc)}) from exc
+    try:
+        return get_asset_bytes_port().save(workspace_id, user_id, filename, content, validated, upload_confirmation=confirmation)
     except Exception as exc:
         _store_failure(exc, "Image asset could not be stored")
 

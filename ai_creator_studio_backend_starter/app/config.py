@@ -19,6 +19,13 @@ GENERATION_DATABASE_PATH = Path(os.getenv("GENERATION_DATABASE_PATH")).resolve()
 ASSET_MAX_UPLOAD_BYTES = int(os.getenv("ASSET_MAX_UPLOAD_BYTES", str(100 * 1024 * 1024)))
 ASSET_PREVIEW_TTL_SECONDS = int(os.getenv("ASSET_PREVIEW_TTL_SECONDS", "300"))
 ASSET_SIGNING_SECRET = os.getenv("ASSET_SIGNING_SECRET", "")
+# L-04: when true, image uploads must declare rights (and likeness consent if a person is shown). Default off keeps old clients working.
+def env_flag(value: str | None) -> bool:
+    """True only for an explicit opt-in value; unset, empty or unknown text is False."""
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+ASSET_REQUIRE_RIGHTS_CONFIRMATION = env_flag(os.getenv("ASSET_REQUIRE_RIGHTS_CONFIRMATION"))
 
 def asset_api_tokens() -> dict[str, str]:
     """Return configured bearer-token -> user-id mappings; no development token is implicit."""

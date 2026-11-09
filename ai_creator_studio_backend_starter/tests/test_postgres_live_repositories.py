@@ -3805,3 +3805,42 @@ def test_poll_lease_renewal_extends_only_the_owner_before_expiry(repos):
     with pytest.raises(ValueError):
         poll.renew_poll_task_lease("", worker, 60)
     _park_job_rows(job["job_id"])
+
+
+def _upload_confirmation_scenario(bytes_port, meta_port, ws, editor):
+    from app import config
+    from app.assets.validation import validate_image_upload
+
+    png_bytes = _png(40)
+    val = validate_image_upload("a.png", png_bytes, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)
+    out = []
+    for label, conf in (("none", None), ("rights-only", {"rights_confirmed": True, "depicts_person": False, "likeness_consent": False}),
+                        ("person", {"rights_confirmed": True, "depicts_person": True, "likeness_consent": True})):
+        asset = bytes_port.save(ws, editor, "a.png", png_bytes, val, upload_confirmation=conf)
+        items = meta_port.provenance(asset["asset_id"], editor, 100, 0)["items"]
+        out.append((label, [i["details"] for i in items if i["event_type"] == "asset.uploaded"]))
+    return out
+
+
+def test_upload_rights_declaration_is_recorded_identically_by_sqlite_and_postgresql(repos, tmp_path, monkeypatch):
+    import app.config as config
+    from app.assets import store
+    from app.ports.asset_bytes import PostgreSQLAssetBytesPort, SQLiteAssetBytesPort
+    from app.ports.assets import PostgreSQLAssetMetadataPort, SQLiteAssetMetadataPort
+    from app.ports.workspace import SQLiteWorkspacePort
+
+    sq_dir, pg_dir = tmp_path / "sq-private", tmp_path / "pg-private"
+    sq_dir.mkdir(); pg_dir.mkdir()
+    monkeypatch.setattr(config, "ASSET_STORAGE_DIR", sq_dir)
+    monkeypatch.setattr(config, "ASSET_DATABASE_PATH", tmp_path / "rights-parity.sqlite3")
+    store.initialize()
+    store.create_workspace("rights-parity", "owner_sq")
+    store.add_workspace_member("rights-parity", "editor_sq", "editor")
+    wsp = SQLiteWorkspacePort()
+    sqlite_out = _upload_confirmation_scenario(SQLiteAssetBytesPort(wsp), SQLiteAssetMetadataPort(wsp), "rights-parity", "editor_sq")
+    monkeypatch.setattr(config, "ASSET_STORAGE_DIR", pg_dir)
+    ws, owner, editor, *_ = _workspace(repos)
+    pg_out = _upload_confirmation_scenario(PostgreSQLAssetBytesPort(repos["assets"]), PostgreSQLAssetMetadataPort(repos["assets"]), ws, editor)
+    assert sqlite_out == pg_out
+    assert dict(sqlite_out)["none"] == [{"source": "upload"}]
+    assert dict(sqlite_out)["person"] == [{"source": "upload", "rights": {"rights_confirmed": True, "depicts_person": True, "likeness_consent": True}}]
