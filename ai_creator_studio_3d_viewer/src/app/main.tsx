@@ -27,6 +27,10 @@ import {
 } from './supabaseAuth.mjs';
 import type { AuthSession } from './supabaseAuth.mjs';
 import PublicLanding from './PublicLanding';
+import LegalGate from './LegalGate';
+import AccountPanel from './AccountPanel';
+import { gateState, loadLegalStatus } from './legalApi.mjs';
+import type { LegalStatus } from './legalApi.mjs';
 import './shell.css';
 
 type Workspace = { workspace_id: string; role?: string; owner_id?: string };
@@ -114,6 +118,7 @@ function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState('');
+  const [legal, setLegal] = useState<LegalStatus | null>(null);
   const [job, setJob] = useState('');
   const [page, setPage] = useState('overview');
   const [settings, setSettings] = useState(false);
@@ -125,13 +130,15 @@ function App() {
     setBusy(true); setConnectionError(''); setApiState('checking');
     try {
       await apiRequest(api, '/health');
-      const [identity, workspaceResult, authenticatedUser] = await Promise.all([
+      const [identity, workspaceResult, authenticatedUser, legalStatus] = await Promise.all([
         apiRequest(api, '/v1/auth/me', { token: candidate.access_token }),
         loadOrCreateWorkspace(api, candidate.access_token),
         getAuthenticatedUser(supabaseConfig, candidate.access_token),
+        loadLegalStatus(api, candidate.access_token), // a failed check fails the whole connection: never treated as accepted
       ]);
       if (identity.user_id !== authenticatedUser.id) throw new Error('인증 사용자와 Backend 사용자 식별자가 일치하지 않습니다.');
       setUser(authenticatedUser as AuthUser);
+      setLegal(legalStatus as LegalStatus);
       setWorkspaces(workspaceResult.workspaces as Workspace[]);
       setWorkspace(workspaceResult.workspace.workspace_id);
       setApiState('online');
@@ -182,7 +189,7 @@ function App() {
     try { if (active) await signOut(supabaseConfig, active); }
     catch { /* local session is still cleared even if remote revocation is unavailable */ }
     finally {
-      clearSession(); setSession(null); setUser(null); setWorkspaces([]); setWorkspace(''); setJob('');
+      clearSession(); setSession(null); setUser(null); setWorkspaces([]); setWorkspace(''); setJob(''); setLegal(null);
       setApiState('checking'); setConnectionError(''); setPage('overview'); setBusy(false);
     }
   };
@@ -213,6 +220,8 @@ function App() {
     </div>
   </div>;
 
+  if (gateState(legal) === 'needs-acceptance' && legal) return <LegalGate api={api} token={session.access_token} status={legal} onAccepted={setLegal} onLogout={logout}/>;
+
   const common = { apiBaseUrl: api, accessToken: session.access_token, workspaceId: workspace };
   const activePage = nav.find(n => n[0] === page)?.[1] || '대시보드';
   return <div className="app">
@@ -232,7 +241,8 @@ function App() {
         <label>인증 사용자<input value={user?.email || ''} readOnly/></label>
         <label>현재 Workspace<input value={workspace} readOnly/></label>
         <label>결과 검수 Job ID<input value={job} onChange={e => setJob(e.target.value)} placeholder="job UUID"/></label>
-        {API_EDITABLE && <p>API 주소를 변경하면 인증된 세션으로 연결 및 사용자 권한을 다시 확인합니다.</p>}</section>}
+        {API_EDITABLE && <p>API 주소를 변경하면 인증된 세션으로 연결 및 사용자 권한을 다시 확인합니다.</p>}
+        <AccountPanel api={api} token={session.access_token}/></section>}
       {connectionError && <div className="connection-alert" role="alert">{connectionError}</div>}
       {page === 'overview' ? <>
         <section className="hero"><div><div className="eyebrow">AI-POWERED CREATIVE PRODUCTION</div><h1>당신의 아이디어를<br/><em>프로페셔널 콘텐츠</em>로.</h1>
