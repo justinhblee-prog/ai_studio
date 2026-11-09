@@ -4,6 +4,17 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #10 (머지 525ae7d) — 권한별·교차 Workspace·모바일 폭 E2E
+- **CI (head db2fbf3, run 42567811198)**: backend success — pytest `725 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10 steps passed`, `SUMMARY 6/6 rights steps passed`, `SUMMARY 6/6 role scenarios passed`. 로그에 `failed` 없음.
+- **완료**: 6개 시나리오(뷰어는 업로드·승인 불가, 편집자는 업로드 가능·승인 불가, 소유자 승인, 외부인 API의 모든 읽기·쓰기 거절, 외부인 UI에서 공유 데이터 미노출, 390px 모바일 가로 넘침 없음). 변이 4/4 적발(뷰어 업로드 허용, 편집자 승인 허용, 비멤버를 뷰어로 취급, 폭 강제). 간헐 실패 1건의 원인(시드된 `photo-enhance.png`와 부분 문자열 일치)을 찾아 고침: 수정 후 25회 중 0회 실패(수정 전 3회 반복 중 1회, 20회 시도 중 1회).
+- **미검증**: Supabase Auth는 mock; AI Provider 없음; 상품·프로젝트·룩북의 권한 경로는 브라우저에서 시험하지 않음(API 시험만 있음); 태블릿 등 다른 화면 폭.
+- **차단**: 없음.
+
+### 2026-11-09 · PR #9 (머지 5082305) — AI 비용 상한
+- **CI (head b281220, run 42567035715)**: backend success — pytest `725 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10 steps passed`, `SUMMARY 6/6 rights steps passed`.
+- **완료·미검증·한계**: 아래 §7. 변이 10/10 적발.
+- **차단**: 설계서 D5와의 일치 여부는 설계서가 없어 확인 못 함.
+
 ### 2026-11-09 · PR #8 (머지 56090a7) — L-04 업로드 권리·초상권 확인
 - **CI (head 9e2f8e7, run 42566387583)**: backend success — pytest `716 passed, 1 warning`, 실DB 단계 `76 passed, 1 warning`(failed 없음); frontend success — `tsc` 통과, `test:source` 8 + 4 + 4 pass/0 fail, `vite build` 통과; e2e success — `SUMMARY 10/10 steps passed`, `SUMMARY 6/6 rights steps passed`.
 - **완료**: 이미지 업로드의 권리·초상권 선언(서버 필드 3개, 설정 `ASSET_REQUIRE_RIGHTS_CONFIRMATION` 기본 꺼짐, `asset_provenance` 기록, UI 체크박스); 기록은 자산 삭제 후에도 유지(SQLite·PG); 기존 자산 소급 차단 없음; OpenAPI 스냅샷 재생성(옵션 필드 3개만 추가). 변이: 백엔드 10/10, 프런트 로직 5/5, 브라우저 3/3, 기록 유지 2/2 적발. 아래 §6에 동작 표.
@@ -38,6 +49,7 @@
 | `claude/DESIGN_PACK_20261109.md` 및 폴더 `1. AI Studio`의 사본(D1·D2·D4·D5) | 저장소(모든 원격 브랜치)·로컬 파일시스템·세션 업로드 폴더 어디에도 없음(3회 확인). 설계서 내용을 알 수 없어 D2 대조·D4·D5를 설계서대로 구현하지 못함 | 문서를 저장소에 커밋하거나 세션에 업로드 |
 | `ai_studio_legal_patch_20261109.zip`, `ai_studio_consent_patch_20261109.zip`(각 APPLY.md) | 두 파일 모두 세션에 없음(위와 같이 검색). 적용·OpenAPI 재생성·PR을 하지 못함 | 두 zip을 저장소에 커밋하거나 업로드 |
 | D1(AI 학습 별도 동의) "이미 구현됨" | **이 저장소에서는 확인되지 않음**: 학습·동의 관련 코드가 없고(`consent`가 들어간 파일은 모두 이번 L-04 작업물), 원격 브랜치 9개 어디에도 D1 구현이 없음. 다른 사본·패치(동의 패치 zip)에 있을 가능성 | 동의 패치 zip 또는 D1이 있는 브랜치 |
+| L-01 영구 삭제 스크립트(`scripts/purge_deletion_requests.py`) | 저장소에 "삭제 요청" 테이블·API가 없음(법률·동의 패치에 있을 것으로 추정 — 패치 zip이 없어 확인 못 함). 무엇을 어떤 기준으로 지울지의 명세 없이 만들면 어긋나므로 만들지 않음. 영구 삭제는 L-04 기록(`asset_provenance`)의 처리 정책도 정해야 함 | 법률·동의 패치 zip 또는 L-01 명세 |
 | TEST Supabase에 0011–0013 적용 | 금지 항목(접속 정보·승인 필요) | — |
 | Production Supabase/Vercel, 유료 Provider, Production `DATABASE_BACKEND=postgresql`, 실데이터 영구 삭제, 비밀·키 | 금지 항목 | — |
 
@@ -103,3 +115,19 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - 경합: SQLite는 `BEGIN IMMEDIATE`, PG는 워크스페이스별 advisory lock 안에서 세므로 동시 생성이 한도를 넘지 못함(PG 시험: 동시 10개 생성 → 정확히 3개 성공·7개 차단·작업 3개·outbox 3개).
 - 시험: `tests/test_generation_daily_cap.py` 7건(mock Provider, 외부 호출 없음) + PG 2건. 변이 10/10 적발(점검 제거, 일 경계 제거, 워크스페이스 필터 제거, 경계 오프바이원 2종, 라우트 배선 제거, 429→503, PG 잠금 제거(5회 반복), PG 일 경계 제거, PG 점검 제거).
 - **미검증/한계**: 사용자(개별) 단위 상한 없음; 금액이 아니라 작업 **개수** 상한이라 비용이 큰 모델과 작은 모델을 구분하지 않음; 크레딧 원장(`credits_ledger`)과 연동되지 않음; 프런트에 작업 생성 화면이 없어 UI 변경 없음(429는 API 클라이언트가 처리); `_impl` 호환 통로(v0.31)는 상한을 적용하지 않음(런타임은 사용하지 않음); 시간은 서버 시계(UTC) 기준.
+
+## 8. 백업·복구 (큐 9, 브랜치 backup-restore)
+- `ai_creator_studio_backend_starter/scripts/backup_restore.py`: `backup`(SQLite 온라인 백업 API로 일관된 스냅샷 + 파일 저장소 복사 + `manifest.json`), `verify`, `restore`. DB가 WAL 모드라 파일 복사는 쓰지 않음.
+- 안전 규칙: 복구는 **새 빈 디렉터리에만** 하고 기존 데이터를 덮어쓰거나 지우지 않음(비어 있지 않으면 거절); 복구 전에 모든 파일의 SHA-256을 검증하고 하나라도 다르면 아무것도 쓰지 않음; 복구 후 DB `integrity_check`·행 수·해시를 다시 비교; 백업 대상이 데이터 폴더 안이면 거절. 비밀·키·네트워크 사용 없음.
+- 사용: `python scripts/backup_restore.py backup --dest <dir>` → `verify <backup>` → `restore <backup> --target <새 폴더>`; 복구 후 출력된 경로를 `ASSET_DATABASE_PATH`·`ASSET_STORAGE_DIR`·`OUTPUT_DIR`로 지정.
+- **시험**: `tests/test_backup_restore.py` 15건(실제 API로 자산·상품·포토 초안과 로컬 처리 결과·생성 작업을 만든 뒤 백업 → 복구 → 같은 API로 조회가 일치하는지, 복구된 파일 바이트가 기록된 체크섬과 같은지, 변조·누락·같은 크기 손상·비어 있지 않은 대상·쓰는 중 백업·WAL에만 있는 커밋 데이터·동일 파일 DB·부산물 없음·CLI).
+- **변이 검증**: 시험 보강 전 첫 측정에서는 3종이 살아남았고(`verify()`의 체크섬 생략, 온라인 백업 대신 파일 복사, 복구 후 비교 생략) 그중 둘은 기준이 이미 빨간색이어서 증거가 아니었음 — 기준 통과를 확인하는 방식으로 다시 측정. 최종: 적발 = 복구 전 검증 생략, 비어 있지 않은 대상 허용, `verify()` 체크섬 생략, DB 체크섬 생략, 온라인 백업 대신 파일 복사, 파일 영역 생략, 행 수 오기록, DB 복사 후 비교 생략, 파일 복사 후 비교 생략, 대상이 데이터 안, 동일 파일 중복 스냅샷, WAL 부산물, 소요 시간 미기록. **적발 못 함(동치로 판단)**: 복구 시 `integrity_check` 결과만 무시, 읽을 수 없는 DB를 ok로 보고 — 행 수·해시 비교가 같은 손상을 잡는 이중 방어라서.
+- 시험 중 찾은 결함: 스냅샷이 WAL 모드로 복사되어 백업 폴더에 `-wal`·`-shm` 부산물이 남음(→ 스냅샷을 단일 파일로 정리), 손상된 복사본에서 원시 `sqlite3.DatabaseError`가 새어 나옴(→ `BackupVerificationError`로 보고).
+- **소요 시간(합성 데이터, 이 샌드박스의 로컬 디스크·웜 캐시, 실제 운영 디스크와 다름)**:
+
+| 데이터 | 백업 | 검증 | 복구 |
+|---|---|---|---|
+| 5.3 MB (파일 50개, 1천 행) | 0.04 s | 0.01 s | 0.04 s |
+| 65.8 MB (파일 300개, 2만 행) | 0.25 s | 0.06 s | 0.27 s |
+| 1,046.6 MB (파일 1000개, 10만 행) | 2.21 s | 1.20 s | 2.73 s |
+- **미검증/한계**: 운영 서버·네트워크 디스크에서의 소요 시간; 백업 파일의 외부 보관·암호화·보존 기간·자동 스케줄(운영 결정, 아직 없음); 복구 훈련을 실제 배포 환경에서 해 본 적 없음; 백업 중 파일 저장소가 바뀌는 경우의 일관성은 DB만 보장(파일은 복사 시점의 상태, 쓰는 중 파일은 해시가 복사본 기준으로 기록됨); `ASSET_STORAGE_DIR`와 `OUTPUT_DIR`만 대상(다른 경로를 쓰면 지정 필요); PG 백업은 범위 밖(런타임은 SQLite).
