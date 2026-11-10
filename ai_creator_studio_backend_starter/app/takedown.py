@@ -44,3 +44,13 @@ def filter_listing(items: list[dict[str, Any]], user_id: str) -> list[dict[str, 
             "SELECT t.asset_id, t.state, a.owner_id FROM asset_takedowns t JOIN assets a ON a.asset_id=t.asset_id")}
     return [i for i in items if i.get("asset_id") not in held
             or (held[i["asset_id"]][0] == UNDER_REVIEW and held[i["asset_id"]][1] == user_id)]
+
+
+def held_among(db, asset_ids: list[str]) -> list[str]:
+    """Which of these assets are on hold (any state), using an already open connection. Used by the paths that read an
+    asset's bytes on their own (photo processing, lookbook export) so a held asset cannot be copied or packaged."""
+    ids = [i for i in dict.fromkeys(asset_ids) if i]
+    if not ids:
+        return []
+    marks = ",".join("?" * len(ids))
+    return [r["asset_id"] for r in db.execute(f"SELECT asset_id FROM asset_takedowns WHERE asset_id IN ({marks})", ids)]

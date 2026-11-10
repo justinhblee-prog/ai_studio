@@ -197,6 +197,9 @@ def _snapshot_source_version(db: sqlite3.Connection, workspace_id: str, source_a
         (source_asset_id, workspace_id)).fetchone()
     if not row:
         raise HTTPException(status_code=409, detail="Source image has no current verified immutable AssetVersion")
+    from app.takedown import held_among
+    if held_among(db, [source_asset_id]):   # L-08: no new work is built on content that is under a report
+        raise HTTPException(status_code=409, detail={"code": "ASSET_UNDER_REVIEW", "message": "The source image is under review and cannot be used."})
     return row["version_id"], row["checksum_sha256"]
 
 
@@ -661,7 +664,10 @@ def create_photo_output_export_manifest(draft_id: str, run_id: str, workspace_id
 def _render_local_image(source_asset_id: str, source_version_id: str, source_checksum_sha256: str,
                         workspace_id: str, payload: dict[str, Any]) -> tuple[bytes, Any, dict[str, Any]]:
     from app.assets.store import get_asset, get_asset_version_record
+    from app.takedown import state_of
 
+    if state_of(source_asset_id) is not None:   # L-08: also when the hold came after the draft was saved
+        raise ValueError("The source image is under review and cannot be processed")
     source = get_asset(source_asset_id, workspace_id)
     version = get_asset_version_record(source_asset_id, workspace_id, source_version_id)
     if not source or not version:
@@ -743,6 +749,16 @@ def render_local_image_bytes(original: bytes, source_version_id: str, source_che
 
 
 def execute_local_processing(draft_id: str, workspace_id: str, actor_id: str, idempotency_key: str) -> dict[str, Any] | None:
+    # L-08: refuse before a run is claimed, so a held source leaves no failed run behind and the answer names the real reason.
+    # (_render_local_image checks again for a hold that arrives between the claim and the render.)
+    pre = _connect()
+    try:
+        row = pre.execute("SELECT payload_json FROM photo_drafts WHERE draft_id=? AND workspace_id=?", (draft_id, workspace_id)).fetchone()
+        from app.takedown import held_among
+        if row and held_among(pre, [json.loads(row["payload_json"]).get("source_asset_id")]):
+            raise ValueError("The source image is under review and cannot be used.")   # the port turns a ValueError into a 409
+    finally:
+        pre.close()
     claim = claim_local_run(draft_id, workspace_id, actor_id, idempotency_key)
     if claim is None:
         return None
