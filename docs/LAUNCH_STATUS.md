@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-10 · PR #46 (머지 6076be7) — L-08 후속: 보류된 자산 위에 새 사진·룩북 작업을 쌓지 못하게 함
+- **CI (head 6666308, run 42739460832)**: backend success — pytest `902 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — TypeScript 15개 소스 + 선언 22개 `0 errors`, 패키지 무결성 `0 findings`, `143 structural checks passed`, `vite build` 성공; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: Photo Draft 생성·수정·`process-local`(실행 기록 선점 전 확인 + 렌더링 시점 재확인)과 룩북 attach·내보내기 manifest·패키지가 보류된 자산을 거절, 복구되면 다시 동작. 변이 7종 적발. §24.
+- **참고**: PR이 충돌(`dirty`) 상태면 GitHub가 `pull_request` CI를 시작하지 않는다(체크 런 0개). 이번에 그렇게 한 번 기다렸고 main을 합쳐 푸시한 뒤에야 CI가 돌았다.
+- **미검증·한계**: 상품·캐릭터가 보류된 자산 ID를 참조로 보여 주는 것, 이미 만든 파생 출력, UI, PostgreSQL.
+
 ### 2026-11-10 · PR #45 (머지 0186dd0) — 자동 커밋 연결 위의 다중 쓰기 점검: `create_workspace`·출력 가져오기 수정
 - **CI (head 9299ace, run 42732044072)**: backend success — pytest `899 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — TypeScript 15개 소스 + 선언 22개 `0 errors`, 패키지 무결성 `0 findings`, `143 structural checks passed`, `vite build` 성공; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: `app/assets/store.py::create_workspace`(소유자 없는 워크스페이스가 남던 것)와 `app/output_asset_link_worker.py::import_output_asset`(반쯤 들어간 자산이 영구히 재시도 거절되던 것)에 `BEGIN IMMEDIATE`. 실패 주입 시험 2건, 변이 2종 적발. §23.
@@ -371,7 +377,7 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 | 12 | d2_reference | **기준 구현과 대조, 내 구현 유지**(3차 패키지에서 추가됨) | (이 PR, 위 §18) | 기준 구현의 인수 시험 4건·삭제 연동 시험 2건을 내 구현에 돌려 통과 확인(설정 이름 상수만 변경). 기준 구현의 파일은 덮어쓰지 않음(내 L-04 구현과 겹침: `app/assets/rights.py`·`store.py`·`routes.py`·`purge_requests.py`). 차이와 이유는 §18 |
 
 ## 17. E2E 시험의 경합 하나 수정 (`pilot_flow` "save a photo draft", 브랜치 fix-pilot-flake)
-- **발견**: PR #32의 CI e2e가 `save a photo draft for the product image`에서 `0 !== 1`로 실패(같은 시험은 이전 CI 실행 여러 번과 로컬에서 통과). 원인은 제품 결함이 아니라 **시험의 경합**: "저장된 Photo Draft" 목록은 초안이 0개여도 화면에 있으므로, 그 목록을 기다린 뒤 API로 초안 수를 세면 저장 요청이 끝나기 전에 셀 수 있다.
+- **발견**: PR #32의 CI e2e가 `save a photo draft for the product image`에서 `0 !== 1`로 실패(같은 시험은 이전 CI 실행 여러 번과 로컬에서 통과; **같은 결함이 그 앞의 main 푸시 실행에서도 한 번 있었음 — §25**). 원인은 제품 결함이 아니라 **시험의 경합**: "저장된 Photo Draft" 목록은 초안이 0개여도 화면에 있으므로, 그 목록을 기다린 뒤 API로 초안 수를 세면 저장 요청이 끝나기 전에 셀 수 있다.
 - **재현**: 임시 사본에서 초안 저장 POST를 600 ms 지연시키면 고치기 전 시험이 실패했다(재현 확인).
 - **수정**: 저장 요청의 응답(201)을 기다린 뒤 확인. 같은 지연을 주고 다시 돌리면 통과, 지연 없이 3회 연속 `10/10`.
 - **미검증·한계**: 같은 모양(목록 대기 뒤 곧바로 API로 개수 확인)의 다른 단계가 더 있는지 전수 점검하지 않았다 — 이 PR은 실제로 실패한 한 곳만 고쳤다. CI에서 이 시험이 지금까지 통과한 것은 우연한 타이밍 덕이었을 수 있다.
@@ -465,3 +471,10 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **시험**: `tests/test_takedown_derived_paths.py` 4건(초안 생성·실행 거절과 복구 뒤 정상화, `removed`도 거절, 선점 뒤 보류의 레이스) + `tests/test_assets_api.py`의 룩북 전체 흐름 끝에 보류 단언(attach·manifest·패키지가 보류 중 409, 복구 뒤 200). 변이 7종 적발(초안 가드, 선점 전 확인, 렌더링 시점 확인, attach 가드, 패키지 가드, manifest 가드, 도우미가 `removed` 상태를 무시).
 - **시험 중 내가 만든 허점**: 처음 시험의 멱등 키(`"k1"`)가 8자 미만이라 "보류 중 실행이 거절됨" 단언이 **키 길이 때문에 통과**하고 있었다. 키를 고치고 거절 사유(메시지 `under review`, 409, 실패한 실행 기록 없음)를 단언하도록 바꾼 뒤에야 의미 있는 시험이 됐다.
 - **여전히 못 덮은 것**: 상품·캐릭터가 보류된 자산 ID를 **참조로 들고 있는 것**(자산 API는 막히지만 상품·캐릭터 응답에 그 ID가 보임; 바이트는 안 나감), 이미 만들어진 파생 출력(별도 자산이라 그대로 보임), UI. PostgreSQL 경로 없음. 소유자에게 상태를 알려 주는 화면 없음.
+
+## 25. CI 안정성 기록 (e2e를 필수 체크로 지정할 조건, `DEV_NONSTOP_PROMPT` 6번)
+`DEV_NONSTOP_PROMPT` 6번: e2e를 CI 잡으로 올리되 **연속 10회 통과 전에는 필수 체크로 지정하지 않는다.** GitHub의 `ci` 워크플로 실행 기록(`gh api repos/.../actions/runs`, 완료된 실행 97회, 2026-11-09 02:24 UTC ~ 2026-11-10 01:58 UTC)으로 직접 센 값:
+- **실패는 두 번**, 둘 다 같은 원인: `pilot_flow`의 "save a photo draft for the product image" 시험 경합(목록이 화면에 있다는 것과 저장 요청이 끝났다는 것을 혼동). ① 2026-11-09 11:53 UTC **main 푸시 실행**(`cf140fa`, PR #25 머지 커밋; run 42612537151) ② 13:26 UTC PR #32 실행(run 42625437022). §17은 ②만 적었다 — **①도 같은 결함이었다는 것을 이번에 확인**했다(그때는 PR 단계 CI가 통과한 직후라 main 푸시 실패를 놓쳤고, 당시 보고에는 없었다).
+- **수정(PR #33, 머지 2026-11-09 13:34:29 UTC) 이후**: 완료된 CI 실행 **29회가 전부 성공, 실패 0**. 동시성으로 취소된 실행 3회는 제외(실패가 아님). 이 29회에는 수정 이후 코드(동의 화면·D2·L-05·L-07·L-08 등)가 들어간 PR 실행과 main 푸시 실행이 모두 섞여 있다.
+- **해석**: "연속 10회 통과" 조건은 기록상 충족됐다. 다만 이것은 같은 한 가지 경합이 사라졌다는 증거이지 e2e 전체가 안정하다는 증명은 아니다(경합이 약 97회 중 2회, 즉 약 2%의 빈도로 나타났었다는 점에서, 다른 단계에 비슷한 경합이 더 있을 수 있고 전수 점검은 하지 않았다).
+- **필수 체크로 지정하는 것은 하지 않았다**: GitHub 저장소 설정(브랜치 보호) 변경이고 협업자 전체에 영향을 주므로 사용자 결정으로 둔다. 지정할 때의 잡 이름은 `backend`, `frontend`, `e2e`.
