@@ -4,6 +4,11 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-10 · PR #45 (머지 0186dd0) — 자동 커밋 연결 위의 다중 쓰기 점검: `create_workspace`·출력 가져오기 수정
+- **CI (head 9299ace, run 42732044072)**: backend success — pytest `899 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — TypeScript 15개 소스 + 선언 22개 `0 errors`, 패키지 무결성 `0 findings`, `143 structural checks passed`, `vite build` 성공; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: `app/assets/store.py::create_workspace`(소유자 없는 워크스페이스가 남던 것)와 `app/output_asset_link_worker.py::import_output_asset`(반쯤 들어간 자산이 영구히 재시도 거절되던 것)에 `BEGIN IMMEDIATE`. 실패 주입 시험 2건, 변이 2종 적발. §23.
+- **미검증**: 점검은 AST 휴리스틱 + `store.py` 손으로 읽기 기준(다른 모듈은 훑기만 함), PostgreSQL 경로 미점검.
+
 ### 2026-11-10 · PR #42 (머지 083a281) — L-08 권리 침해 신고와 임시 비공개 (검수 기준 범위)
 - **CI (head 3ba9d13, run 42728659459)**: backend success — pytest `897 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: 신고 API(응답 동일) → 즉시 비공개(소유자만 접근, 서명 링크 무효화) → 운영자 기각/인정/되돌리기, 소유자 상태 조회, 신고자 비노출, 소유자 삭제 차단, 남용 방지, 신고자 계정 purge 익명화. 시험 11건, 변이 12종 적발. §22.
@@ -440,6 +445,16 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **남용 방지**: 같은 신고자의 같은 자산 열린 신고는 하나(중복은 같은 응답), 신고자당 하루 `CONTENT_REPORT_DAILY_LIMIT`건(기본 20, 초과 429), 자기 자산 신고는 효과 없음. 존재하지 않는 자산 ID와 실제 자산에 **같은 응답** `{"status":"received"}`(존재 여부를 알 수 없게; 인가 행렬 시험에 `ANSWERS_ALIKE`로 반영).
 - **시험**: `tests/test_takedown.py` 11건. 변이 12종 모두 적발(가시성 검사 제거, 목록 필터 제거, 신고가 비공개를 만들지 않음, 소유자 삭제 허용, 소유자에게 신고자 노출, 복구가 비공개를 못 풂, 다른 열린 신고를 무시하고 해제, 제거가 숨기지 않음, 운영자 검사 제거, 신원 없는 서명 링크 허용, 일일 한도 제거, purge가 신고자를 안 지움). 인가 행렬 시험의 허용 목록에 `GET /v1/me/takedowns`(본인 범위)와 `POST /v1/content-reports`(누구나, 응답 동일)를 이유와 함께 추가. 전체 백엔드: 이 브랜치에서 `806 passed, 78 skipped`, main(#38~#41)을 합친 뒤 `819 passed, 78 skipped`(로컬, FastAPI 0.162.2). 스냅샷 98경로(+6).
 - **정하지 않은 것(임의로 정하지 않음)**: ① 신고할 수 있는 사람의 범위(지금은 로그인한 누구나; 외부 제3자 신고 경로·본인 확인 없음) ② 처리 기한 ③ 소유자에게 알림·이의제기 절차(소유자는 상태만 볼 수 있고 사유는 못 봄) ④ 신고자 정보를 소유자에게 줄지(보수적으로 숨김, 기준대로) ⑤ `remove`된 파일의 물리 삭제 시점 ⑥ 한 번의 신고로 즉시 비공개되는 것의 남용 위험(한도·중복 방지만 있음).
+- **덮지 못한 경로(한계)**: 자산 ID로 오는 **자산 API 경로만** 막는다. 보류된 자산을 이미 참조하는 Photo Draft·Lookbook·상품·캐릭터가 그 자산을 읽는 경로(예: `process-local`이 원본 바이트를 읽는 것, 룩북 패키지에 들어가는 바이트)는 이번에 막지 않았다. 보류된 자산에서 파생된 출력은 별도 자산이라 그대로 보인다. PostgreSQL 저장소엔 표·가드 없음(런타임 미사용).
+
+## 23. 자동 커밋 연결 위의 다중 쓰기 점검 (브랜치 fix-store-atomicity, §19 후속)
+§19에서 `save_asset`이 한 트랜잭션이 아니었던 것을 고치며 "같은 모양의 다른 함수는 전수 점검하지 않았다"고 적었다. 이번에 점검했다.
+- **방법**: `app/` 아래 SQLite 경로 파일을 AST로 훑어, 같은 함수 안에서 `INSERT`/`UPDATE`/`DELETE`가 2개 이상인데 `BEGIN`·`transaction(`이 없는 함수를 찾고, `app/assets/store.py`의 쓰기 함수는 하나씩 직접 읽었다(휴리스틱이 놓칠 수 있어서). PostgreSQL 저장소와 `app/ports/`는 대상에서 뺐다.
+- **결과**: 문제는 **둘**이었고 고쳤다 — `app/assets/store.py::create_workspace`(워크스페이스와 소유자 멤버 INSERT 둘; 둘째가 실패하면 소유자 없는 워크스페이스가 남고 같은 ID로 다시 만들 수도 없었음), `app/output_asset_link_worker.py::import_output_asset`(자산·버전·출처 INSERT 셋; 중간에 실패하면 반쯤 들어간 자산이 남고, 이 함수가 재시도 때마다 "무결성 검증 실패"로 영구히 거절함). 둘 다 블록 첫머리에 `BEGIN IMMEDIATE` 추가. **`save_derived_image_asset`·`restore_asset_version`·`create_asset_version`·`create_asset_relation`·`delete_asset`은 이미 `BEGIN IMMEDIATE`를 쓰고 있어 정상**이었다.
+- **고치지 않은 것(이유)**: `app/assets/store.py::initialize`는 쓰기 5개가 `BEGIN` 없이 있지만 전부 멱등(`CREATE ... IF NOT EXISTS`, `INSERT OR IGNORE` 보충)이라 중간 실패 뒤 다시 실행하면 이어서 완성된다. `app/legal.py::accept_legal_documents`는 문서마다 `INSERT OR IGNORE`를 반복하는데 같은 이유로 재시도하면 완성된다(중간 실패 시 일부 문서만 수락된 상태가 잠깐 보일 수 있음).
+- **시험**: `tests/test_store_atomicity.py` 2건(트리거로 마지막 INSERT에 실패를 주입 → 아무것도 안 남고, 트리거를 지운 뒤 재시도가 성공). 변이 2종(두 곳의 `BEGIN` 제거) 적발.
+- **한계**: 정규식·AST 휴리스틱과 손으로 읽기 기준이다. `lookbook.py`·`photo_engine.py`·`products.py`·`projects.py`·`characters.py`는 다른 연결 헬퍼를 쓰는데, 같은 기준으로 훑었을 때 걸리지 않았을 뿐 줄 단위로 모두 읽지는 않았다. PostgreSQL 경로는 점검하지 않았다.
+
 - **덮지 못한 경로(한계; 그중 사진·룩북 경로는 §24에서 막음)**: 자산 ID로 오는 **자산 API 경로만** 막는다. 보류된 자산을 이미 참조하는 Photo Draft·Lookbook·상품·캐릭터가 그 자산을 읽는 경로(예: `process-local`이 원본 바이트를 읽는 것, 룩북 패키지에 들어가는 바이트)는 이번에 막지 않았다. 보류된 자산에서 파생된 출력은 별도 자산이라 그대로 보인다. PostgreSQL 저장소엔 표·가드 없음(런타임 미사용).
 
 ## 24. L-08 후속: 보류된 자산 위에 새 작업을 쌓지 못하게 함 (브랜치 l08-derived-paths)

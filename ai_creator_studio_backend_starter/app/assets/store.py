@@ -451,6 +451,9 @@ def create_workspace(workspace_id: str, owner_id: str) -> dict[str, str]:
     initialize()
     now = datetime.now(timezone.utc).isoformat()
     with _connect() as db:
+        # Autocommit connection: without BEGIN a failure on the second INSERT would leave a workspace with no owner member,
+        # and the same id could never be created again.
+        db.execute("BEGIN IMMEDIATE")
         db.execute("INSERT INTO workspaces(workspace_id, owner_id, created_at) VALUES(?,?,?)", (workspace_id, owner_id, now))
         db.execute("INSERT INTO workspace_members(workspace_id, user_id, role, created_at) VALUES(?,?,?,?)", (workspace_id, owner_id, "owner", now))
     return {"workspace_id": workspace_id, "owner_id": owner_id, "role": "owner", "created_at": now}

@@ -80,6 +80,9 @@ def import_output_asset(task: dict) -> dict[str, str]:
 
     initialize_asset_store()
     with asset_connect() as db:
+        # Autocommit connection: without BEGIN a failure between the three INSERTs would leave a half-imported asset, which this
+        # function then refuses forever ("failed integrity verification") on every retry.
+        db.execute("BEGIN IMMEDIATE")
         workspace = db.execute("SELECT 1 FROM workspaces WHERE workspace_id=?", (task["workspace_id"],)).fetchone()
         if not workspace:
             raise ValueError("Output Workspace no longer exists in the Asset database")
