@@ -359,3 +359,17 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **기준 구현(`patch_d2_reference`, 3차 패키지)과의 대조**: 같은 점 — `POST /v1/assets/images` 폼 필드 `rights_confirmed`, 422 `RIGHTS_CONFIRMATION_REQUIRED`, 표 `upload_rights_confirmations`(asset_id 기본키·user_id·confirmed_at·policy_version), 자산 저장과 **같은 트랜잭션**에 기록, PostgreSQL 자산 포트엔 미구현, purge가 자산이 사라지면 기록 삭제·자산이 남으면 `deleted-user` 익명화. 다른 점(기록함) — ① **기본값**: 기준은 꺼짐(`UPLOAD_RIGHTS_REQUIRED`, 파일럿에서 1로 켬; 호환 우선), 나는 **켜짐**(`ASSET_REQUIRE_RIGHTS_CONFIRMATION`, 명시적으로 꺼야 꺼짐; `DEV_NONSTOP_PROMPT` 4번의 "필수"를 따름). 설계 창 문서끼리도 갈리므로(`W04_D2_ACCEPTANCE`는 호환 유지) **결정이 필요하면 환경 변수 하나로 뒤집을 수 있음**. ② 표에 `workspace_id`·사람 포함·초상권 동의 열이 더 있고 FK는 없음(purge가 `workspace_id`로 직접 범위를 잡음). ③ `policy_version`: 기준은 환경 변수(`2026-11-draft`), 나는 현재 콘텐츠 정책 문서 버전. ④ 추가 구현: 읽기 엔드포인트와 '미확인' 표시(기준은 "조회 시 미확인 표시 없음"이 한계), 프런트 체크박스(PR #8). 설계 창의 인수 시험 4건과 삭제 연동 시험 2건은 **내 구현에서 통과**; 이 6건만으로는 내 변이 3종(미확인 선언도 기록, 유일성 제거, 기본값을 끔으로)을 못 잡아 내 시험을 따로 둠.
 - **인수 문서의 코드 대조 체크리스트 5항목**: (1) 사진이 올라가는 경로 — `POST /v1/assets/images`가 유일한 사용자 이미지 업로드이고, 파생 이미지(`save_derived_image_asset`)는 사용자 업로드가 아니라 대상 아님 / (2) 서버 강제 — 라우트가 아니라 `build_upload_confirmation`에서 서버가 판정 / (3) 기존 자산 — '미확인'으로 읽히고 차단 안 됨(시험) / (4) 같은 트랜잭션 — `save_asset`의 한 `with _connect()` 안에서 자산·버전·출처·확인 기록을 씀 / (5) 변이 검증 — 8종(위).
 - **미검증·한계**: PostgreSQL 저장소에는 표·익명화 없음(런타임 미사용). 정책 버전은 문서 초안 버전이라 확정 전 값. 프런트는 이미 권리 확인을 보낸다(PR #8).
+
+## 20. L-07 AI 생성물 표시를 `DEV_ACCEPTANCE_PACK` 기준으로 검수 (브랜치 l07-check)
+| 기준 | 결과 | 근거(파일·함수·시험) |
+|---|---|---|
+| 출력 화면에 표시 | 통과 | `src/OutputReviewWorkspace.tsx`가 `src/app/aiDisclosure.mjs::aiDisclosureLabel`로 배지를 그림(mock=AI 미사용, 그 외·미지정=AI 생성물, 생성기 이름 표시). 브라우저 `disclosure_flow` 4/4 |
+| 출력 목록·검수·내보내기 manifest | 통과 | `app/ai_disclosure.py::disclose_job_outputs`·`is_ai_generated_provider`, `app/repositories/output_review.py`; 시험 `tests/test_output_asset_link_worker.py`(mock·비mock 모두, 목록·검수·manifest 최상위와 `outputs[*]`) |
+| 룩북 내보내기 manifest의 `outputs[*]` | 코드는 이미 있었음, **시험이 없어 추가** | `app/lookbook.py`(내보내기 manifest 생성부). `tests/test_assets_api.py`에 `outputs[*].is_ai_generated is False`·`provider_dispatched is False` 단언 추가 |
+| 내려받는 패키지(ZIP) 안 manifest | 코드는 이미 있었음, **시험이 없어 추가** | `app/lookbook.py::write_lookbook_package`(`outputs[*]`)와 패키지 manifest 최상위. ZIP을 열어 최상위와 `outputs[*]`를 단언 |
+| 사용자가 끌 수 없음 | 통과(시험 추가) | 서버가 결정: `disclose_job_outputs`가 항목에 이미 있는 값(저장된 false 포함)도 덮어씀; 쓰기 모델(`CreateTryOnJob`, `PhotoDraftInput`, `LookbookDraftInput`)에 표시 필드가 없음; 작업 요청에 `is_ai_generated: false`를 끼워도 무시(저장 안 됨). `tests/test_ai_disclosure_inputs.py` 3건 |
+| 변이: manifest 필드 생성 코드를 제거하면 시험 실패 | 통과 | 5종 모두 적발: 내보내기 manifest `outputs[*]` 필드 제거, 패키지 `outputs[*]` 제거, 패키지 최상위 제거, 서버 덮어쓰기를 `setdefault`로 약화, 알 수 없는 provider를 AI 아님으로 취급 |
+
+- **한계(기준이 요구한 범위 명시)**: 이 표시는 **메타데이터와 화면 배지**뿐이다. **이미지 자체에 눈에 보이는 표시(워터마크·라벨)는 넣지 않았다.** 딥페이크 사례처럼 눈에 보이는 표시가 필요한지, 문구가 무엇이어야 하는지는 **법무 검토 사항**이라 임의로 정하지 않았다. 사진 스튜디오·룩북은 결정론적 로컬 처리(생성형 AI 아님)라 `false`가 맞고, 외부 생성 Provider 출력만 `true`다 — 실제 Provider로 검증한 적은 없다(mock 외 경로는 시험용 provider 이름으로만 확인).
+- **미검증**: PostgreSQL 경로의 manifest(`postgres_lookbooks.py`)는 같은 필드를 갖지만 이번에 시험을 추가하지 않음(런타임은 SQLite). 룩북 내보내기 manifest의 **최상위**에는 필드가 없고 `outputs[*]`에만 있음(패키지 manifest는 둘 다 있음) — 기준 문구상 충족으로 보되 일관성은 후속 정리 후보.
+- **시험**: 백엔드 `tests/test_ai_disclosure_inputs.py` 3건 + `tests/test_assets_api.py` 단언 2곳 추가.
