@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { DOCUMENT_LABELS, acceptRequired, setConsent } from './legalApi.mjs';
 import type { LegalStatus } from './legalApi.mjs';
+import LegalDocumentModal from './LegalDocumentModal';
 
-// The document texts are not part of the app yet and the drafts are not final; this screen says so instead of implying otherwise.
+// The documents are legal-review drafts (src/legal); each one can be opened and read before accepting.
 export default function LegalGate({ api, token, status, onAccepted, onLogout }: {
   api: string; token: string; status: LegalStatus;
   onAccepted: (next: LegalStatus) => void; onLogout: () => void;
@@ -10,6 +11,7 @@ export default function LegalGate({ api, token, status, onAccepted, onLogout }: 
   const pending = status.missing.length ? status.missing : status.required;
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [aiTraining, setAiTraining] = useState(false);
+  const [viewing, setViewing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const allChecked = pending.every(d => checked[d.document]);
@@ -32,12 +34,15 @@ export default function LegalGate({ api, token, status, onAccepted, onLogout }: 
     <ul className="legal-list">{pending.map(d => <li key={d.document}>
       <label><input type="checkbox" checked={Boolean(checked[d.document])} disabled={busy}
         onChange={e => setChecked({ ...checked, [d.document]: e.target.checked })}/>
-        {' '}{DOCUMENT_LABELS[d.document] || d.document} <small>(버전 {d.version})</small>에 동의합니다 <b>(필수)</b></label></li>)}</ul>
+        {' '}{DOCUMENT_LABELS[d.document] || d.document} <small>(버전 {d.version})</small>에 동의합니다 <b>(필수)</b></label>
+      {' '}<button type="button" className="text-button" onClick={() => setViewing(d.document)} disabled={busy}
+        aria-label={`${DOCUMENT_LABELS[d.document] || d.document} 본문 보기`}>본문 보기</button></li>)}</ul>
     <div className="legal-optional"><label><input type="checkbox" checked={aiTraining} disabled={busy} onChange={e => setAiTraining(e.target.checked)}/>
       {' '}내 콘텐츠를 AI 모델 개선에 사용하는 것에 동의합니다 <b>(선택)</b></label>
       <small>선택 항목입니다. 동의하지 않아도 서비스를 사용할 수 있고, 설정에서 언제든 철회할 수 있습니다.</small></div>
     {error && <div className="auth-error" role="alert">{error}</div>}
     <button className="auth-submit" onClick={submit} disabled={busy || !allChecked}>{busy ? '기록 중…' : '동의하고 계속'}</button>
     <button className="text-button" onClick={onLogout} disabled={busy}>동의하지 않고 로그아웃</button>
+    {viewing && <LegalDocumentModal document={viewing} onClose={() => setViewing(null)}/>}
   </div></div>;
 }

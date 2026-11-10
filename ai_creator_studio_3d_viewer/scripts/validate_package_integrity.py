@@ -18,7 +18,8 @@ SOURCE_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".css", ".json")
 def resolve_local_import(source_file: Path, specifier: str) -> Path | None:
     if not specifier.startswith("."):
         return None
-    base = (source_file.parent / specifier).resolve()
+    # Vite query suffixes such as "?raw" select how a real file is loaded; the file itself must still exist.
+    base = (source_file.parent / specifier.split("?", 1)[0]).resolve()
     candidates = [base]
     if not base.suffix:
         candidates.extend(Path(f"{base}{suffix}") for suffix in SOURCE_EXTENSIONS)

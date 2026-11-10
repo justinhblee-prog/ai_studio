@@ -20,7 +20,7 @@ export async function apiRequest(baseUrl, path, { token, method = 'GET', body, s
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const detail = payload?.detail;
-    const limitText = response.status === 429 ? generationLimitMessage(detail?.code) : null;
+    const limitText = response.status === 429 ? generationLimitMessage(detail?.code, detail) : null;
     if (limitText) throw Object.assign(new Error(limitText), { code: detail.code });
     throw new Error(typeof detail === 'string' ? detail : detail?.message || `API 요청 실패 (${response.status})`);
   }
