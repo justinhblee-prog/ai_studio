@@ -3385,6 +3385,74 @@
         "title": "ReconcileProviderSubmission",
         "type": "object"
       },
+      "ReportInput": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "maxLength": 80,
+            "minLength": 4,
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "copyright",
+              "likeness",
+              "other"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "required": [
+          "asset_id",
+          "category"
+        ],
+        "title": "ReportInput",
+        "type": "object"
+      },
+      "ResolveInput": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "restore",
+              "remove"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "ResolveInput",
+        "type": "object"
+      },
       "RetryPollTaskRequest": {
         "properties": {
           "reason": {
@@ -3490,6 +3558,194 @@
           }
         },
         "summary": "Health"
+      }
+    },
+    "/internal/moderation/assets/{asset_id}/reinstate": {
+      "post": {
+        "description": "Operators only: undo a removal. The asset is exactly as before; the upheld reports stay on record.",
+        "operationId": "reinstate_asset_internal_moderation_assets__asset_id__reinstate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reinstate Asset",
+        "tags": [
+          "moderation"
+        ]
+      }
+    },
+    "/internal/moderation/reports": {
+      "get": {
+        "description": "Operators only. Includes the reporter, because the operator has to be able to follow up.",
+        "operationId": "list_reports_internal_moderation_reports_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "enum": [
+                "open",
+                "upheld",
+                "rejected",
+                "all"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Reports",
+        "tags": [
+          "moderation"
+        ]
+      }
+    },
+    "/internal/moderation/reports/{report_id}/resolve": {
+      "post": {
+        "description": "Operators only. ``restore`` rejects the report; the hold is lifted once no other report on the asset is open.\n``remove`` upholds it; the asset stays hidden for everyone (nothing is erased).",
+        "operationId": "resolve_report_internal_moderation_reports__report_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "title": "Report Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Report",
+        "tags": [
+          "moderation"
+        ]
       }
     },
     "/internal/ops/alerts": {
@@ -4329,6 +4585,22 @@
               "title": "Signature",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -4671,6 +4943,63 @@
         ]
       }
     },
+    "/v1/assets/{asset_id}/takedown": {
+      "get": {
+        "description": "The hold on an asset, for people allowed to see the asset. Carries no reporter or report text.",
+        "operationId": "asset_takedown_status_v1_assets__asset_id__takedown_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Asset Takedown Status",
+        "tags": [
+          "moderation"
+        ]
+      }
+    },
     "/v1/assets/{asset_id}/versions": {
       "get": {
         "operationId": "asset_versions_v1_assets__asset_id__versions_get",
@@ -4833,6 +5162,22 @@
             "schema": {
               "title": "Signature",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -5108,6 +5453,64 @@
           }
         },
         "summary": "Authenticated Identity"
+      }
+    },
+    "/v1/content-reports": {
+      "post": {
+        "description": "File a report. The answer is the same whether or not the asset exists or the report changed anything, so the\nendpoint cannot be used to find out which asset ids exist.",
+        "operationId": "report_content_v1_content_reports_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Content",
+        "tags": [
+          "moderation"
+        ]
       }
     },
     "/v1/engines/capabilities": {
@@ -8060,6 +8463,54 @@
         "summary": "Legal Status",
         "tags": [
           "legal"
+        ]
+      }
+    },
+    "/v1/me/takedowns": {
+      "get": {
+        "description": "Assets of the caller that are on hold, with the state. No reporter and no report text.",
+        "operationId": "my_takedowns_v1_me_takedowns_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "My Takedowns",
+        "tags": [
+          "moderation"
         ]
       }
     },

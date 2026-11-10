@@ -96,6 +96,18 @@ def initialize() -> None:
             details_json TEXT NOT NULL, created_at TEXT NOT NULL
         )""")
         db.execute("CREATE INDEX IF NOT EXISTS idx_asset_provenance_asset ON asset_provenance(asset_id, created_at DESC)")
+        # L-08: reports of rights infringement and the temporary hold they put on an asset (see app/takedown.py).
+        db.execute("""CREATE TABLE IF NOT EXISTS content_reports (
+            report_id TEXT PRIMARY KEY, asset_id TEXT NOT NULL, workspace_id TEXT NOT NULL, reporter_id TEXT NOT NULL,
+            category TEXT NOT NULL, details TEXT, status TEXT NOT NULL CHECK(status IN ('open','upheld','rejected')),
+            created_at TEXT NOT NULL, resolved_at TEXT, resolved_by TEXT, resolution_note TEXT
+        )""")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_content_reports_status ON content_reports(status, created_at)")
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_content_reports_open ON content_reports(asset_id, reporter_id) WHERE status='open'")
+        db.execute("""CREATE TABLE IF NOT EXISTS asset_takedowns (
+            asset_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL,
+            state TEXT NOT NULL CHECK(state IN ('under_review','removed')), since TEXT NOT NULL, updated_at TEXT NOT NULL
+        )""")
         # D2: one row per image whose uploader confirmed the rights. Deleting the asset deletes its row; if the asset stays
         # (shared workspace) an account purge replaces user_id with 'deleted-user' (see scripts/purge_requests.py).
         db.execute("""CREATE TABLE IF NOT EXISTS upload_rights_confirmations (

@@ -21,7 +21,12 @@ PUBLIC = {("get", "/health"), ("get", "/v1/engines/capabilities"), ("get", "/v1/
 
 # Caller-scoped reads: a 200 is correct, but they must not expose another user's data (checked below).
 SELF_SCOPED = {("get", "/v1/workspaces"), ("get", "/v1/me/legal-status"), ("get", "/v1/me/deletion-requests"),
-               ("get", "/v1/me/consents"), ("get", "/v1/auth/me")}
+               ("get", "/v1/me/consents"), ("get", "/v1/auth/me"),
+               ("get", "/v1/me/takedowns")}   # L-08: lists only the caller's own held assets
+
+
+# Operations that any signed-in user may call and whose answer does not depend on the object (so it reveals nothing).
+ANSWERS_ALIKE = {("post", "/v1/content-reports")}
 
 
 # Minimal valid bodies generated from the OpenAPI schema so authorization, not validation, decides.
@@ -130,6 +135,10 @@ def test_every_operation_rejects_anonymous_and_non_members(seeded):
             assert "mx-ws" not in other.text and "user-a" not in other.text, (method, path)
         elif method != "get" and path.startswith("/v1/me/"):
             decided += 1  # acts only on the caller's own data (verified by the viewer/self tests)
+        elif (method, path) in ANSWERS_ALIKE:
+            # L-08: any signed-in user may report; the answer must be the same for every asset id (no existence oracle)
+            assert other.status_code == 202 and other.json() == {"status": "received"}, (method, path, other.status_code, other.text)
+            decided += 1
         elif 200 <= other.status_code < 300:
             leaks.append((method, path, other.status_code))
         elif other.status_code in (403, 404):
@@ -143,7 +152,9 @@ def test_every_operation_rejects_anonymous_and_non_members(seeded):
 
 # POST that only issues a read capability; the routes allow viewers on purpose.
 SELF_WRITES = {("post", "/v1/workspaces"), ("post", "/v1/assets/{asset_id}/preview-url"),
-               ("post", "/v1/assets/{asset_id}/versions/{version_id}/preview-url")}
+               ("post", "/v1/assets/{asset_id}/versions/{version_id}/preview-url"),
+               # L-08: any signed-in user may file a report; the answer is the same for every asset id, so it reveals nothing
+               ("post", "/v1/content-reports")}
 
 
 def test_viewer_role_cannot_modify_anything_in_the_workspace(seeded):

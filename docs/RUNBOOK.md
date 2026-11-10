@@ -62,6 +62,23 @@ python scripts/backup_restore.py restore "$BACKUP_DIR/backup-<타임스탬프>" 
 - **자동 스케줄·외부 보관·암호화·보존 기간은 아직 없다.** 하루 한 번 백업을 돌리고 결과를 서버 밖으로 복사하는 것은 운영자가 정해야 한다. 예시(시험하지 않음): `17 3 * * * cd /srv/acs/backend && python scripts/backup_restore.py backup --dest "$BACKUP_DIR"`
 - **복구 훈련**: 분기마다 새 폴더로 복구해 `GET /internal/ops/health`와 자산 하나의 미리보기가 정상인지 확인한다(아직 실제 환경에서 해 본 적 없음).
 
+### 권리 침해 신고 처리 (운영자, L-08)
+운영자 계정은 `OPS_ADMIN_USER_IDS`에 있어야 한다. 신고 한도는 `CONTENT_REPORT_DAILY_LIMIT`(신고자당 하루, 기본 20).
+```bash
+# 열린 신고 보기(신고자 ID·분류·설명이 보인다 — 자산 소유자에게는 절대 전달하지 말 것)
+curl -s -H "Authorization: Bearer $OPS_TOKEN" "$API/internal/moderation/reports?status=open"
+# 기각(복구): 다른 열린 신고가 없으면 비공개가 풀리고 자산은 그대로다
+curl -s -X POST -H "Authorization: Bearer $OPS_TOKEN" -H "Content-Type: application/json" \
+     -d '{"decision":"restore","note":"확인 결과 문제 없음"}' "$API/internal/moderation/reports/$REPORT_ID/resolve"
+# 인정(삭제): 모두에게 영구 비공개. 파일은 지우지 않는다
+curl -s -X POST -H "Authorization: Bearer $OPS_TOKEN" -H "Content-Type: application/json" \
+     -d '{"decision":"remove","note":"권리 침해 확인"}' "$API/internal/moderation/reports/$REPORT_ID/resolve"
+# 인정을 되돌리기
+curl -s -X POST -H "Authorization: Bearer $OPS_TOKEN" "$API/internal/moderation/assets/$ASSET_ID/reinstate"
+```
+- 신고가 들어오면 **자산은 즉시 비공개**(소유자만 봄)가 된다. 소유자는 자기 자산의 상태만 `GET /v1/me/takedowns`로 본다(사유·신고자는 안 보임).
+- 이 API 호출은 시험했지만 **위 curl 예시 자체는 실행해 보지 않았다**. 처리 기한·소유자 안내·이의제기·파일 물리 삭제 시점은 정해지지 않았다(`docs/LAUNCH_STATUS.md` §22).
+
 ### 점검 스크립트 (`scripts/ops_check.py`, cron·모니터용)
 ```bash
 python scripts/ops_check.py --db "$ASSET_DATABASE_PATH" --backup-dir "$BACKUP_DIR"   # 종료 코드 0 정상 / 1 경고 / 2 치명, --json 가능
