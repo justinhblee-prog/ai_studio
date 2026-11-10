@@ -97,6 +97,17 @@ curl -s -X POST -H "Authorization: Bearer $OPS_TOKEN" "$API/internal/moderation/
 - 신고가 들어오면 **자산은 즉시 비공개**(소유자만 봄)가 된다. 소유자는 자기 자산의 상태만 `GET /v1/me/takedowns`로 본다(사유·신고자는 안 보임).
 - 이 API 호출은 시험했지만 **위 curl 예시 자체는 실행해 보지 않았다**. 처리 기한·소유자 안내·이의제기·파일 물리 삭제 시점은 정해지지 않았다(`docs/LAUNCH_STATUS.md` §22).
 
+### 이메일로 들어온 신고의 임시 처리 절차 (신고 접수 화면이 없는 동안, 정책 결정 전)
+신고 접수 **화면은 만들지 않았다**(신고 범위·소유자 알림·응답 기한이 정해지기 전, `OPEN_DECISIONS` #11·#21). 접수 창구는 문의 이메일 **[확정 전]** 이다(주소는 아직 정해지지 않았고 이 문서에 쓰지 않는다). 아래는 그때까지의 임시 절차이며 위 curl 예시와 마찬가지로 이 절차 전체를 실제 환경에서 실행해 본 적은 없다.
+1. 메일에서 신고 대상 자산 ID(`asset_id`)와 분류(`copyright`·`likeness`·`other`), 설명을 확인한다. 자산 ID가 없으면 신고자에게 되물어 확인한 뒤에만 진행한다. 신고자 이메일·성명은 운영 기록(메일함)에만 두고 자산 소유자에게 전달하지 않는다.
+2. 운영자 계정 토큰(`OPS_TOKEN`, 계정은 `OPS_ADMIN_USER_IDS`에 등록)으로 신고를 대신 접수한다. 이 호출이 자산을 즉시 비공개(소유자만 봄)로 만든다.
+```bash
+curl -s -X POST -H "Authorization: Bearer $OPS_TOKEN" -H "Content-Type: application/json"      -d '{"asset_id":"'"$ASSET_ID"'","category":"copyright","details":"이메일 접수: <요약, 신고자 개인정보 제외>"}' "$API/v1/content-reports"
+```
+3. 위 "권리 침해 신고 처리"의 `GET /internal/moderation/reports?status=open`으로 `report_id`를 확인하고, 검토 후 `resolve`로 `restore`(기각) 또는 `remove`(인정)를 실행한다. 인정을 되돌릴 때는 `reinstate`.
+4. 신고자·소유자에게 결과를 알리는 방식과 기한은 **정해지지 않았다**(§22, 사용자·법무 결정). 결정 전에는 임의 기한을 약속하지 않는다.
+- 주의: 운영자 계정으로 접수하면 신고자 ID는 운영자 본인으로 기록된다(실제 신고자는 메일에만 남음). 같은 자산을 같은 운영자가 열린 상태로 중복 접수하면 거절된다. 신고 한도 `CONTENT_REPORT_DAILY_LIMIT`는 운영자 계정에도 적용된다.
+
 ### 점검 스크립트 (`scripts/ops_check.py`, cron·모니터용)
 ```bash
 python scripts/ops_check.py --db "$ASSET_DATABASE_PATH" --backup-dir "$BACKUP_DIR"   # 종료 코드 0 정상 / 1 경고 / 2 치명, --json 가능
