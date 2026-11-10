@@ -359,3 +359,18 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **기준 구현(`patch_d2_reference`, 3차 패키지)과의 대조**: 같은 점 — `POST /v1/assets/images` 폼 필드 `rights_confirmed`, 422 `RIGHTS_CONFIRMATION_REQUIRED`, 표 `upload_rights_confirmations`(asset_id 기본키·user_id·confirmed_at·policy_version), 자산 저장과 **같은 트랜잭션**에 기록, PostgreSQL 자산 포트엔 미구현, purge가 자산이 사라지면 기록 삭제·자산이 남으면 `deleted-user` 익명화. 다른 점(기록함) — ① **기본값**: 기준은 꺼짐(`UPLOAD_RIGHTS_REQUIRED`, 파일럿에서 1로 켬; 호환 우선), 나는 **켜짐**(`ASSET_REQUIRE_RIGHTS_CONFIRMATION`, 명시적으로 꺼야 꺼짐; `DEV_NONSTOP_PROMPT` 4번의 "필수"를 따름). 설계 창 문서끼리도 갈리므로(`W04_D2_ACCEPTANCE`는 호환 유지) **결정이 필요하면 환경 변수 하나로 뒤집을 수 있음**. ② 표에 `workspace_id`·사람 포함·초상권 동의 열이 더 있고 FK는 없음(purge가 `workspace_id`로 직접 범위를 잡음). ③ `policy_version`: 기준은 환경 변수(`2026-11-draft`), 나는 현재 콘텐츠 정책 문서 버전. ④ 추가 구현: 읽기 엔드포인트와 '미확인' 표시(기준은 "조회 시 미확인 표시 없음"이 한계), 프런트 체크박스(PR #8). 설계 창의 인수 시험 4건과 삭제 연동 시험 2건은 **내 구현에서 통과**; 이 6건만으로는 내 변이 3종(미확인 선언도 기록, 유일성 제거, 기본값을 끔으로)을 못 잡아 내 시험을 따로 둠.
 - **인수 문서의 코드 대조 체크리스트 5항목**: (1) 사진이 올라가는 경로 — `POST /v1/assets/images`가 유일한 사용자 이미지 업로드이고, 파생 이미지(`save_derived_image_asset`)는 사용자 업로드가 아니라 대상 아님 / (2) 서버 강제 — 라우트가 아니라 `build_upload_confirmation`에서 서버가 판정 / (3) 기존 자산 — '미확인'으로 읽히고 차단 안 됨(시험) / (4) 같은 트랜잭션 — `save_asset`의 한 `with _connect()` 안에서 자산·버전·출처·확인 기록을 씀 / (5) 변이 검증 — 8종(위).
 - **미검증·한계**: PostgreSQL 저장소에는 표·익명화 없음(런타임 미사용). 정책 버전은 문서 초안 버전이라 확정 전 값. 프런트는 이미 권리 확인을 보낸다(PR #8).
+
+## 21. L-05 접속 로그를 `DEV_ACCEPTANCE_PACK` 기준으로 검수 (브랜치 l05-check)
+| 기준 | 결과 | 근거(파일·함수·시험) |
+|---|---|---|
+| 문서의 항목 목록과 코드가 일치 | **자동 확인 장치가 없어 추가** | 코드의 단일 출처 `app/access_log.py::LOGGED_FIELDS`(9개)·`OPTIONAL_FIELDS`(`error`, `client_ip`). `docs/RUNBOOK.md` §3-1에 키 표를 넣고 `tests/test_access_log.py::test_the_runbook_documents_exactly_the_keys_the_code_can_log`가 표의 키 집합 = 코드의 키 집합을 확인; `test_a_log_line_has_only_the_documented_keys`가 실제 로그 줄(정상·인증 실패·없는 경로·IP 켠 경우)의 키가 목록과 같음을 확인 |
+| 요청 본문이 로그에 없음 | **시험이 없어 추가** | `test_request_bodies_and_signed_urls_inside_bodies_never_reach_the_log`: 작업 생성 요청의 본문 문구와 필드 이름이 로그에 없음 |
+| 토큰이 로그에 없음 | 통과(기존 시험 + 변이) | `test_secrets_and_query_strings_never_reach_the_log`; 변이로 `authorization` 헤더를 기록하게 하면 4건 실패 |
+| 이미지 URL의 서명 값이 로그에 없음 | 통과(경로·쿼리) + **본문 안의 서명 URL은 시험 추가** | 쿼리 문자열은 기록하지 않음(라우트 템플릿만). 본문의 `model_image_url?signature=...`도 로그에 없음을 단언 |
+| 보관 기간 설정 | 통과 | `ACCESS_LOG_RETENTION_DAYS`(기본 30, 0은 거부) → `TimedRotatingFileHandler(backupCount=...)`; 시험 `test_file_logging_rotates_daily_and_keeps_a_bounded_number_of_files`와 `test_log_settings_reject_unsafe_values`; 보관 일수를 무시하는 변이 적발 |
+| 만료된 로그를 지우는 방법의 문서화 | **문서 보강** | RUNBOOK §3-1: 회전 시 자동 삭제(시험으로 확인) + 수동 삭제 명령(`find ... -mtime +N -delete`, **명령 자체는 시험하지 않음**) + 표준 출력 사용 시에는 받는 쪽 책임 |
+| 방침의 보유 기간과 일치 | **확인하지 못함** | 정책 문서의 보유 기간이 확정되지 않았고 저장소에 없음(`LEGAL_W02_RESULT`도 "접속 로그 실제 수집 항목"을 미확정으로 남김). 30일은 임시 기본값 |
+
+- **변이 검증(6종 적발)**: 본문 기록, `authorization` 기록, 원본 URL(쿼리 포함) 기록, 경로+쿼리 기록, 항목 목록에서 `actor` 누락(문서·코드 불일치), 보관 일수 무시.
+- **시험**: `tests/test_access_log.py` 12 → 16건(+4: 본문·본문 속 서명, 키 일치 2).
+- **한계(그대로)**: uvicorn 기본 접근 로그는 쿼리 문자열을 남기므로 운영에서 `--no-access-log` 필요(RUNBOOK에 있음, 배포 파일이 없어 강제하지 못함). 로그 파일은 백업 대상이 아님. `actor`는 가명이지만 `ASSET_SIGNING_SECRET`이 바뀌면 해시가 달라짐. 접속 로그의 법적 항목·보유 기간·접근 통제는 법무 확정 전.
