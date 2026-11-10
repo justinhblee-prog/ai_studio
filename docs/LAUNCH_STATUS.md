@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-10 · PR #42 (머지 083a281) — L-08 권리 침해 신고와 임시 비공개 (검수 기준 범위)
+- **CI (head 3ba9d13, run 42728659459)**: backend success — pytest `897 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 신고 API(응답 동일) → 즉시 비공개(소유자만 접근, 서명 링크 무효화) → 운영자 기각/인정/되돌리기, 소유자 상태 조회, 신고자 비노출, 소유자 삭제 차단, 남용 방지, 신고자 계정 purge 익명화. 시험 11건, 변이 12종 적발. §22.
+- **미검증·한계**: UI 없음, 보류된 자산을 이미 참조하는 경로(Photo Draft `process-local`, 룩북 패키지 등)는 미차단, PostgreSQL 없음.
+- **차단(결정 필요)**: 신고 가능 범위, 처리 기한, 소유자 알림·이의제기, `remove`된 파일의 물리 삭제 시점.
+
 ### 2026-11-10 · PR #41 (머지 d4004d6) — L-05 접속 로그: 문서의 항목 목록과 코드 일치, 본문·서명 URL 비기록 고정
 - **CI (head 0037b3a, run 42727853148)**: backend success — pytest `886 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: `LOGGED_FIELDS`가 단일 출처, RUNBOOK 키 표와 코드를 시험이 대조, 요청 본문·본문 속 서명 URL이 로그에 없음을 시험, 만료 로그 삭제 방법 문서화. 변이 6종 적발. 표는 §21.
