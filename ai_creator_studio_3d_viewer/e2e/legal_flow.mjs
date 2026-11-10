@@ -1,5 +1,5 @@
 // L-02 / L-01 in the browser: the acceptance gate, the optional AI-training consent, and account deletion requests.
-// Real: web bundle, backend (started with LEGAL_REQUIRE_ACCEPTANCE=1, so the server enforces acceptance), SQLite. Mocked: Supabase Auth. The legal documents are drafts and their text is not in the app.
+// Real: web bundle, backend (started with LEGAL_REQUIRE_ACCEPTANCE=1, so the server enforces acceptance), SQLite. Mocked: Supabase Auth. The legal documents are drafts; their text is bundled in the app and opened from the gate.
 import assert from 'node:assert/strict';
 import { startStack, chromium, newUserPage, loginThroughUi, acceptLegalThroughUi, makeRunner, apiCall, sqliteExec, USERS } from './harness.mjs';
 
@@ -29,6 +29,29 @@ try {
     const direct = await apiCall(stack, USERS.owner.token, '/v1/workspaces');
     assert.equal(direct.status, 403, 'the server itself refuses an unaccepted user, not just the screen');
     assert.equal(direct.body.detail.code, 'LEGAL_ACCEPTANCE_REQUIRED');
+  });
+
+  await run('every required document can be opened from the gate: draft banner, title, blanks left as [..], Esc closes and returns focus, nothing is recorded', async () => {
+    const buttons = gate().getByRole('button', { name: /본문 보기/ });
+    assert.equal(await buttons.count(), 3);
+    const dialog = a.page.getByRole('dialog', { name: /이용약관|개인정보 처리방침|콘텐츠 정책/ });
+    for (let i = 0; i < 3; i += 1) {
+      await buttons.nth(i).click();
+      await dialog.waitFor({ timeout: 5000 });
+      const text = await dialog.innerText();
+      assert.match(text, /초안 · 법률 검토 전/);
+      assert.match(text, /\[[^\]]+\]/, 'unfilled blanks stay visible as [..]');
+      assert.doesNotMatch(text, /[\w.+-]+@[\w-]+\.[\w.]+/, 'no e-mail address is filled in');
+      assert.equal(await dialog.getByRole('button', { name: /닫기/ }).evaluate(el => el === document.activeElement), true, 'focus moves into the dialog');
+      await a.page.keyboard.press('Escape');
+      await dialog.waitFor({ state: 'detached', timeout: 5000 });
+      assert.equal(await buttons.nth(i).evaluate(el => el === document.activeElement), true, 'focus returns to the opener');
+    }
+    await buttons.nth(0).click();
+    await dialog.getByRole('button', { name: /닫기/ }).click();
+    await dialog.waitFor({ state: 'detached', timeout: 5000 });
+    assert.equal(await gate().count(), 1, 'closing the text leaves the gate in place');
+    assert.equal((await status(USERS.owner)).body.accepted, false, 'reading a document records no acceptance');
   });
 
   await run('accepting without the optional box opens the app, records the acceptance and leaves AI-training consent off', async () => {
