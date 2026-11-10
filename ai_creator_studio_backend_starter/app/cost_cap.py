@@ -56,7 +56,7 @@ def enforce_in_transaction(conn, job: dict, now: datetime | None = None) -> None
             (job["workspace_id"], MOCK_PROVIDER, start)).fetchone()[0]
         if used >= per_ws:
             raise CostCapExceeded("WORKSPACE_MONTHLY_LIMIT", "Monthly AI generation limit for this workspace is reached.",
-                                  {"limit": per_ws, "used": used})
+                                  None)
     glob = _int_env("AI_JOB_LIMIT_GLOBAL_MONTH", 0)
     if glob:
         used = conn.execute(
