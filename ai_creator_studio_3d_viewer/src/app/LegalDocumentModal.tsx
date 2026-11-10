@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { DOCUMENT_LABELS } from './legalApi.mjs';
 import { LEGAL_DRAFT_BANNER, legalDocumentBlocks } from './legalMarkdown.mjs';
 import type { InlinePart, LegalBlock } from './legalMarkdown.mjs';
@@ -43,12 +44,13 @@ export default function LegalDocumentModal({ document: doc, onClose }: { documen
     else if (!event.shiftKey && globalThis.document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
 
-  return <div className="legal-modal-backdrop" onKeyDown={onKeyDown}>
+  // Rendered into <body> so the surrounding panel's CSS (e.g. the settings panel's small paragraph text) does not leak into the document.
+  return createPortal(<div className="legal-modal-backdrop" onKeyDown={onKeyDown}>
     <div className="legal-modal" role="dialog" aria-modal="true" aria-labelledby="legal-doc-title" ref={dialogRef}>
       <div className="legal-modal-head"><h2 id="legal-doc-title">{title}</h2>
         <button className="text-button" ref={closeRef} onClick={onClose} aria-label={`${title} 닫기`}>닫기</button></div>
       <div className="auth-notice" role="note">{LEGAL_DRAFT_BANNER}</div>
       <div className="legal-modal-body">{blocks.map((b, i) => <Block key={i} block={b}/>)}</div>
     </div>
-  </div>;
+  </div>, globalThis.document.body);
 }
