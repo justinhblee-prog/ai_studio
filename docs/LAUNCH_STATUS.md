@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-10 · PR #43 (머지 8b3d272) — CLAUDE.md: 설계 창과의 소통 v2 규칙
+- **CI (head 89f8fb7, run 42757771977)**: backend success — pytest `902 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — 노드 시험 통과(로그의 `failed` 문자열은 시험 이름뿐); e2e success — 10/10, 6/6 rights, 4/4 disclosure, 6/6 legal, 4/4 account(+layout·roles 단계 success). 로그에 실패 줄 없음.
+- **완료**: 폴더 우체통 블록을 v2 블록(붙여 넣기 방식, R-번호별 결과 한 덩어리, 금지선 충돌은 BLOCKED, 사용자 결정은 NEED_USER)으로 교체. 코드 변경 없음.
+- **미확인**: PC 쪽 폴더 동기화(클라우드 세션에서 보이지 않음).
+- **차단**: 없음.
+
 ### 2026-11-10 · PR #46 (머지 6076be7) — L-08 후속: 보류된 자산 위에 새 사진·룩북 작업을 쌓지 못하게 함
 - **CI (head 6666308, run 42739460832)**: backend success — pytest `902 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — TypeScript 15개 소스 + 선언 22개 `0 errors`, 패키지 무결성 `0 findings`, `143 structural checks passed`, `vite build` 성공; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: Photo Draft 생성·수정·`process-local`(실행 기록 선점 전 확인 + 렌더링 시점 재확인)과 룩북 attach·내보내기 manifest·패키지가 보류된 자산을 거절, 복구되면 다시 동작. 변이 7종 적발. §24.
