@@ -62,7 +62,8 @@ try {
     await screen().getByRole('button', { name: '상태 새로고침' }).click();
     await screen().locator('[aria-label="생성 작업 상태"]').getByText(state.jobId).waitFor({ timeout: 10000 });
     await screen().getByRole('button', { name: '시험 생성 시작' }).click();
-    await page.waitForFunction((id) => !document.querySelector('[aria-label="생성 작업 상태"]')?.textContent.includes(id), state.jobId, { timeout: 15000 });
+    // wait for a NEW job id to be shown (the status block disappears while the request is in flight, so absence is not enough)
+    await page.waitForFunction((id) => { const t = document.querySelector('[aria-label="생성 작업 상태"]')?.textContent || ''; return /job_[0-9a-f]+/.test(t) && !t.includes(id); }, state.jobId, { timeout: 15000 });
     const list = await jobs();
     assert.equal((Array.isArray(list) ? list : list.items).length, 2);
   });
