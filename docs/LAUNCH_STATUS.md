@@ -4,6 +4,12 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #37 (머지 951f8d6) — D2 업로드 권리 확인: 기본 필수 + 기록 표 + 보존 규칙
+- **CI (head 5039aaf, run 42715972017)**: backend success — pytest `873 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: `ASSET_REQUIRE_RIGHTS_CONFIRMATION` 기본 켜짐, 표 `upload_rights_confirmations`, `GET /v1/assets/{id}/rights-confirmation`, 자산 삭제 시 기록 삭제, 공유 워크스페이스 계정 purge 시 `deleted-user` 익명화. 설계 창의 인수 시험 4건·삭제 연동 2건(3차 패키지)을 내 구현에 돌려 통과(상수 하나만 변경), 내 시험 10건 추가, 변이 8종 적발. 기준 구현과의 차이는 §18.
+- **미검증**: PostgreSQL(표 없음, 런타임 미사용), 정책 버전은 문서 초안 버전.
+- **차단/결정 필요**: **기본 필수냐 호환 유지(꺼짐)냐** — 설계 창 문서끼리 갈림(`DEV_NONSTOP_PROMPT`는 필수, `W04_D2_ACCEPTANCE`·기준 구현은 기본 꺼짐); 지금은 켜짐.
+
 ### 2026-11-09 · PR #35 (머지 a1a3372) — 설계 창 launch_gate (독립 패치)
 - **CI (head 3e1a514, run 42714560517)**: backend success — pytest `857 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: 출시 전 게이트 스크립트(시험·의존성 점검·백업 훈련, 수동 5항목은 항상 NOT_RUN). 패치의 백업 훈련이 main에 없는 스크립트를 불러 실패하므로 일회용 DB 위의 `backup_restore.py` 훈련으로 바꿈. 시험 6건, 변이 5종 적발.
@@ -185,20 +191,20 @@
 - **미검증**: L-13은 브라우저 설정만 제거한 것이며 서버가 주소를 강제하지 않음; 헤드리스 Chromium 검증은 로컬 1회(CI에는 브라우저 시험 없음). work-20261109 핸드오프의 "원인 불명 1회 실패"가 위 시험인지는 시험 이름 미기록으로 확인 못 함.
 - **차단**: 아래 "차단" 섹션 참조.
 
-## 차단 (입력·승인이 없어 하지 못한 것; 다른 작업은 계속 진행)
+## 차단 (입력·승인이 없어 하지 못한 것; 다른 작업은 계속 진행) — 2026-11-09 갱신
+이전 표의 "패치 zip 없음·D1 미확인·삭제 스크립트 없음" 등은 패키지를 받아 모두 해소되었다(§14, §15~§18). 지금 남은 것:
+
 | 항목 | 이유 | 필요한 것 |
 |---|---|---|
-| `ai_studio_legal_patch_20261109.zip` 적용(큐 2) | 세션에 파일 없음(업로드 폴더 `.saved-uploads`에 `NEXT_SESSION_START.md`뿐, 파일시스템 검색에도 없음). 2회 확인 | zip을 저장소에 커밋하거나 세션에 업로드 |
-| L-02 서버 API(`/v1/legal/documents`, `/v1/me/legal-status`, `/v1/me/legal-acceptances`) | 저장소에 해당 라우트 없음(패치 zip에 들어 있을 것으로 추정 — 미확인). 법률 문서 본문·버전은 빈칸을 임의로 채우지 않음 | 패치 zip 또는 문서 본문 |
-| `claude/LEGAL_IMPLEMENTATION_GAPS.md`(L-항목 정의) | 저장소에 없음 | 문서 |
-| 배포 환경(영속 디스크 유무) | 파일럿은 SQLite 단일 인스턴스를 전제. 서버리스뿐이면 결론이 바뀜 | 배포 대상 정보 |
-| `claude/DESIGN_PACK_20261109.md` 및 폴더 `1. AI Studio`의 사본(D1·D2·D4·D5) | 저장소(모든 원격 브랜치)·로컬 파일시스템·세션 업로드 폴더 어디에도 없음(3회 확인). 설계서 내용을 알 수 없어 D2 대조·D4·D5를 설계서대로 구현하지 못함 | 문서를 저장소에 커밋하거나 세션에 업로드 |
-| `ai_studio_legal_patch_20261109.zip`, `ai_studio_consent_patch_20261109.zip`(각 APPLY.md) | 두 파일 모두 세션에 없음(위와 같이 검색). 적용·OpenAPI 재생성·PR을 하지 못함 | 두 zip을 저장소에 커밋하거나 업로드 |
-| D1(AI 학습 별도 동의) "이미 구현됨" | **이 저장소에서는 확인되지 않음**: 학습·동의 관련 코드가 없고(`consent`가 들어간 파일은 모두 이번 L-04 작업물), 원격 브랜치 9개 어디에도 D1 구현이 없음. 다른 사본·패치(동의 패치 zip)에 있을 가능성 | 동의 패치 zip 또는 D1이 있는 브랜치 |
-| L-01 영구 삭제 스크립트(`scripts/purge_deletion_requests.py`) | 저장소에 "삭제 요청" 테이블·API가 없음(법률·동의 패치에 있을 것으로 추정 — 패치 zip이 없어 확인 못 함). 무엇을 어떤 기준으로 지울지의 명세 없이 만들면 어긋나므로 만들지 않음. 영구 삭제는 L-04 기록(`asset_provenance`)의 처리 정책도 정해야 함 | 법률·동의 패치 zip 또는 L-01 명세 |
-| L-08 침해 신고 접수·임시 비공개 | 접수 주체(제3자 포함 여부)·인증·절차·처리 기한·이의제기가 법적 절차라 명세 없이 만들면 어긋남. 임시 비공개는 자산 목록·조회·미리보기·다운로드·기존에 만들어진 ZIP·초안 사용 차단까지 걸쳐 있어 설계 없이 구현하면 보안 구멍 위험 | 절차 명세(법무), 신고 접수 방식 결정 |
-| TEST Supabase에 0011–0013 적용 | 금지 항목(접속 정보·승인 필요) | — |
-| Production Supabase/Vercel, 유료 Provider, Production `DATABASE_BACKEND=postgresql`, 실데이터 영구 삭제, 비밀·키 | 금지 항목 | — |
+| 실제 Supabase TEST 로그인 확인 | 네트워크는 허용됨(새 환경 `ai_studio`에 호스트 `nfhtwefjlhuuorncovoj.supabase.co` 1개). 공개 키를 프록시에 저장했지만 `apikey` 주입이 아직 안 되어 `401 Invalid API key`(프록시 반영 지연일 수 있음, 최대 약 1시간). 또 비밀번호는 요청 **본문**에 들어가야 하는데 프록시 폼은 **헤더**만 주입하므로 제가 로그인할 수 없음. 비밀번호는 채팅에 노출되어 변경 권장 | 사용자가 직접 실행하는 스모크(비밀번호는 실행하는 쪽 환경 변수로만), 또는 키 재확인 |
+| 법률 문서 빈칸 | 연락처 이메일, 개인정보 보호책임자, 책임 한도, 관할 법원, 시행일, 생성물 소유권 — 임의로 채우지 않음 | 사용자 결정 |
+| 첫 실데이터 purge 실행 | 되돌릴 수 없는 삭제 | 백업·dry-run 확인 후 요청별 승인 |
+| L-08 침해 신고 접수·임시 비공개 | 접수 주체·인증·절차·처리 기한·이의제기가 법적 절차라 명세 없음 | 절차 명세 |
+| 실제 Provider 검증 | 유료 호출 | 예산 승인·테스트 키 |
+| 배포 환경 세부(호스트·디스크·도메인) | 배포 B(프런트 서버리스 + 단일 백엔드 서버, SQLite)는 결정됨, 세부 정보 없음 | 배포 대상 정보 |
+| 운영 설정 결정 2가지 | ① `LEGAL_REQUIRE_ACCEPTANCE`를 켤지(서버가 동의를 강제, 기본 꺼짐) ② 업로드 권리 확인을 **기본 필수**로 둘지(현재 켜짐; 설계 창 문서끼리 갈림) | 사용자 결정 |
+| TEST Supabase에 0011–0013 적용 | 금지 항목 | — |
+| Production Supabase/Vercel, 유료 Provider, Production `DATABASE_BACKEND=postgresql`, 실데이터 영구 삭제, 비밀·키 입력·저장 | 금지 항목 | — |
 
 ## 1. PR #5 머지 전 확인 (head 436792c, CI run 42547697665)
 
