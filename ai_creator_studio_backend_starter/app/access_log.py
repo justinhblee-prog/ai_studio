@@ -25,6 +25,10 @@ from starlette.requests import Request
 from app import config
 
 LOGGER_NAME = "acs.access"
+# The complete list of keys a log line can carry. docs/RUNBOOK.md section 3-1 documents exactly these (tests/test_access_log.py
+# compares the two). ``error`` appears only for an unhandled exception, ``client_ip`` only when ACCESS_LOG_CLIENT_IP is on.
+LOGGED_FIELDS = ("ts", "event", "request_id", "method", "route", "status", "duration_ms", "workspace_id", "actor")
+OPTIONAL_FIELDS = ("error", "client_ip")
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 _WORKSPACE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$")
 

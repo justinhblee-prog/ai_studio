@@ -399,10 +399,43 @@
       },
       "Body_upload_asset_version_v1_assets__asset_id__versions_post": {
         "properties": {
+          "depicts_person": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depicts Person"
+          },
           "file": {
             "contentMediaType": "application/octet-stream",
             "title": "File",
             "type": "string"
+          },
+          "likeness_consent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Likeness Consent"
+          },
+          "rights_confirmed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rights Confirmed"
           }
         },
         "required": [
@@ -5058,6 +5091,7 @@
         ]
       },
       "post": {
+        "description": "New version of an asset. A new version of an IMAGE asset is a new photo, so it needs the same rights declaration as\nPOST /v1/assets/images (D2); 3D model versions are unaffected.",
         "operationId": "upload_asset_version_v1_assets__asset_id__versions_post",
         "parameters": [
           {
