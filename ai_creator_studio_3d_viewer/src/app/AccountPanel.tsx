@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { cancelDeletionRequest, loadConsents, loadDeletionRequests, requestAccountDeletion, setConsent } from './legalApi.mjs';
 import type { ConsentItem, DeletionRequest } from './legalApi.mjs';
+import { DOCUMENT_LABELS } from './legalApi.mjs';
+import LegalDocumentModal from './LegalDocumentModal';
 
 // Shown inside the settings panel: the optional AI-training consent (withdrawable) and account deletion requests.
 export default function AccountPanel({ api, token }: { api: string; token: string }) {
@@ -9,6 +11,7 @@ export default function AccountPanel({ api, token }: { api: string; token: strin
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [viewing, setViewing] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -29,6 +32,11 @@ export default function AccountPanel({ api, token }: { api: string; token: strin
   return <div className="account-panel">
     <div className="settings-title"><b>개인정보와 데이터</b><span>동의 철회와 삭제 요청은 여기서 할 수 있습니다.</span></div>
     {error && <div className="auth-error" role="alert">{error}</div>}
+    <div className="account-legal"><b>약관·방침 본문</b>
+      {['terms', 'privacy', 'content_policy'].map(d => <button key={d} type="button" className="outline" onClick={() => setViewing(d)}
+        aria-label={`${DOCUMENT_LABELS[d]} 본문 보기`}>{DOCUMENT_LABELS[d]} 보기</button>)}
+      <small>법률 검토 전 초안입니다.</small></div>
+    {viewing && <LegalDocumentModal document={viewing} onClose={() => setViewing(null)}/>}
     <label className="account-consent"><input type="checkbox" checked={Boolean(ai?.granted)} disabled={busy || !ai}
       onChange={e => act(() => setConsent(api, token, 'ai_training', e.target.checked))}/>
       {' '}내 콘텐츠를 AI 모델 개선에 사용하는 것에 동의 <small>(선택, 철회는 즉시 반영)</small></label>

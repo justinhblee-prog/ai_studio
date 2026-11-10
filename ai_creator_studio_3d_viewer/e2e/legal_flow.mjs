@@ -80,6 +80,33 @@ try {
     await b.context.close();
   });
 
+  await run('after accepting, the same three texts open again from settings; screenshots of the modal at desktop and phone width', async () => {
+    const shotDir = process.env.E2E_SCREENSHOT_DIR;
+    const c = await newUserPage(browser, USERS.owner);
+    await loginThroughUi(c.page, stack.webUrl, USERS.owner, { acceptLegal: false });
+    await c.page.getByRole('button', { name: /설정/ }).click();
+    const dialog = c.page.getByRole('dialog', { name: /이용약관|개인정보 처리방침|콘텐츠 정책/ });
+    for (const [label, file] of [['이용약관', 'terms'], ['개인정보 처리방침', 'privacy'], ['콘텐츠 정책', 'content_policy']]) {
+      await c.page.getByRole('button', { name: `${label} 본문 보기` }).click();
+      await dialog.waitFor({ timeout: 5000 });
+      assert.match(await dialog.innerText(), /초안 · 법률 검토 전/);
+      assert.equal(await dialog.getByRole('heading', { level: 2 }).first().innerText(), label);
+      if (shotDir) {
+        for (const [w, h, tag] of [[1280, 800, 'desktop'], [390, 800, 'phone']]) {
+          await c.page.setViewportSize({ width: w, height: h });
+          await c.page.screenshot({ path: `${shotDir}/legal_${file}_${tag}.png` });
+          const overflow = await c.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+          assert.ok(overflow <= 1, `${file} ${tag}: page scrolls sideways by ${overflow}px`);
+        }
+        await c.page.setViewportSize({ width: 1280, height: 800 });
+      }
+      await c.page.keyboard.press('Escape');
+      await dialog.waitFor({ state: 'detached', timeout: 5000 });
+    }
+    assert.equal((await status(USERS.owner)).body.accepted, true, 'opening the texts changes nothing');
+    await c.context.close();
+  });
+
   await run('account deletion request from settings: confirm, shown as pending, only recorded (nothing deleted), then cancelled', async () => {
     await a.page.getByRole('button', { name: /설정/ }).click();
     const panel = a.page.locator('.account-panel');
