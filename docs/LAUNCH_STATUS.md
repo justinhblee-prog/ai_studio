@@ -4,6 +4,11 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-10 · PR #41 (머지 d4004d6) — L-05 접속 로그: 문서의 항목 목록과 코드 일치, 본문·서명 URL 비기록 고정
+- **CI (head 0037b3a, run 42727853148)**: backend success — pytest `886 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: `LOGGED_FIELDS`가 단일 출처, RUNBOOK 키 표와 코드를 시험이 대조, 요청 본문·본문 속 서명 URL이 로그에 없음을 시험, 만료 로그 삭제 방법 문서화. 변이 6종 적발. 표는 §21.
+- **미검증**: 정책의 보유 기간과의 일치(정책 없음, 30일은 임시 기본값), RUNBOOK의 수동 삭제 명령은 실행하지 않음, uvicorn 자체 접근 로그는 운영에서 `--no-access-log` 필요.
+
 ### 2026-11-10 · PR #40 (머지 4337a43) — L-07 AI 생성물 표시를 검수 기준으로 확인하고 시험으로 고정
 - **CI (head 290ab58, run 42727073288)**: backend success — pytest `882 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: 룩북 내보내기 manifest `outputs[*]`와 패키지(ZIP) manifest(최상위·`outputs[*]`)의 표시 필드를 시험으로 고정, "사용자가 끌 수 없음" 시험 3건. 변이 5종 적발. 표는 §20.
@@ -418,3 +423,15 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **변이 검증(6종 적발)**: 본문 기록, `authorization` 기록, 원본 URL(쿼리 포함) 기록, 경로+쿼리 기록, 항목 목록에서 `actor` 누락(문서·코드 불일치), 보관 일수 무시.
 - **시험**: `tests/test_access_log.py` 12 → 16건(+4: 본문·본문 속 서명, 키 일치 2).
 - **한계(그대로)**: uvicorn 기본 접근 로그는 쿼리 문자열을 남기므로 운영에서 `--no-access-log` 필요(RUNBOOK에 있음, 배포 파일이 없어 강제하지 못함). 로그 파일은 백업 대상이 아님. `actor`는 가명이지만 `ASSET_SIGNING_SECRET`이 바뀌면 해시가 달라짐. 접속 로그의 법적 항목·보유 기간·접근 통제는 법무 확정 전.
+
+## 22. L-08 권리 침해 신고와 임시 비공개 (브랜치 l08-takedown, `DEV_ACCEPTANCE_PACK` 기준)
+이전에는 "절차 명세 없음"으로 막혀 있었으나, 검수 기준 문서(통과 조건 4줄)와 `FRONTEND_SPEC_W16`의 절차 개요(접수 → 임시 비공개 → 당사자 확인 → 삭제 또는 복구)가 생겨 **그 범위 안에서** 구현했다. 정책·법적 절차는 여전히 정해지지 않았다(아래 "정하지 않은 것").
+- **흐름**: `POST /v1/content-reports`(로그인한 누구나; 분류 copyright·likeness·other, 설명 2000자) → 즉시 자산이 `under_review`로 비공개 → 운영자(`OPS_ADMIN_USER_IDS`)가 `GET /internal/moderation/reports`로 보고 `POST /internal/moderation/reports/{id}/resolve`로 `restore`(기각: 다른 열린 신고가 없을 때 비공개 해제, 자산은 그대로) 또는 `remove`(인정: 모두에게 영구 비공개) 처리. `remove`는 `POST /internal/moderation/assets/{id}/reinstate`로 되돌린다.
+- **비공개의 실제 효과**: `under_review` 중에는 자산의 **소유자(`assets.owner_id`)만** 접근. 다른 구성원(편집자·뷰어, 워크스페이스 소유자 포함)은 `/v1/assets/{id}` 아래 모든 경로(상세·버전·출처·관계·권리 기록·미리보기 URL 발급·미리보기 내용)와 목록에서 404. `removed`면 소유자도 이 경로들에서 404. 서명 미리보기 URL(토큰 없이 서명만 쓰는 경로)은 신원이 없으므로 보류된 자산이면 항상 404 → **비공개 이전에 발급된 링크도 멎는다**. 구현: `app/assets/routes.py::asset_visibility`(라우터 수준 의존성) + `app/takedown.py::visible_to`·`filter_listing`.
+- **소유자 데이터 보존**: 비공개는 아무것도 지우지 않는다(저장 파일 목록 불변을 시험). 임시 비공개 중 소유자가 자기 자산을 지우려 하면 409 `TAKEDOWN_ACTIVE`(증거 인멸 방지). **복구하면 메타데이터·바이트·체크섬이 신고 전과 같고** 소유자는 다시 지울 수 있다. 운영자의 "삭제"(`remove`)도 **물리 삭제가 아니라 영구 비공개**다(되돌릴 수 없는 삭제는 승인 항목).
+- **소유자 상태 표시**: `GET /v1/assets/{id}/takedown`(소유자에게만 상태, 다른 구성원은 비공개 중 404)과 `GET /v1/me/takedowns`(내 자산 중 보류된 것과 상태). **화면(UI)은 만들지 않았다** — API뿐.
+- **신고자 비노출**: 소유자가 받는 모든 응답(자산 경로들·상태·목록·내 보류 목록)에 신고자 ID·분류·신고 문구가 없음을 시험(문자열 검사). 운영자 목록에는 신고자 ID·분류·설명이 있다(후속 연락용). 신고자 계정을 purge하면 `reporter_id`·`resolved_by`가 `deleted-user`로 익명화된다(`ANON_BY_TABLE`).
+- **남용 방지**: 같은 신고자의 같은 자산 열린 신고는 하나(중복은 같은 응답), 신고자당 하루 `CONTENT_REPORT_DAILY_LIMIT`건(기본 20, 초과 429), 자기 자산 신고는 효과 없음. 존재하지 않는 자산 ID와 실제 자산에 **같은 응답** `{"status":"received"}`(존재 여부를 알 수 없게; 인가 행렬 시험에 `ANSWERS_ALIKE`로 반영).
+- **시험**: `tests/test_takedown.py` 11건. 변이 12종 모두 적발(가시성 검사 제거, 목록 필터 제거, 신고가 비공개를 만들지 않음, 소유자 삭제 허용, 소유자에게 신고자 노출, 복구가 비공개를 못 풂, 다른 열린 신고를 무시하고 해제, 제거가 숨기지 않음, 운영자 검사 제거, 신원 없는 서명 링크 허용, 일일 한도 제거, purge가 신고자를 안 지움). 인가 행렬 시험의 허용 목록에 `GET /v1/me/takedowns`(본인 범위)와 `POST /v1/content-reports`(누구나, 응답 동일)를 이유와 함께 추가. 전체 백엔드: 이 브랜치에서 `806 passed, 78 skipped`, main(#38~#41)을 합친 뒤 `819 passed, 78 skipped`(로컬, FastAPI 0.162.2). 스냅샷 98경로(+6).
+- **정하지 않은 것(임의로 정하지 않음)**: ① 신고할 수 있는 사람의 범위(지금은 로그인한 누구나; 외부 제3자 신고 경로·본인 확인 없음) ② 처리 기한 ③ 소유자에게 알림·이의제기 절차(소유자는 상태만 볼 수 있고 사유는 못 봄) ④ 신고자 정보를 소유자에게 줄지(보수적으로 숨김, 기준대로) ⑤ `remove`된 파일의 물리 삭제 시점 ⑥ 한 번의 신고로 즉시 비공개되는 것의 남용 위험(한도·중복 방지만 있음).
+- **덮지 못한 경로(한계)**: 자산 ID로 오는 **자산 API 경로만** 막는다. 보류된 자산을 이미 참조하는 Photo Draft·Lookbook·상품·캐릭터가 그 자산을 읽는 경로(예: `process-local`이 원본 바이트를 읽는 것, 룩북 패키지에 들어가는 바이트)는 이번에 막지 않았다. 보류된 자산에서 파생된 출력은 별도 자산이라 그대로 보인다. PostgreSQL 저장소엔 표·가드 없음(런타임 미사용).

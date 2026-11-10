@@ -33,7 +33,7 @@ LEGAL_EXEMPT_PREFIXES = ("/v1/auth/me", "/v1/me/legal-status", "/v1/me/legal-acc
 
 def current_user(authorization: str | None = Header(default=None), request: Request = None) -> str:
     """Authenticate the bearer token; also tells the access log who the actor is (request.state), if a request is given."""
-    user_id = _authenticate(authorization)
+    user_id = _authenticate_once(request, authorization)
     if request is not None:
         request.state.actor = user_id
         if config.LEGAL_REQUIRE_ACCEPTANCE and not request.url.path.startswith(LEGAL_EXEMPT_PREFIXES):
@@ -43,6 +43,33 @@ def current_user(authorization: str | None = Header(default=None), request: Requ
                 raise HTTPException(status_code=403, detail={"code": "LEGAL_ACCEPTANCE_REQUIRED",
                                                              "message": "Accept the current legal documents to continue."})
     return user_id
+
+
+def _authenticate_once(request: Request | None, authorization: str | None) -> str:
+    """Authenticate once per request (the visibility guard and the route's own current_user both need the identity)."""
+    if request is None:
+        return _authenticate(authorization)
+    cached = getattr(request.state, "_acs_auth", None)
+    if cached is not None and cached[0] == authorization:
+        return cached[1]
+    user_id = _authenticate(authorization)
+    request.state._acs_auth = (authorization, user_id)
+    return user_id
+
+
+def asset_visibility(request: Request, authorization: str | None = Header(default=None)) -> None:
+    """L-08: an asset on hold is invisible to everyone but its owner (and to the owner too once removed). Applies to every
+    route with an asset_id in its path; the status route decides for itself. Signed-URL routes carry no bearer token:
+    without an identity a held asset is never shown, so links issued before a hold stop working."""
+    asset_id = request.path_params.get("asset_id")
+    if asset_id and not request.url.path.endswith("/takedown"):
+        from app import takedown
+        user_id = _authenticate_once(request, authorization) if authorization else None
+        if not takedown.visible_to(asset_id, user_id):
+            raise HTTPException(status_code=404, detail="Asset not found")
+
+
+router.dependencies.append(Depends(asset_visibility))
 
 
 def _authenticate(authorization: str | None) -> str:
@@ -198,9 +225,12 @@ async def assets(workspace_id: str = Query(min_length=2, max_length=64),
                  kind: str = Query(default="all", pattern="^(all|model|image)$"),
                  user_id: str = Depends(current_user)):
     try:
-        return get_asset_metadata_port().list(workspace_id, user_id, kind)
+        listing = get_asset_metadata_port().list(workspace_id, user_id, kind)
     except Exception as exc:
         raise_http(exc)
+    from app import takedown
+    listing["items"] = takedown.filter_listing(listing["items"], user_id)
+    return listing
 
 
 @router.get("/integrity")
@@ -416,6 +446,9 @@ async def preview_asset(asset_id: str, expires: int, signature: str):
 
 @router.delete("/{asset_id}", status_code=204)
 async def remove_asset(asset_id: str, user_id: str = Depends(current_user)):
+    from app import takedown
+    if takedown.state_of(asset_id) is not None:   # L-08: the owner cannot erase content that is under a report
+        raise HTTPException(status_code=409, detail={"code": "TAKEDOWN_ACTIVE", "message": "This asset is under review and cannot be deleted."})
     try:
         get_asset_metadata_port().delete(asset_id, user_id)
     except Exception as exc:
