@@ -14,7 +14,9 @@ test('every backend cap code maps to a Korean message; the service-wide stops do
   for (const code of ['AI_JOBS_DISABLED', 'GLOBAL_MONTHLY_LIMIT']) assert.match(generationLimitMessage(code), /서비스 사정.*운영자에게 문의/, code);
   assert.equal(generationLimitMessage('DAILY_JOB_LIMIT_EXCEEDED', { limit: 3, used: 3 }).endsWith('(오늘 3/3건)'), true);
   assert.equal(generationLimitMessage('DAILY_JOB_LIMIT_EXCEEDED', { limit: '3', used: 3 }), GENERATION_LIMIT_MESSAGES.DAILY_JOB_LIMIT_EXCEEDED);
-  assert.equal(generationLimitMessage('WORKSPACE_MONTHLY_LIMIT', { limit: 200, used: 200 }), GENERATION_LIMIT_MESSAGES.WORKSPACE_MONTHLY_LIMIT, 'monthly responses carry no numbers, so none are invented');
+  assert.equal(generationLimitMessage('WORKSPACE_MONTHLY_LIMIT', { limit: 200, used: 200 }).endsWith('(이번 달 200/200건)'), true);
+  assert.equal(generationLimitMessage('WORKSPACE_MONTHLY_LIMIT', {}), GENERATION_LIMIT_MESSAGES.WORKSPACE_MONTHLY_LIMIT, 'without numbers the plain message stays');
+  assert.equal(generationLimitMessage('GLOBAL_MONTHLY_LIMIT', { limit: 9, used: 9 }), GENERATION_LIMIT_MESSAGES.GLOBAL_MONTHLY_LIMIT, 'the global message never shows numbers');
   assert.deepEqual(Object.keys(GENERATION_LIMIT_MESSAGES).sort(), [...CODES].sort());
 });
 

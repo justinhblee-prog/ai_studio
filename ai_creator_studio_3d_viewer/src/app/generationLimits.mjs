@@ -1,6 +1,6 @@
 // Korean user-facing messages for the backend's 429 cost-cap codes (app/cost_cap.py, app/main.py).
 // Service-wide stops (kill switch, global limit) are worded so the user is not blamed. The server's English message is never shown;
-// the per-workspace daily limit shows its own numbers when the server sends them (the monthly responses carry none).
+// the per-workspace daily and monthly limits show their own numbers when the server sends them (the global limit never does).
 export const GENERATION_LIMIT_MESSAGES = Object.freeze({
   AI_JOBS_DISABLED: '서비스 사정으로 AI 생성이 잠시 중단되었습니다. 잠시 후 다시 시도하거나 운영자에게 문의해 주세요.',
   DAILY_JOB_LIMIT_EXCEEDED: '오늘 생성 한도에 도달했습니다. 내일 다시 시도해 주세요.',
@@ -14,5 +14,6 @@ export function generationLimitMessage(code, detail) {
   const base = GENERATION_LIMIT_MESSAGES[code];
   const { limit, used } = detail || {};
   if (code === 'DAILY_JOB_LIMIT_EXCEEDED' && Number.isInteger(limit) && Number.isInteger(used)) return `${base} (오늘 ${used}/${limit}건)`;
+  if (code === 'WORKSPACE_MONTHLY_LIMIT' && Number.isInteger(limit) && Number.isInteger(used)) return `${base} (이번 달 ${used}/${limit}건)`;
   return base;
 }
