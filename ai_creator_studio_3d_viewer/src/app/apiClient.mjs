@@ -1,3 +1,5 @@
+import { generationLimitMessage } from './generationLimits.mjs';
+
 export async function apiRequest(baseUrl, path, { token, method = 'GET', body, signal } = {}) {
   const base = String(baseUrl || '').trim().replace(/\/+$/, '');
   if (!base) throw new Error('Backend API 주소가 설정되지 않았습니다.');
@@ -18,6 +20,8 @@ export async function apiRequest(baseUrl, path, { token, method = 'GET', body, s
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const detail = payload?.detail;
+    const limitText = response.status === 429 ? generationLimitMessage(detail?.code) : null;
+    if (limitText) throw Object.assign(new Error(limitText), { code: detail.code });
     throw new Error(typeof detail === 'string' ? detail : detail?.message || `API 요청 실패 (${response.status})`);
   }
   return payload;
