@@ -538,6 +538,9 @@ def attach_approved_photo_output(draft_id: str, workspace_id: str, actor_id: str
     db = _connect()
     try:
         db.execute("BEGIN IMMEDIATE")
+        from app.takedown import held_among
+        if held_among(db, [output["asset_id"]]):   # L-08
+            raise ValueError("This Photo output is under review and cannot be attached to a Lookbook")
         draft = db.execute("SELECT * FROM lookbook_drafts WHERE draft_id=? AND workspace_id=? AND archived_at IS NULL",
                            (draft_id, workspace_id)).fetchone()
         if not draft:
@@ -757,6 +760,9 @@ def create_lookbook_output_manifest(draft_id: str, workspace_id: str, actor_id: 
         if draft["workflow_status"] != "APPROVED":
             raise ValueError("Lookbook planning draft must be approved before output manifest export")
         current, snapshot, snapshot_hash = _verified_lookbook_output_snapshot(db, draft_id, workspace_id)
+        from app.takedown import held_among
+        if held_among(db, [i["asset_id"] for i in current]):   # L-08
+            raise ValueError("A Lookbook output is under review and cannot be exported")
         latest = db.execute("SELECT * FROM lookbook_output_assembly_review_events WHERE draft_id=? ORDER BY rowid DESC LIMIT 1",
                             (draft_id,)).fetchone()
         if not latest or latest["decision"] != "approved":
@@ -920,6 +926,9 @@ def create_lookbook_output_package(draft_id: str, workspace_id: str, actor_id: s
         if draft["workflow_status"] != "APPROVED":
             raise ValueError("Lookbook planning draft must be approved before package export")
         current, snapshot, snapshot_hash = _verified_lookbook_output_snapshot(db, draft_id, workspace_id)
+        from app.takedown import held_among
+        if held_among(db, [i["asset_id"] for i in current]):   # L-08: a held asset is never packaged
+            raise ValueError("A Lookbook output is under review and cannot be exported")
         latest = db.execute("SELECT * FROM lookbook_output_assembly_review_events WHERE draft_id=? ORDER BY rowid DESC LIMIT 1",
                             (draft_id,)).fetchone()
         if not latest or latest["decision"] != "approved" or latest["snapshot_sha256"] != snapshot_hash:

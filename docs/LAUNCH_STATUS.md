@@ -4,6 +4,11 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-10 · PR #45 (머지 0186dd0) — 자동 커밋 연결 위의 다중 쓰기 점검: `create_workspace`·출력 가져오기 수정
+- **CI (head 9299ace, run 42732044072)**: backend success — pytest `899 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — TypeScript 15개 소스 + 선언 22개 `0 errors`, 패키지 무결성 `0 findings`, `143 structural checks passed`, `vite build` 성공; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: `app/assets/store.py::create_workspace`(소유자 없는 워크스페이스가 남던 것)와 `app/output_asset_link_worker.py::import_output_asset`(반쯤 들어간 자산이 영구히 재시도 거절되던 것)에 `BEGIN IMMEDIATE`. 실패 주입 시험 2건, 변이 2종 적발. §23.
+- **미검증**: 점검은 AST 휴리스틱 + `store.py` 손으로 읽기 기준(다른 모듈은 훑기만 함), PostgreSQL 경로 미점검.
+
 ### 2026-11-10 · PR #42 (머지 083a281) — L-08 권리 침해 신고와 임시 비공개 (검수 기준 범위)
 - **CI (head 3ba9d13, run 42728659459)**: backend success — pytest `897 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: 신고 API(응답 동일) → 즉시 비공개(소유자만 접근, 서명 링크 무효화) → 운영자 기각/인정/되돌리기, 소유자 상태 조회, 신고자 비노출, 소유자 삭제 차단, 남용 방지, 신고자 계정 purge 익명화. 시험 11건, 변이 12종 적발. §22.
@@ -449,3 +454,14 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **고치지 않은 것(이유)**: `app/assets/store.py::initialize`는 쓰기 5개가 `BEGIN` 없이 있지만 전부 멱등(`CREATE ... IF NOT EXISTS`, `INSERT OR IGNORE` 보충)이라 중간 실패 뒤 다시 실행하면 이어서 완성된다. `app/legal.py::accept_legal_documents`는 문서마다 `INSERT OR IGNORE`를 반복하는데 같은 이유로 재시도하면 완성된다(중간 실패 시 일부 문서만 수락된 상태가 잠깐 보일 수 있음).
 - **시험**: `tests/test_store_atomicity.py` 2건(트리거로 마지막 INSERT에 실패를 주입 → 아무것도 안 남고, 트리거를 지운 뒤 재시도가 성공). 변이 2종(두 곳의 `BEGIN` 제거) 적발.
 - **한계**: 정규식·AST 휴리스틱과 손으로 읽기 기준이다. `lookbook.py`·`photo_engine.py`·`products.py`·`projects.py`·`characters.py`는 다른 연결 헬퍼를 쓰는데, 같은 기준으로 훑었을 때 걸리지 않았을 뿐 줄 단위로 모두 읽지는 않았다. PostgreSQL 경로는 점검하지 않았다.
+
+- **덮지 못한 경로(한계; 그중 사진·룩북 경로는 §24에서 막음)**: 자산 ID로 오는 **자산 API 경로만** 막는다. 보류된 자산을 이미 참조하는 Photo Draft·Lookbook·상품·캐릭터가 그 자산을 읽는 경로(예: `process-local`이 원본 바이트를 읽는 것, 룩북 패키지에 들어가는 바이트)는 이번에 막지 않았다. 보류된 자산에서 파생된 출력은 별도 자산이라 그대로 보인다. PostgreSQL 저장소엔 표·가드 없음(런타임 미사용).
+
+## 24. L-08 후속: 보류된 자산 위에 새 작업을 쌓지 못하게 함 (브랜치 l08-derived-paths)
+§22가 "덮지 못한 경로"로 적었던 것 중 사진 스튜디오와 룩북을 막았다.
+- **사진 스튜디오**: 원본 자산이 보류(`under_review`·`removed`) 중이면 ① Photo Draft **생성·수정**이 409 `ASSET_UNDER_REVIEW`(`app/photo_engine.py::_snapshot_source_version`) ② 이미 저장된 초안의 `process-local`이 **실행 기록을 선점하기 전에** 409로 거절(`execute_local_processing` 앞부분; 그래서 실패한 실행이 남지 않고 거절 사유가 정확함) ③ 선점과 렌더링 사이에 보류가 걸려도 렌더링 단계에서 다시 확인(`_render_local_image`; 이 경우는 선점된 뒤라 422로 실패 처리됨).
+- **룩북**: 보류된 Photo 출력은 룩북에 **붙일 수 없고**(`attach_approved_photo_output`), 출력 중 하나라도 보류면 **내보내기 manifest와 패키지(ZIP)가 409**(`create_lookbook_output_manifest`, `create_lookbook_output_package`). 복구되면 다시 만들어진다(시험).
+- **공용 도우미**: `app/takedown.py::held_among(db, asset_ids)`(열려 있는 연결로 보류 여부 조회).
+- **시험**: `tests/test_takedown_derived_paths.py` 4건(초안 생성·실행 거절과 복구 뒤 정상화, `removed`도 거절, 선점 뒤 보류의 레이스) + `tests/test_assets_api.py`의 룩북 전체 흐름 끝에 보류 단언(attach·manifest·패키지가 보류 중 409, 복구 뒤 200). 변이 7종 적발(초안 가드, 선점 전 확인, 렌더링 시점 확인, attach 가드, 패키지 가드, manifest 가드, 도우미가 `removed` 상태를 무시).
+- **시험 중 내가 만든 허점**: 처음 시험의 멱등 키(`"k1"`)가 8자 미만이라 "보류 중 실행이 거절됨" 단언이 **키 길이 때문에 통과**하고 있었다. 키를 고치고 거절 사유(메시지 `under review`, 409, 실패한 실행 기록 없음)를 단언하도록 바꾼 뒤에야 의미 있는 시험이 됐다.
+- **여전히 못 덮은 것**: 상품·캐릭터가 보류된 자산 ID를 **참조로 들고 있는 것**(자산 API는 막히지만 상품·캐릭터 응답에 그 ID가 보임; 바이트는 안 나감), 이미 만들어진 파생 출력(별도 자산이라 그대로 보임), UI. PostgreSQL 경로 없음. 소유자에게 상태를 알려 주는 화면 없음.
