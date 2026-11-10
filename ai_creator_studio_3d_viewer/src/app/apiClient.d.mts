@@ -3,6 +3,7 @@ export interface ApiRequestOptions {
   method?: string;
   body?: unknown;
   signal?: AbortSignal;
+  headers?: Record<string, string>;
 }
 export interface WorkspaceRecord {
   workspace_id: string;

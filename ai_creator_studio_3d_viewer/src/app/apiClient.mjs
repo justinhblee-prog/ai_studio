@@ -1,6 +1,6 @@
 import { generationLimitMessage } from './generationLimits.mjs';
 
-export async function apiRequest(baseUrl, path, { token, method = 'GET', body, signal } = {}) {
+export async function apiRequest(baseUrl, path, { token, method = 'GET', body, signal, headers: extraHeaders } = {}) {
   const base = String(baseUrl || '').trim().replace(/\/+$/, '');
   if (!base) throw new Error('Backend API 주소가 설정되지 않았습니다.');
   let parsed;
@@ -12,6 +12,7 @@ export async function apiRequest(baseUrl, path, { token, method = 'GET', body, s
   const headers = { Accept: 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  Object.assign(headers, extraHeaders); // e.g. Idempotency-Key; cannot be used to drop Authorization (it is set above and only overridden by an explicit key)
   const response = await fetch(`${base}${path}`, {
     method, headers, signal,
     body: body === undefined ? undefined : JSON.stringify(body),

@@ -103,6 +103,7 @@ jobs:
         working-directory: ai_creator_studio_3d_viewer
         env:
           VITE_API_BASE_URL: http://127.0.0.1:8765
+          VITE_ASSET_PUBLIC_BASE_URL: https://api.e2e.test
           VITE_SUPABASE_URL: https://e2e-mock.supabase.test
           VITE_SUPABASE_ANON_KEY: e2e-anon-not-a-secret
         run: npm run build
@@ -118,6 +119,12 @@ jobs:
           set -o pipefail
           node e2e/rights_flow.mjs | tee e2e_rights.txt
           grep -q "SUMMARY 6/6 rights steps passed" e2e_rights.txt
+      - name: Try-on generation start screen (R-026, mock provider)
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          node e2e/generation_flow.mjs | tee e2e_generation.txt
+          grep -q "SUMMARY 5/5 generation steps passed" e2e_generation.txt
       - name: Roles, workspace isolation and mobile width
         working-directory: ai_creator_studio_3d_viewer
         run: |

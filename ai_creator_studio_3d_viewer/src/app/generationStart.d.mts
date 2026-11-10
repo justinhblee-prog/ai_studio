@@ -1,0 +1,13 @@
+export const CATEGORY_OPTIONS: [string, string][];
+export const MODE_OPTIONS: [string, string][];
+export const RESOLUTION_OPTIONS: [string, string][];
+export const FORMAT_OPTIONS: [string, string][];
+export const NOT_READY_MESSAGE: string;
+export type GenerationJob = { job_id: string; status: string; provider: string; model?: string | null; error_code?: string | null; message?: string | null; output_url?: string | null };
+export type GenerationOptions = { category?: string; mode?: string; resolution?: string; outputFormat?: string; prompt?: string };
+export function resolvePublicBase(value: unknown): string;
+export function generationReady(publicBase: unknown): boolean;
+export function absolutizePreviewUrl(publicBase: unknown, relative: unknown): string;
+export function buildGenerationRequest(input: { workspaceId: string; modelUrl: string; garmentUrl: string } & GenerationOptions): Record<string, string>;
+export function startGeneration(input: { api: string; token: string; publicBase: unknown; workspaceId: string; modelAssetId: string; garmentAssetId: string; options?: GenerationOptions; idempotencyKey?: string }): Promise<GenerationJob>;
+export function loadGenerationJob(api: string, token: string, jobId: string): Promise<GenerationJob>;
