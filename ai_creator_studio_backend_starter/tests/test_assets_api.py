@@ -1415,6 +1415,8 @@ def test_lookbook_assembles_only_approved_photo_outputs_with_product_variant_sna
     manifest = manifest_response.json()["manifest"]
     assert manifest["manifest_type"] == "LOOKBOOK_APPROVED_PLAN_WITH_APPROVED_PHOTO_OUTPUTS"
     assert manifest["photo_outputs_individually_approved"] is True
+    # L-07: every output in the export manifest says it is not AI generated (local photo processing, no provider)
+    assert manifest["outputs"] and all(o["is_ai_generated"] is False and o["provider_dispatched"] is False for o in manifest["outputs"])
     assert manifest["output_assembly_approved"] is True
     assert manifest["output_assembly_approved_by"] == "user-a"
     assert manifest["publication_authorized"] is False
@@ -1444,6 +1446,9 @@ def test_lookbook_assembles_only_approved_photo_outputs_with_product_variant_sna
         private_manifest = json.loads(archive.read("manifest.json"))
         assert private_manifest["internal_use_only"] is True
         assert private_manifest["binary_files_included"] is True
+        # L-07: the downloadable package carries the disclosure at the top and on every output
+        assert private_manifest["is_ai_generated"] is False and private_manifest["provider_dispatched"] is False
+        assert private_manifest["outputs"] and all(o["is_ai_generated"] is False for o in private_manifest["outputs"])
         assert private_manifest["publication_authorized"] is False
         assert private_manifest["commercial_rights_verified"] is False
         assert private_manifest["public_distribution_authorized"] is False

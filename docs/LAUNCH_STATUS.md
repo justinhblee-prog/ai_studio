@@ -4,6 +4,17 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-09 · PR #39 (머지 8bf3718) — D2: 이미지 버전 업로드의 권리 선언, `save_asset` 원자성
+- **CI (head d1ba50f, run 42724362735)**: backend success — pytest `879 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료(결함 2건 수정)**: 이미지 자산의 새 버전 업로드가 권리 선언 없이 되던 것(이제 서버가 강제, 선언은 출처 기록에 저장), `save_asset`이 자동 커밋 연결 위에서 한 트랜잭션이 아니었던 것(`BEGIN IMMEDIATE`; 고장 주입 시험). 변이 4종 적발. §19.
+- **미검증**: 같은 모양의 다른 쓰기 함수(`app/assets/store.py`) 전수 점검 안 함.
+- **차단/결정**: D2는 기본 켜짐 유지(사용자 결정, 2026-11-10). 서버의 동의 강제는 꺼 둠(사용자 결정이 날 때까지 바꾸지 않음).
+
+### 2026-11-09 · PR #38 (머지 8aa0211) — 문서·`tasks.json` 갱신, 차단 표 정리
+- **CI (head 922dbf4, run 42717141311)**: backend success — pytest `873 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 낡은 차단 표를 현재 상태로 다시 씀, `tasks.json`(T19·T60·T61·T66·T69·T77 완료 처리, T78~T82 추가), Supabase TEST 환경 상황 기록. 코드 변경 없음.
+- **차단**: 실제 Supabase TEST 로그인(공개 키 주입이 아직 안 됨, 비밀번호는 요청 본문이라 프록시 폼으로 못 넘김).
+
 ### 2026-11-09 · PR #37 (머지 951f8d6) — D2 업로드 권리 확인: 기본 필수 + 기록 표 + 보존 규칙
 - **CI (head 5039aaf, run 42715972017)**: backend success — pytest `873 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: `ASSET_REQUIRE_RIGHTS_CONFIRMATION` 기본 켜짐, 표 `upload_rights_confirmations`, `GET /v1/assets/{id}/rights-confirmation`, 자산 삭제 시 기록 삭제, 공유 워크스페이스 계정 purge 시 `deleted-user` 익명화. 설계 창의 인수 시험 4건·삭제 연동 2건(3차 패키지)을 내 구현에 돌려 통과(상수 하나만 변경), 내 시험 10건 추가, 변이 8종 적발. 기준 구현과의 차이는 §18.
@@ -373,3 +384,17 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **같은 모양의 다른 쓰기 함수는 전수 점검하지 않았다**: `app/assets/store.py`의 여러 `with _connect()` 블록(예: `save_derived_image_asset`, `create_workspace`, `restore_asset_version`, `create_asset_relation`, `add_workspace_member`)이 명시적 `BEGIN` 없이 여러 문장을 실행하는지는 확인하지 못했다. 별도 점검 항목으로 올림.
 - **시험**: `tests/test_upload_rights_versions.py` 6건(버전 선언 거부·사람 동의·기록·꺼진 모드·3D 모델 영향 없음·원자성). 변이 4종 적발(BEGIN 제거, 버전 검사 제거, 선언 미기록, 모델에도 요구). 전체 `801 passed, 78 skipped`(로컬, FastAPI 0.162.2). OpenAPI 스냅샷 재생성(폼 필드 3개 추가; 경로 수는 92 그대로).
 - **업로드 화면의 권리 확인란**: 있음 — `src/PhotoDraftWorkspace.tsx`의 `<fieldset aria-label="이미지 사용 확인">`(체크박스 3개: 권리 확인, 사람 포함, 초상권 동의), 문구는 `src/rightsConfirmationCopy.ts`, 전송은 `src/app/rightsDeclaration.mjs::appendRightsDeclaration`. 브라우저 `rights_flow` 6/6이 미체크 거부·목록에 새 항목 없음을 확인. 이미지를 올리는 다른 화면은 없다(`AssetWorkspace`는 GLB 전용, 이미지 버전 업로드 화면도 없음).
+
+## 20. L-07 AI 생성물 표시를 `DEV_ACCEPTANCE_PACK` 기준으로 검수 (브랜치 l07-check)
+| 기준 | 결과 | 근거(파일·함수·시험) |
+|---|---|---|
+| 출력 화면에 표시 | 통과 | `src/OutputReviewWorkspace.tsx`가 `src/app/aiDisclosure.mjs::aiDisclosureLabel`로 배지를 그림(mock=AI 미사용, 그 외·미지정=AI 생성물, 생성기 이름 표시). 브라우저 `disclosure_flow` 4/4 |
+| 출력 목록·검수·내보내기 manifest | 통과 | `app/ai_disclosure.py::disclose_job_outputs`·`is_ai_generated_provider`, `app/repositories/output_review.py`; 시험 `tests/test_output_asset_link_worker.py`(mock·비mock 모두, 목록·검수·manifest 최상위와 `outputs[*]`) |
+| 룩북 내보내기 manifest의 `outputs[*]` | 코드는 이미 있었음, **시험이 없어 추가** | `app/lookbook.py`(내보내기 manifest 생성부). `tests/test_assets_api.py`에 `outputs[*].is_ai_generated is False`·`provider_dispatched is False` 단언 추가 |
+| 내려받는 패키지(ZIP) 안 manifest | 코드는 이미 있었음, **시험이 없어 추가** | `app/lookbook.py::write_lookbook_package`(`outputs[*]`)와 패키지 manifest 최상위. ZIP을 열어 최상위와 `outputs[*]`를 단언 |
+| 사용자가 끌 수 없음 | 통과(시험 추가) | 서버가 결정: `disclose_job_outputs`가 항목에 이미 있는 값(저장된 false 포함)도 덮어씀; 쓰기 모델(`CreateTryOnJob`, `PhotoDraftInput`, `LookbookDraftInput`)에 표시 필드가 없음; 작업 요청에 `is_ai_generated: false`를 끼워도 무시(저장 안 됨). `tests/test_ai_disclosure_inputs.py` 3건 |
+| 변이: manifest 필드 생성 코드를 제거하면 시험 실패 | 통과 | 5종 모두 적발: 내보내기 manifest `outputs[*]` 필드 제거, 패키지 `outputs[*]` 제거, 패키지 최상위 제거, 서버 덮어쓰기를 `setdefault`로 약화, 알 수 없는 provider를 AI 아님으로 취급 |
+
+- **한계(기준이 요구한 범위 명시)**: 이 표시는 **메타데이터와 화면 배지**뿐이다. **이미지 자체에 눈에 보이는 표시(워터마크·라벨)는 넣지 않았다.** 딥페이크 사례처럼 눈에 보이는 표시가 필요한지, 문구가 무엇이어야 하는지는 **법무 검토 사항**이라 임의로 정하지 않았다. 사진 스튜디오·룩북은 결정론적 로컬 처리(생성형 AI 아님)라 `false`가 맞고, 외부 생성 Provider 출력만 `true`다 — 실제 Provider로 검증한 적은 없다(mock 외 경로는 시험용 provider 이름으로만 확인).
+- **미검증**: PostgreSQL 경로의 manifest(`postgres_lookbooks.py`)는 같은 필드를 갖지만 이번에 시험을 추가하지 않음(런타임은 SQLite). 룩북 내보내기 manifest의 **최상위**에는 필드가 없고 `outputs[*]`에만 있음(패키지 manifest는 둘 다 있음) — 기준 문구상 충족으로 보되 일관성은 후속 정리 후보.
+- **시험**: 백엔드 `tests/test_ai_disclosure_inputs.py` 3건 + `tests/test_assets_api.py` 단언 2곳 추가.
