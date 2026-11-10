@@ -107,6 +107,9 @@ OPS_ALERT_WEBHOOK_TIMEOUT_SECONDS = float(os.getenv("OPS_ALERT_WEBHOOK_TIMEOUT_S
 OPS_ALERT_WEBHOOK_MAX_ATTEMPTS = int(os.getenv("OPS_ALERT_WEBHOOK_MAX_ATTEMPTS", "8"))
 REQUIRED_WORKER_TYPES = tuple(x.strip() for x in os.getenv("REQUIRED_WORKER_TYPES", "outbox,provider_poll,output_asset_link").split(",") if x.strip())
 
+# L-08: how many infringement reports one user may file per UTC day (each one puts a hold on someone's asset).
+CONTENT_REPORT_DAILY_LIMIT = max(1, int(os.getenv("CONTENT_REPORT_DAILY_LIMIT", "20") or "20"))
+
 # Explicit platform-level operator allowlist. Empty by default; tenant admins are not global ops admins.
 OPS_ADMIN_USER_IDS = tuple(x.strip() for x in os.getenv("OPS_ADMIN_USER_IDS", "").split(",") if x.strip())
 

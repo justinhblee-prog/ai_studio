@@ -1415,6 +1415,8 @@ def test_lookbook_assembles_only_approved_photo_outputs_with_product_variant_sna
     manifest = manifest_response.json()["manifest"]
     assert manifest["manifest_type"] == "LOOKBOOK_APPROVED_PLAN_WITH_APPROVED_PHOTO_OUTPUTS"
     assert manifest["photo_outputs_individually_approved"] is True
+    # L-07: every output in the export manifest says it is not AI generated (local photo processing, no provider)
+    assert manifest["outputs"] and all(o["is_ai_generated"] is False and o["provider_dispatched"] is False for o in manifest["outputs"])
     assert manifest["output_assembly_approved"] is True
     assert manifest["output_assembly_approved_by"] == "user-a"
     assert manifest["publication_authorized"] is False
@@ -1444,6 +1446,9 @@ def test_lookbook_assembles_only_approved_photo_outputs_with_product_variant_sna
         private_manifest = json.loads(archive.read("manifest.json"))
         assert private_manifest["internal_use_only"] is True
         assert private_manifest["binary_files_included"] is True
+        # L-07: the downloadable package carries the disclosure at the top and on every output
+        assert private_manifest["is_ai_generated"] is False and private_manifest["provider_dispatched"] is False
+        assert private_manifest["outputs"] and all(o["is_ai_generated"] is False for o in private_manifest["outputs"])
         assert private_manifest["publication_authorized"] is False
         assert private_manifest["commercial_rights_verified"] is False
         assert private_manifest["public_distribution_authorized"] is False
@@ -1500,6 +1505,28 @@ def test_lookbook_assembles_only_approved_photo_outputs_with_product_variant_sna
     terminal_reject = client.post(f"/v1/lookbook-drafts/{draft_id}/outputs/reject?workspace_id=ws-a",
                                   headers=auth(), json={"comment": "No"})
     assert terminal_reject.status_code == 409
+
+    # L-08: an output under a rights report is neither exported nor packaged until an operator restores it.
+    import app.config as _config
+    export_urls = (f"/v1/lookbook-drafts/{draft_id}/outputs/package-export?workspace_id=ws-a",
+                   f"/v1/lookbook-drafts/{draft_id}/outputs/manifest?workspace_id=ws-a")
+    assert all(client.post(url, headers=auth()).status_code in (200, 201) for url in export_urls)      # fine before the report
+    reported = client.post("/v1/content-reports", headers=auth("token-user-b"), json={"asset_id": item["asset_id"], "category": "copyright"})
+    assert reported.status_code == 202
+    for url in export_urls:
+        held = client.post(url, headers=auth())
+        assert held.status_code == 409 and "under review" in held.text, (url, held.status_code, held.text)
+    attach_held = client.post(f"/v1/lookbook-drafts/{draft_id}/outputs?workspace_id=ws-a", headers=auth(), json={
+        "photo_run_id": run_id, "product_variant_id": variant["variant_id"], "page_order": 2, "caption": "again"})
+    assert attach_held.status_code == 409 and "under review" in attach_held.text, attach_held.text   # the hold, not the frozen assembly, is the reason
+    original_ops = _config.OPS_ADMIN_USER_IDS
+    _config.OPS_ADMIN_USER_IDS = ("user-a",)
+    try:
+        report_id = client.get("/internal/moderation/reports", headers=auth()).json()["items"][0]["report_id"]
+        assert client.post(f"/internal/moderation/reports/{report_id}/resolve", headers=auth(), json={"decision": "restore"}).status_code == 200
+    finally:
+        _config.OPS_ADMIN_USER_IDS = original_ops
+    assert all(client.post(url, headers=auth()).status_code in (200, 201) for url in export_urls)      # exportable again after the restore
 
     with sqlite3.connect(asset_env / "assets.sqlite3") as db:
         with pytest.raises(sqlite3.IntegrityError):

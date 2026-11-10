@@ -26,6 +26,7 @@ from app.dependencies import (get_job_repository, get_event_repository, get_job_
 from app.repositories.job import JobRepository
 from app.repositories.event import EventRepository
 from app.assets.routes import router as assets_router, current_user, require_role
+from app.moderation import router as moderation_router
 from app.workspaces import router as workspaces_router
 from app.characters import router as characters_router
 from app.projects import router as projects_router
@@ -118,6 +119,7 @@ app.include_router(workspaces_router)
 app.include_router(characters_router)
 app.include_router(projects_router)
 app.include_router(legal_router)
+app.include_router(moderation_router)
 app.include_router(photo_drafts_router)
 app.include_router(lookbook_drafts_router)
 app.include_router(products_router)

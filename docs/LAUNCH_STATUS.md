@@ -4,6 +4,44 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-10 · PR #46 (머지 6076be7) — L-08 후속: 보류된 자산 위에 새 사진·룩북 작업을 쌓지 못하게 함
+- **CI (head 6666308, run 42739460832)**: backend success — pytest `902 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — TypeScript 15개 소스 + 선언 22개 `0 errors`, 패키지 무결성 `0 findings`, `143 structural checks passed`, `vite build` 성공; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: Photo Draft 생성·수정·`process-local`(실행 기록 선점 전 확인 + 렌더링 시점 재확인)과 룩북 attach·내보내기 manifest·패키지가 보류된 자산을 거절, 복구되면 다시 동작. 변이 7종 적발. §24.
+- **참고**: PR이 충돌(`dirty`) 상태면 GitHub가 `pull_request` CI를 시작하지 않는다(체크 런 0개). 이번에 그렇게 한 번 기다렸고 main을 합쳐 푸시한 뒤에야 CI가 돌았다.
+- **미검증·한계**: 상품·캐릭터가 보류된 자산 ID를 참조로 보여 주는 것, 이미 만든 파생 출력, UI, PostgreSQL.
+
+### 2026-11-10 · PR #45 (머지 0186dd0) — 자동 커밋 연결 위의 다중 쓰기 점검: `create_workspace`·출력 가져오기 수정
+- **CI (head 9299ace, run 42732044072)**: backend success — pytest `899 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — TypeScript 15개 소스 + 선언 22개 `0 errors`, 패키지 무결성 `0 findings`, `143 structural checks passed`, `vite build` 성공; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: `app/assets/store.py::create_workspace`(소유자 없는 워크스페이스가 남던 것)와 `app/output_asset_link_worker.py::import_output_asset`(반쯤 들어간 자산이 영구히 재시도 거절되던 것)에 `BEGIN IMMEDIATE`. 실패 주입 시험 2건, 변이 2종 적발. §23.
+- **미검증**: 점검은 AST 휴리스틱 + `store.py` 손으로 읽기 기준(다른 모듈은 훑기만 함), PostgreSQL 경로 미점검.
+
+### 2026-11-10 · PR #42 (머지 083a281) — L-08 권리 침해 신고와 임시 비공개 (검수 기준 범위)
+- **CI (head 3ba9d13, run 42728659459)**: backend success — pytest `897 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 신고 API(응답 동일) → 즉시 비공개(소유자만 접근, 서명 링크 무효화) → 운영자 기각/인정/되돌리기, 소유자 상태 조회, 신고자 비노출, 소유자 삭제 차단, 남용 방지, 신고자 계정 purge 익명화. 시험 11건, 변이 12종 적발. §22.
+- **미검증·한계**: UI 없음, 보류된 자산을 이미 참조하는 경로(Photo Draft `process-local`, 룩북 패키지 등)는 미차단, PostgreSQL 없음.
+- **차단(결정 필요)**: 신고 가능 범위, 처리 기한, 소유자 알림·이의제기, `remove`된 파일의 물리 삭제 시점.
+
+### 2026-11-10 · PR #41 (머지 d4004d6) — L-05 접속 로그: 문서의 항목 목록과 코드 일치, 본문·서명 URL 비기록 고정
+- **CI (head 0037b3a, run 42727853148)**: backend success — pytest `886 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: `LOGGED_FIELDS`가 단일 출처, RUNBOOK 키 표와 코드를 시험이 대조, 요청 본문·본문 속 서명 URL이 로그에 없음을 시험, 만료 로그 삭제 방법 문서화. 변이 6종 적발. 표는 §21.
+- **미검증**: 정책의 보유 기간과의 일치(정책 없음, 30일은 임시 기본값), RUNBOOK의 수동 삭제 명령은 실행하지 않음, uvicorn 자체 접근 로그는 운영에서 `--no-access-log` 필요.
+
+### 2026-11-10 · PR #40 (머지 4337a43) — L-07 AI 생성물 표시를 검수 기준으로 확인하고 시험으로 고정
+- **CI (head 290ab58, run 42727073288)**: backend success — pytest `882 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 룩북 내보내기 manifest `outputs[*]`와 패키지(ZIP) manifest(최상위·`outputs[*]`)의 표시 필드를 시험으로 고정, "사용자가 끌 수 없음" 시험 3건. 변이 5종 적발. 표는 §20.
+- **한계(기준이 요구한 명시)**: 메타데이터와 화면 배지뿐, **이미지 자체에 눈에 보이는 표시는 없음**(법무 검토 사항). 실제 외부 Provider로는 검증하지 않음.
+
+### 2026-11-09 · PR #39 (머지 8bf3718) — D2: 이미지 버전 업로드의 권리 선언, `save_asset` 원자성
+- **CI (head d1ba50f, run 42724362735)**: backend success — pytest `879 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료(결함 2건 수정)**: 이미지 자산의 새 버전 업로드가 권리 선언 없이 되던 것(이제 서버가 강제, 선언은 출처 기록에 저장), `save_asset`이 자동 커밋 연결 위에서 한 트랜잭션이 아니었던 것(`BEGIN IMMEDIATE`; 고장 주입 시험). 변이 4종 적발. §19.
+- **미검증**: 같은 모양의 다른 쓰기 함수(`app/assets/store.py`) 전수 점검 안 함.
+- **차단/결정**: D2는 기본 켜짐 유지(사용자 결정, 2026-11-10). 서버의 동의 강제는 꺼 둠(사용자 결정이 날 때까지 바꾸지 않음).
+
+### 2026-11-09 · PR #38 (머지 8aa0211) — 문서·`tasks.json` 갱신, 차단 표 정리
+- **CI (head 922dbf4, run 42717141311)**: backend success — pytest `873 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 낡은 차단 표를 현재 상태로 다시 씀, `tasks.json`(T19·T60·T61·T66·T69·T77 완료 처리, T78~T82 추가), Supabase TEST 환경 상황 기록. 코드 변경 없음.
+- **차단**: 실제 Supabase TEST 로그인(공개 키 주입이 아직 안 됨, 비밀번호는 요청 본문이라 프록시 폼으로 못 넘김).
+
 ### 2026-11-09 · PR #37 (머지 951f8d6) — D2 업로드 권리 확인: 기본 필수 + 기록 표 + 보존 규칙
 - **CI (head 5039aaf, run 42715972017)**: backend success — pytest `873 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료**: `ASSET_REQUIRE_RIGHTS_CONFIRMATION` 기본 켜짐, 표 `upload_rights_confirmations`, `GET /v1/assets/{id}/rights-confirmation`, 자산 삭제 시 기록 삭제, 공유 워크스페이스 계정 purge 시 `deleted-user` 익명화. 설계 창의 인수 시험 4건·삭제 연동 2건(3차 패키지)을 내 구현에 돌려 통과(상수 하나만 변경), 내 시험 10건 추가, 변이 8종 적발. 기준 구현과의 차이는 §18.
@@ -339,7 +377,7 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 | 12 | d2_reference | **기준 구현과 대조, 내 구현 유지**(3차 패키지에서 추가됨) | (이 PR, 위 §18) | 기준 구현의 인수 시험 4건·삭제 연동 시험 2건을 내 구현에 돌려 통과 확인(설정 이름 상수만 변경). 기준 구현의 파일은 덮어쓰지 않음(내 L-04 구현과 겹침: `app/assets/rights.py`·`store.py`·`routes.py`·`purge_requests.py`). 차이와 이유는 §18 |
 
 ## 17. E2E 시험의 경합 하나 수정 (`pilot_flow` "save a photo draft", 브랜치 fix-pilot-flake)
-- **발견**: PR #32의 CI e2e가 `save a photo draft for the product image`에서 `0 !== 1`로 실패(같은 시험은 이전 CI 실행 여러 번과 로컬에서 통과). 원인은 제품 결함이 아니라 **시험의 경합**: "저장된 Photo Draft" 목록은 초안이 0개여도 화면에 있으므로, 그 목록을 기다린 뒤 API로 초안 수를 세면 저장 요청이 끝나기 전에 셀 수 있다.
+- **발견**: PR #32의 CI e2e가 `save a photo draft for the product image`에서 `0 !== 1`로 실패(같은 시험은 이전 CI 실행 여러 번과 로컬에서 통과; **같은 결함이 그 앞의 main 푸시 실행에서도 한 번 있었음 — §25**). 원인은 제품 결함이 아니라 **시험의 경합**: "저장된 Photo Draft" 목록은 초안이 0개여도 화면에 있으므로, 그 목록을 기다린 뒤 API로 초안 수를 세면 저장 요청이 끝나기 전에 셀 수 있다.
 - **재현**: 임시 사본에서 초안 저장 POST를 600 ms 지연시키면 고치기 전 시험이 실패했다(재현 확인).
 - **수정**: 저장 요청의 응답(201)을 기다린 뒤 확인. 같은 지연을 주고 다시 돌리면 통과, 지연 없이 3회 연속 `10/10`.
 - **미검증·한계**: 같은 모양(목록 대기 뒤 곧바로 API로 개수 확인)의 다른 단계가 더 있는지 전수 점검하지 않았다 — 이 PR은 실제로 실패한 한 곳만 고쳤다. CI에서 이 시험이 지금까지 통과한 것은 우연한 타이밍 덕이었을 수 있다.
@@ -373,3 +411,70 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **같은 모양의 다른 쓰기 함수는 전수 점검하지 않았다**: `app/assets/store.py`의 여러 `with _connect()` 블록(예: `save_derived_image_asset`, `create_workspace`, `restore_asset_version`, `create_asset_relation`, `add_workspace_member`)이 명시적 `BEGIN` 없이 여러 문장을 실행하는지는 확인하지 못했다. 별도 점검 항목으로 올림.
 - **시험**: `tests/test_upload_rights_versions.py` 6건(버전 선언 거부·사람 동의·기록·꺼진 모드·3D 모델 영향 없음·원자성). 변이 4종 적발(BEGIN 제거, 버전 검사 제거, 선언 미기록, 모델에도 요구). 전체 `801 passed, 78 skipped`(로컬, FastAPI 0.162.2). OpenAPI 스냅샷 재생성(폼 필드 3개 추가; 경로 수는 92 그대로).
 - **업로드 화면의 권리 확인란**: 있음 — `src/PhotoDraftWorkspace.tsx`의 `<fieldset aria-label="이미지 사용 확인">`(체크박스 3개: 권리 확인, 사람 포함, 초상권 동의), 문구는 `src/rightsConfirmationCopy.ts`, 전송은 `src/app/rightsDeclaration.mjs::appendRightsDeclaration`. 브라우저 `rights_flow` 6/6이 미체크 거부·목록에 새 항목 없음을 확인. 이미지를 올리는 다른 화면은 없다(`AssetWorkspace`는 GLB 전용, 이미지 버전 업로드 화면도 없음).
+
+## 20. L-07 AI 생성물 표시를 `DEV_ACCEPTANCE_PACK` 기준으로 검수 (브랜치 l07-check)
+| 기준 | 결과 | 근거(파일·함수·시험) |
+|---|---|---|
+| 출력 화면에 표시 | 통과 | `src/OutputReviewWorkspace.tsx`가 `src/app/aiDisclosure.mjs::aiDisclosureLabel`로 배지를 그림(mock=AI 미사용, 그 외·미지정=AI 생성물, 생성기 이름 표시). 브라우저 `disclosure_flow` 4/4 |
+| 출력 목록·검수·내보내기 manifest | 통과 | `app/ai_disclosure.py::disclose_job_outputs`·`is_ai_generated_provider`, `app/repositories/output_review.py`; 시험 `tests/test_output_asset_link_worker.py`(mock·비mock 모두, 목록·검수·manifest 최상위와 `outputs[*]`) |
+| 룩북 내보내기 manifest의 `outputs[*]` | 코드는 이미 있었음, **시험이 없어 추가** | `app/lookbook.py`(내보내기 manifest 생성부). `tests/test_assets_api.py`에 `outputs[*].is_ai_generated is False`·`provider_dispatched is False` 단언 추가 |
+| 내려받는 패키지(ZIP) 안 manifest | 코드는 이미 있었음, **시험이 없어 추가** | `app/lookbook.py::write_lookbook_package`(`outputs[*]`)와 패키지 manifest 최상위. ZIP을 열어 최상위와 `outputs[*]`를 단언 |
+| 사용자가 끌 수 없음 | 통과(시험 추가) | 서버가 결정: `disclose_job_outputs`가 항목에 이미 있는 값(저장된 false 포함)도 덮어씀; 쓰기 모델(`CreateTryOnJob`, `PhotoDraftInput`, `LookbookDraftInput`)에 표시 필드가 없음; 작업 요청에 `is_ai_generated: false`를 끼워도 무시(저장 안 됨). `tests/test_ai_disclosure_inputs.py` 3건 |
+| 변이: manifest 필드 생성 코드를 제거하면 시험 실패 | 통과 | 5종 모두 적발: 내보내기 manifest `outputs[*]` 필드 제거, 패키지 `outputs[*]` 제거, 패키지 최상위 제거, 서버 덮어쓰기를 `setdefault`로 약화, 알 수 없는 provider를 AI 아님으로 취급 |
+
+- **한계(기준이 요구한 범위 명시)**: 이 표시는 **메타데이터와 화면 배지**뿐이다. **이미지 자체에 눈에 보이는 표시(워터마크·라벨)는 넣지 않았다.** 딥페이크 사례처럼 눈에 보이는 표시가 필요한지, 문구가 무엇이어야 하는지는 **법무 검토 사항**이라 임의로 정하지 않았다. 사진 스튜디오·룩북은 결정론적 로컬 처리(생성형 AI 아님)라 `false`가 맞고, 외부 생성 Provider 출력만 `true`다 — 실제 Provider로 검증한 적은 없다(mock 외 경로는 시험용 provider 이름으로만 확인).
+- **미검증**: PostgreSQL 경로의 manifest(`postgres_lookbooks.py`)는 같은 필드를 갖지만 이번에 시험을 추가하지 않음(런타임은 SQLite). 룩북 내보내기 manifest의 **최상위**에는 필드가 없고 `outputs[*]`에만 있음(패키지 manifest는 둘 다 있음) — 기준 문구상 충족으로 보되 일관성은 후속 정리 후보.
+- **시험**: 백엔드 `tests/test_ai_disclosure_inputs.py` 3건 + `tests/test_assets_api.py` 단언 2곳 추가.
+
+## 21. L-05 접속 로그를 `DEV_ACCEPTANCE_PACK` 기준으로 검수 (브랜치 l05-check)
+| 기준 | 결과 | 근거(파일·함수·시험) |
+|---|---|---|
+| 문서의 항목 목록과 코드가 일치 | **자동 확인 장치가 없어 추가** | 코드의 단일 출처 `app/access_log.py::LOGGED_FIELDS`(9개)·`OPTIONAL_FIELDS`(`error`, `client_ip`). `docs/RUNBOOK.md` §3-1에 키 표를 넣고 `tests/test_access_log.py::test_the_runbook_documents_exactly_the_keys_the_code_can_log`가 표의 키 집합 = 코드의 키 집합을 확인; `test_a_log_line_has_only_the_documented_keys`가 실제 로그 줄(정상·인증 실패·없는 경로·IP 켠 경우)의 키가 목록과 같음을 확인 |
+| 요청 본문이 로그에 없음 | **시험이 없어 추가** | `test_request_bodies_and_signed_urls_inside_bodies_never_reach_the_log`: 작업 생성 요청의 본문 문구와 필드 이름이 로그에 없음 |
+| 토큰이 로그에 없음 | 통과(기존 시험 + 변이) | `test_secrets_and_query_strings_never_reach_the_log`; 변이로 `authorization` 헤더를 기록하게 하면 4건 실패 |
+| 이미지 URL의 서명 값이 로그에 없음 | 통과(경로·쿼리) + **본문 안의 서명 URL은 시험 추가** | 쿼리 문자열은 기록하지 않음(라우트 템플릿만). 본문의 `model_image_url?signature=...`도 로그에 없음을 단언 |
+| 보관 기간 설정 | 통과 | `ACCESS_LOG_RETENTION_DAYS`(기본 30, 0은 거부) → `TimedRotatingFileHandler(backupCount=...)`; 시험 `test_file_logging_rotates_daily_and_keeps_a_bounded_number_of_files`와 `test_log_settings_reject_unsafe_values`; 보관 일수를 무시하는 변이 적발 |
+| 만료된 로그를 지우는 방법의 문서화 | **문서 보강** | RUNBOOK §3-1: 회전 시 자동 삭제(시험으로 확인) + 수동 삭제 명령(`find ... -mtime +N -delete`, **명령 자체는 시험하지 않음**) + 표준 출력 사용 시에는 받는 쪽 책임 |
+| 방침의 보유 기간과 일치 | **확인하지 못함** | 정책 문서의 보유 기간이 확정되지 않았고 저장소에 없음(`LEGAL_W02_RESULT`도 "접속 로그 실제 수집 항목"을 미확정으로 남김). 30일은 임시 기본값 |
+
+- **변이 검증(6종 적발)**: 본문 기록, `authorization` 기록, 원본 URL(쿼리 포함) 기록, 경로+쿼리 기록, 항목 목록에서 `actor` 누락(문서·코드 불일치), 보관 일수 무시.
+- **시험**: `tests/test_access_log.py` 12 → 16건(+4: 본문·본문 속 서명, 키 일치 2).
+- **한계(그대로)**: uvicorn 기본 접근 로그는 쿼리 문자열을 남기므로 운영에서 `--no-access-log` 필요(RUNBOOK에 있음, 배포 파일이 없어 강제하지 못함). 로그 파일은 백업 대상이 아님. `actor`는 가명이지만 `ASSET_SIGNING_SECRET`이 바뀌면 해시가 달라짐. 접속 로그의 법적 항목·보유 기간·접근 통제는 법무 확정 전.
+
+## 22. L-08 권리 침해 신고와 임시 비공개 (브랜치 l08-takedown, `DEV_ACCEPTANCE_PACK` 기준)
+이전에는 "절차 명세 없음"으로 막혀 있었으나, 검수 기준 문서(통과 조건 4줄)와 `FRONTEND_SPEC_W16`의 절차 개요(접수 → 임시 비공개 → 당사자 확인 → 삭제 또는 복구)가 생겨 **그 범위 안에서** 구현했다. 정책·법적 절차는 여전히 정해지지 않았다(아래 "정하지 않은 것").
+- **흐름**: `POST /v1/content-reports`(로그인한 누구나; 분류 copyright·likeness·other, 설명 2000자) → 즉시 자산이 `under_review`로 비공개 → 운영자(`OPS_ADMIN_USER_IDS`)가 `GET /internal/moderation/reports`로 보고 `POST /internal/moderation/reports/{id}/resolve`로 `restore`(기각: 다른 열린 신고가 없을 때 비공개 해제, 자산은 그대로) 또는 `remove`(인정: 모두에게 영구 비공개) 처리. `remove`는 `POST /internal/moderation/assets/{id}/reinstate`로 되돌린다.
+- **비공개의 실제 효과**: `under_review` 중에는 자산의 **소유자(`assets.owner_id`)만** 접근. 다른 구성원(편집자·뷰어, 워크스페이스 소유자 포함)은 `/v1/assets/{id}` 아래 모든 경로(상세·버전·출처·관계·권리 기록·미리보기 URL 발급·미리보기 내용)와 목록에서 404. `removed`면 소유자도 이 경로들에서 404. 서명 미리보기 URL(토큰 없이 서명만 쓰는 경로)은 신원이 없으므로 보류된 자산이면 항상 404 → **비공개 이전에 발급된 링크도 멎는다**. 구현: `app/assets/routes.py::asset_visibility`(라우터 수준 의존성) + `app/takedown.py::visible_to`·`filter_listing`.
+- **소유자 데이터 보존**: 비공개는 아무것도 지우지 않는다(저장 파일 목록 불변을 시험). 임시 비공개 중 소유자가 자기 자산을 지우려 하면 409 `TAKEDOWN_ACTIVE`(증거 인멸 방지). **복구하면 메타데이터·바이트·체크섬이 신고 전과 같고** 소유자는 다시 지울 수 있다. 운영자의 "삭제"(`remove`)도 **물리 삭제가 아니라 영구 비공개**다(되돌릴 수 없는 삭제는 승인 항목).
+- **소유자 상태 표시**: `GET /v1/assets/{id}/takedown`(소유자에게만 상태, 다른 구성원은 비공개 중 404)과 `GET /v1/me/takedowns`(내 자산 중 보류된 것과 상태). **화면(UI)은 만들지 않았다** — API뿐.
+- **신고자 비노출**: 소유자가 받는 모든 응답(자산 경로들·상태·목록·내 보류 목록)에 신고자 ID·분류·신고 문구가 없음을 시험(문자열 검사). 운영자 목록에는 신고자 ID·분류·설명이 있다(후속 연락용). 신고자 계정을 purge하면 `reporter_id`·`resolved_by`가 `deleted-user`로 익명화된다(`ANON_BY_TABLE`).
+- **남용 방지**: 같은 신고자의 같은 자산 열린 신고는 하나(중복은 같은 응답), 신고자당 하루 `CONTENT_REPORT_DAILY_LIMIT`건(기본 20, 초과 429), 자기 자산 신고는 효과 없음. 존재하지 않는 자산 ID와 실제 자산에 **같은 응답** `{"status":"received"}`(존재 여부를 알 수 없게; 인가 행렬 시험에 `ANSWERS_ALIKE`로 반영).
+- **시험**: `tests/test_takedown.py` 11건. 변이 12종 모두 적발(가시성 검사 제거, 목록 필터 제거, 신고가 비공개를 만들지 않음, 소유자 삭제 허용, 소유자에게 신고자 노출, 복구가 비공개를 못 풂, 다른 열린 신고를 무시하고 해제, 제거가 숨기지 않음, 운영자 검사 제거, 신원 없는 서명 링크 허용, 일일 한도 제거, purge가 신고자를 안 지움). 인가 행렬 시험의 허용 목록에 `GET /v1/me/takedowns`(본인 범위)와 `POST /v1/content-reports`(누구나, 응답 동일)를 이유와 함께 추가. 전체 백엔드: 이 브랜치에서 `806 passed, 78 skipped`, main(#38~#41)을 합친 뒤 `819 passed, 78 skipped`(로컬, FastAPI 0.162.2). 스냅샷 98경로(+6).
+- **정하지 않은 것(임의로 정하지 않음)**: ① 신고할 수 있는 사람의 범위(지금은 로그인한 누구나; 외부 제3자 신고 경로·본인 확인 없음) ② 처리 기한 ③ 소유자에게 알림·이의제기 절차(소유자는 상태만 볼 수 있고 사유는 못 봄) ④ 신고자 정보를 소유자에게 줄지(보수적으로 숨김, 기준대로) ⑤ `remove`된 파일의 물리 삭제 시점 ⑥ 한 번의 신고로 즉시 비공개되는 것의 남용 위험(한도·중복 방지만 있음).
+- **덮지 못한 경로(한계)**: 자산 ID로 오는 **자산 API 경로만** 막는다. 보류된 자산을 이미 참조하는 Photo Draft·Lookbook·상품·캐릭터가 그 자산을 읽는 경로(예: `process-local`이 원본 바이트를 읽는 것, 룩북 패키지에 들어가는 바이트)는 이번에 막지 않았다. 보류된 자산에서 파생된 출력은 별도 자산이라 그대로 보인다. PostgreSQL 저장소엔 표·가드 없음(런타임 미사용).
+
+## 23. 자동 커밋 연결 위의 다중 쓰기 점검 (브랜치 fix-store-atomicity, §19 후속)
+§19에서 `save_asset`이 한 트랜잭션이 아니었던 것을 고치며 "같은 모양의 다른 함수는 전수 점검하지 않았다"고 적었다. 이번에 점검했다.
+- **방법**: `app/` 아래 SQLite 경로 파일을 AST로 훑어, 같은 함수 안에서 `INSERT`/`UPDATE`/`DELETE`가 2개 이상인데 `BEGIN`·`transaction(`이 없는 함수를 찾고, `app/assets/store.py`의 쓰기 함수는 하나씩 직접 읽었다(휴리스틱이 놓칠 수 있어서). PostgreSQL 저장소와 `app/ports/`는 대상에서 뺐다.
+- **결과**: 문제는 **둘**이었고 고쳤다 — `app/assets/store.py::create_workspace`(워크스페이스와 소유자 멤버 INSERT 둘; 둘째가 실패하면 소유자 없는 워크스페이스가 남고 같은 ID로 다시 만들 수도 없었음), `app/output_asset_link_worker.py::import_output_asset`(자산·버전·출처 INSERT 셋; 중간에 실패하면 반쯤 들어간 자산이 남고, 이 함수가 재시도 때마다 "무결성 검증 실패"로 영구히 거절함). 둘 다 블록 첫머리에 `BEGIN IMMEDIATE` 추가. **`save_derived_image_asset`·`restore_asset_version`·`create_asset_version`·`create_asset_relation`·`delete_asset`은 이미 `BEGIN IMMEDIATE`를 쓰고 있어 정상**이었다.
+- **고치지 않은 것(이유)**: `app/assets/store.py::initialize`는 쓰기 5개가 `BEGIN` 없이 있지만 전부 멱등(`CREATE ... IF NOT EXISTS`, `INSERT OR IGNORE` 보충)이라 중간 실패 뒤 다시 실행하면 이어서 완성된다. `app/legal.py::accept_legal_documents`는 문서마다 `INSERT OR IGNORE`를 반복하는데 같은 이유로 재시도하면 완성된다(중간 실패 시 일부 문서만 수락된 상태가 잠깐 보일 수 있음).
+- **시험**: `tests/test_store_atomicity.py` 2건(트리거로 마지막 INSERT에 실패를 주입 → 아무것도 안 남고, 트리거를 지운 뒤 재시도가 성공). 변이 2종(두 곳의 `BEGIN` 제거) 적발.
+- **한계**: 정규식·AST 휴리스틱과 손으로 읽기 기준이다. `lookbook.py`·`photo_engine.py`·`products.py`·`projects.py`·`characters.py`는 다른 연결 헬퍼를 쓰는데, 같은 기준으로 훑었을 때 걸리지 않았을 뿐 줄 단위로 모두 읽지는 않았다. PostgreSQL 경로는 점검하지 않았다.
+
+- **덮지 못한 경로(한계; 그중 사진·룩북 경로는 §24에서 막음)**: 자산 ID로 오는 **자산 API 경로만** 막는다. 보류된 자산을 이미 참조하는 Photo Draft·Lookbook·상품·캐릭터가 그 자산을 읽는 경로(예: `process-local`이 원본 바이트를 읽는 것, 룩북 패키지에 들어가는 바이트)는 이번에 막지 않았다. 보류된 자산에서 파생된 출력은 별도 자산이라 그대로 보인다. PostgreSQL 저장소엔 표·가드 없음(런타임 미사용).
+
+## 24. L-08 후속: 보류된 자산 위에 새 작업을 쌓지 못하게 함 (브랜치 l08-derived-paths)
+§22가 "덮지 못한 경로"로 적었던 것 중 사진 스튜디오와 룩북을 막았다.
+- **사진 스튜디오**: 원본 자산이 보류(`under_review`·`removed`) 중이면 ① Photo Draft **생성·수정**이 409 `ASSET_UNDER_REVIEW`(`app/photo_engine.py::_snapshot_source_version`) ② 이미 저장된 초안의 `process-local`이 **실행 기록을 선점하기 전에** 409로 거절(`execute_local_processing` 앞부분; 그래서 실패한 실행이 남지 않고 거절 사유가 정확함) ③ 선점과 렌더링 사이에 보류가 걸려도 렌더링 단계에서 다시 확인(`_render_local_image`; 이 경우는 선점된 뒤라 422로 실패 처리됨).
+- **룩북**: 보류된 Photo 출력은 룩북에 **붙일 수 없고**(`attach_approved_photo_output`), 출력 중 하나라도 보류면 **내보내기 manifest와 패키지(ZIP)가 409**(`create_lookbook_output_manifest`, `create_lookbook_output_package`). 복구되면 다시 만들어진다(시험).
+- **공용 도우미**: `app/takedown.py::held_among(db, asset_ids)`(열려 있는 연결로 보류 여부 조회).
+- **시험**: `tests/test_takedown_derived_paths.py` 4건(초안 생성·실행 거절과 복구 뒤 정상화, `removed`도 거절, 선점 뒤 보류의 레이스) + `tests/test_assets_api.py`의 룩북 전체 흐름 끝에 보류 단언(attach·manifest·패키지가 보류 중 409, 복구 뒤 200). 변이 7종 적발(초안 가드, 선점 전 확인, 렌더링 시점 확인, attach 가드, 패키지 가드, manifest 가드, 도우미가 `removed` 상태를 무시).
+- **시험 중 내가 만든 허점**: 처음 시험의 멱등 키(`"k1"`)가 8자 미만이라 "보류 중 실행이 거절됨" 단언이 **키 길이 때문에 통과**하고 있었다. 키를 고치고 거절 사유(메시지 `under review`, 409, 실패한 실행 기록 없음)를 단언하도록 바꾼 뒤에야 의미 있는 시험이 됐다.
+- **여전히 못 덮은 것**: 상품·캐릭터가 보류된 자산 ID를 **참조로 들고 있는 것**(자산 API는 막히지만 상품·캐릭터 응답에 그 ID가 보임; 바이트는 안 나감), 이미 만들어진 파생 출력(별도 자산이라 그대로 보임), UI. PostgreSQL 경로 없음. 소유자에게 상태를 알려 주는 화면 없음.
+
+## 25. CI 안정성 기록 (e2e를 필수 체크로 지정할 조건, `DEV_NONSTOP_PROMPT` 6번)
+`DEV_NONSTOP_PROMPT` 6번: e2e를 CI 잡으로 올리되 **연속 10회 통과 전에는 필수 체크로 지정하지 않는다.** GitHub의 `ci` 워크플로 실행 기록(`gh api repos/.../actions/runs`, 완료된 실행 97회, 2026-11-09 02:24 UTC ~ 2026-11-10 01:58 UTC)으로 직접 센 값:
+- **실패는 두 번**, 둘 다 같은 원인: `pilot_flow`의 "save a photo draft for the product image" 시험 경합(목록이 화면에 있다는 것과 저장 요청이 끝났다는 것을 혼동). ① 2026-11-09 11:53 UTC **main 푸시 실행**(`cf140fa`, PR #25 머지 커밋; run 42612537151) ② 13:26 UTC PR #32 실행(run 42625437022). §17은 ②만 적었다 — **①도 같은 결함이었다는 것을 이번에 확인**했다(그때는 PR 단계 CI가 통과한 직후라 main 푸시 실패를 놓쳤고, 당시 보고에는 없었다).
+- **수정(PR #33, 머지 2026-11-09 13:34:29 UTC) 이후**: 완료된 CI 실행 **29회가 전부 성공, 실패 0**. 동시성으로 취소된 실행 3회는 제외(실패가 아님). 이 29회에는 수정 이후 코드(동의 화면·D2·L-05·L-07·L-08 등)가 들어간 PR 실행과 main 푸시 실행이 모두 섞여 있다.
+- **해석**: "연속 10회 통과" 조건은 기록상 충족됐다. 다만 이것은 같은 한 가지 경합이 사라졌다는 증거이지 e2e 전체가 안정하다는 증명은 아니다(경합이 약 97회 중 2회, 즉 약 2%의 빈도로 나타났었다는 점에서, 다른 단계에 비슷한 경합이 더 있을 수 있고 전수 점검은 하지 않았다).
+- **필수 체크로 지정하는 것은 하지 않았다**: GitHub 저장소 설정(브랜치 보호) 변경이고 협업자 전체에 영향을 주므로 사용자 결정으로 둔다. 지정할 때의 잡 이름은 `backend`, `frontend`, `e2e`.

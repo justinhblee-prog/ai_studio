@@ -35,7 +35,7 @@ GLOBAL_TABLES = {
 USER_TABLES = ("legal_acceptances", "consents")
 ANON_COLUMNS = ("actor_id", "owner_id", "created_by")
 # Columns anonymised only in these tables (a user_id column elsewhere is a consent/acceptance record that is deleted instead).
-ANON_BY_TABLE = {"upload_rights_confirmations": ("user_id",)}
+ANON_BY_TABLE = {"upload_rights_confirmations": ("user_id",), "content_reports": ("reporter_id", "resolved_by")}
 SHELL_TABLES = {"workspaces", "workspace_members"}
 
 

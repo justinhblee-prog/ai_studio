@@ -45,9 +45,27 @@
 
 ## 3-1. 접근 로그 (L-05)
 - 앱이 요청마다 JSON 한 줄을 남긴다(`acs.access` 로거). 항목: UTC 시각, `request_id`(응답 헤더 `X-Request-ID`로도 반환), 메서드, **라우트 템플릿**(원본 경로가 아님), 상태 코드, 소요 시간(ms), `workspace_id`(ID 형식일 때만), `actor`. **쿼리 문자열·헤더·본문·토큰·서명·일치하지 않는 경로는 기록하지 않는다.**
+
+로그 한 줄의 키는 아래가 전부다(코드의 `app/access_log.py::LOGGED_FIELDS`·`OPTIONAL_FIELDS`와 `tests/test_access_log.py`가 일치를 확인한다):
+
+| 키 | 내용 |
+|---|---|
+| `ts` | UTC 시각(밀리초) |
+| `event` | 항상 `http_request` |
+| `request_id` | 요청 ID(응답 헤더 `X-Request-ID`로도 반환; 호출자가 준 값은 짧은 평문 토큰일 때만 사용) |
+| `method` | HTTP 메서드 |
+| `route` | 라우트 **템플릿**(예: `/v1/assets/{asset_id}/preview`), 원본 경로가 아님; 일치하는 라우트가 없으면 `unmatched` |
+| `status` | 상태 코드 |
+| `duration_ms` | 소요 시간 |
+| `workspace_id` | ID 형식일 때만 |
+| `actor` | 가명 해시(기본), `ACCESS_LOG_ACTOR`로 `plain`·`none` |
+| `error` | 처리되지 않은 예외일 때만, **예외 클래스 이름만** |
+| `client_ip` | `ACCESS_LOG_CLIENT_IP=true`일 때만 |
+
 - `actor`는 기본이 **가명 해시**(`h_` + SHA-256 16자리)이고 `ACCESS_LOG_ACTOR=plain|none`으로 바꾼다. 클라이언트 IP는 기본 미기록(`ACCESS_LOG_CLIENT_IP=true`일 때만).
 - `ACCESS_LOG_DIR`를 지정하면 `access.log`를 **UTC 자정마다 회전**하고 `ACCESS_LOG_RETENTION_DAYS`개(기본 30, 0은 거부)만 남긴다. 지정하지 않으면 표준 출력.
 - **uvicorn의 기본 접근 로그는 쿼리 문자열을 그대로 남긴다**(서명 미리보기·다운로드 URL의 `signature` 포함). 운영에서는 `uvicorn app.main:app --no-access-log`로 끄고 이 로그만 쓴다.
+- **만료된 로그 지우기**: `ACCESS_LOG_DIR`를 쓰면 회전할 때 `ACCESS_LOG_RETENTION_DAYS`개를 넘는 오래된 파일(`access.log.YYYY-MM-DD`)을 자동으로 지운다(시험으로 확인). 앱이 꺼져 있었거나 보관 일수를 줄인 뒤 바로 지우려면 수동으로: `find "$ACCESS_LOG_DIR" -name 'access.log.*' -mtime +30 -delete` (30을 보관 일수로; **이 명령은 시험하지 않았다**). 표준 출력으로 남기는 경우 보관·삭제는 로그를 받는 쪽(호스트·수집기)의 설정이다. 정책 문서의 보유 기간과 맞는지는 정책이 확정되지 않아 **확인하지 못했다**.
 - **보관 기간 30일은 근거 있는 값이 아니라 임시 기본값이다.** 법적 보관 기간·접근 통제·삭제 요청 시의 처리는 정해지지 않았다(`docs/LAUNCH_STATUS.md`). 로그 파일은 백업 대상이 아니다.
 
 ## 4. 백업과 복구 (`scripts/backup_restore.py`, 시험으로 검증)
@@ -61,6 +79,23 @@ python scripts/backup_restore.py restore "$BACKUP_DIR/backup-<타임스탬프>" 
 - 합성 데이터 기준 소요 시간: 1 GB에서 백업 2.2초·복구 2.7초(로컬 디스크; 실제 서버는 다를 수 있음).
 - **자동 스케줄·외부 보관·암호화·보존 기간은 아직 없다.** 하루 한 번 백업을 돌리고 결과를 서버 밖으로 복사하는 것은 운영자가 정해야 한다. 예시(시험하지 않음): `17 3 * * * cd /srv/acs/backend && python scripts/backup_restore.py backup --dest "$BACKUP_DIR"`
 - **복구 훈련**: 분기마다 새 폴더로 복구해 `GET /internal/ops/health`와 자산 하나의 미리보기가 정상인지 확인한다(아직 실제 환경에서 해 본 적 없음).
+
+### 권리 침해 신고 처리 (운영자, L-08)
+운영자 계정은 `OPS_ADMIN_USER_IDS`에 있어야 한다. 신고 한도는 `CONTENT_REPORT_DAILY_LIMIT`(신고자당 하루, 기본 20).
+```bash
+# 열린 신고 보기(신고자 ID·분류·설명이 보인다 — 자산 소유자에게는 절대 전달하지 말 것)
+curl -s -H "Authorization: Bearer $OPS_TOKEN" "$API/internal/moderation/reports?status=open"
+# 기각(복구): 다른 열린 신고가 없으면 비공개가 풀리고 자산은 그대로다
+curl -s -X POST -H "Authorization: Bearer $OPS_TOKEN" -H "Content-Type: application/json" \
+     -d '{"decision":"restore","note":"확인 결과 문제 없음"}' "$API/internal/moderation/reports/$REPORT_ID/resolve"
+# 인정(삭제): 모두에게 영구 비공개. 파일은 지우지 않는다
+curl -s -X POST -H "Authorization: Bearer $OPS_TOKEN" -H "Content-Type: application/json" \
+     -d '{"decision":"remove","note":"권리 침해 확인"}' "$API/internal/moderation/reports/$REPORT_ID/resolve"
+# 인정을 되돌리기
+curl -s -X POST -H "Authorization: Bearer $OPS_TOKEN" "$API/internal/moderation/assets/$ASSET_ID/reinstate"
+```
+- 신고가 들어오면 **자산은 즉시 비공개**(소유자만 봄)가 된다. 소유자는 자기 자산의 상태만 `GET /v1/me/takedowns`로 본다(사유·신고자는 안 보임).
+- 이 API 호출은 시험했지만 **위 curl 예시 자체는 실행해 보지 않았다**. 처리 기한·소유자 안내·이의제기·파일 물리 삭제 시점은 정해지지 않았다(`docs/LAUNCH_STATUS.md` §22).
 
 ### 점검 스크립트 (`scripts/ops_check.py`, cron·모니터용)
 ```bash
