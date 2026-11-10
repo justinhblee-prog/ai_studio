@@ -27,7 +27,8 @@ class AssetBytesPort(Protocol):
     def current_file(self, asset_id: str) -> Path | None: ...
     def save(self, workspace_id: str, user_id: str, filename: str, content: bytes, validated: Any,
              upload_confirmation: dict[str, Any] | None = None) -> dict[str, Any]: ...
-    def save_version(self, asset_id: str, user_id: str, filename: str, content: bytes, validated: Any) -> dict[str, Any]: ...
+    def save_version(self, asset_id: str, user_id: str, filename: str, content: bytes, validated: Any,
+                     upload_confirmation: dict[str, Any] | None = None) -> dict[str, Any]: ...
     def restore(self, asset_id: str, user_id: str, version_id: str) -> dict[str, Any]: ...
     def audit(self, workspace_id: str, user_id: str, limit: int, offset: int) -> dict[str, Any]: ...
     def save_derived(self, **kw: Any) -> dict[str, Any]: ...
@@ -62,12 +63,13 @@ class SQLiteAssetBytesPort:
         return store.save_asset(owner_id=user_id, workspace_id=workspace_id, filename=filename,
                                 content=content, validated=validated, upload_confirmation=upload_confirmation)
 
-    def save_version(self, asset_id, user_id, filename, content, validated):
+    def save_version(self, asset_id, user_id, filename, content, validated, upload_confirmation=None):
         from app.assets import store
         workspace_id = self._asset_workspace(asset_id, user_id, True)
         try:
             return store.create_asset_version(asset_id=asset_id, workspace_id=workspace_id, actor_id=user_id,
-                                              filename=filename, content=content, validated=validated)
+                                              filename=filename, content=content, validated=validated,
+                                              upload_confirmation=upload_confirmation)
         except LookupError as exc:
             raise LookupError(ASSET_NOT_FOUND) from exc
 
@@ -144,8 +146,10 @@ class PostgreSQLAssetBytesPort:
             raise
         return self._reload(asset_id, workspace_id)
 
-    def save_version(self, asset_id, user_id, filename, content, validated):
+    def save_version(self, asset_id, user_id, filename, content, validated, upload_confirmation=None):
         from app.assets.validation import storage_suffix
+        if upload_confirmation is not None:
+            raise NotImplementedError("upload rights confirmation is not implemented for the PostgreSQL asset port")
         workspace_id = self._asset_workspace(asset_id, user_id, True)
         version_id = "av_" + uuid.uuid4().hex
         key = f"{asset_id}_{version_id}{storage_suffix(validated.media_type)}"
