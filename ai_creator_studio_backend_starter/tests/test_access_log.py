@@ -187,3 +187,55 @@ def test_log_settings_reject_unsafe_values():
     assert run(ACCESS_LOG_DIR="/tmp/x-logs", ACCESS_LOG_RETENTION_DAYS="0").returncode != 0, "retention 0 would keep files forever"
     assert run(ACCESS_LOG_RETENTION_DAYS="abc").returncode != 0
     assert run(ACCESS_LOG_ENABLED="false").stdout.split()[2] == "False"
+
+
+# ---- DEV_ACCEPTANCE_PACK L-05: request bodies and signed URLs inside bodies never reach the log; the documented list matches the code ----
+BODY_MARKER = "BODY-MARKER-prompt-text-must-not-be-logged-7f3a"
+BODY_SIGNATURE = "BODY-SIGNATURE-must-never-be-logged-9c1d4e"
+
+
+def test_request_bodies_and_signed_urls_inside_bodies_never_reach_the_log(log):
+    capture, client, _ = log
+    res = client.post("/v1/generation-jobs", headers=auth(), json={
+        "workspace_id": "ws-log", "prompt": BODY_MARKER,
+        "model_image_url": f"https://images.example.org/m.png?expires=1&signature={BODY_SIGNATURE}",
+        "garment_image_url": "https://images.example.org/g.png"})
+    assert res.status_code == 202, res.text
+    client.post("/v1/workspaces", headers=auth(), json={"workspace_id": "ws-body-marker-" + BODY_MARKER[-4:]})
+    text = "\n".join(capture.lines)
+    for forbidden in (BODY_MARKER, BODY_SIGNATURE, "images.example.org", "prompt", "model_image_url"):
+        assert forbidden not in text, forbidden
+
+
+def test_a_log_line_has_only_the_documented_keys(log, monkeypatch):
+    capture, client, config = log
+    client.get("/v1/workspaces", headers=auth())
+    client.get("/v1/workspaces", headers=auth("wrong"))
+    client.get("/no/such/route")
+    for record in capture.records():
+        assert set(record) == set(access_log.LOGGED_FIELDS), sorted(record)
+    monkeypatch.setattr(config, "ACCESS_LOG_CLIENT_IP", True)
+    client.get("/v1/workspaces", headers=auth())
+    assert set(capture.records()[-1]) == set(access_log.LOGGED_FIELDS) | {"client_ip"}
+    assert set(access_log.OPTIONAL_FIELDS) == {"error", "client_ip"}
+
+
+def _runbook_section():
+    from pathlib import Path
+    text = (Path(__file__).resolve().parents[2] / "docs" / "RUNBOOK.md").read_text(encoding="utf-8")
+    start = text.index("## 3-1. 접근 로그")
+    end = text.index("\n## ", start + 5)
+    return text[start:end]
+
+
+def test_the_runbook_documents_exactly_the_keys_the_code_can_log():
+    import re
+    section = _runbook_section()
+    documented = set(re.findall(r"^\| `([a-z_]+)` \|", section, flags=re.M))
+    assert documented == set(access_log.LOGGED_FIELDS) | set(access_log.OPTIONAL_FIELDS), sorted(documented)
+
+
+def test_the_runbook_says_what_is_never_logged_and_how_expired_logs_go():
+    section = _runbook_section()
+    for phrase in ("쿼리 문자열", "본문", "토큰", "ACCESS_LOG_RETENTION_DAYS", "만료된 로그"):
+        assert phrase in section, phrase

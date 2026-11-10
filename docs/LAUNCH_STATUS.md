@@ -4,6 +4,11 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+### 2026-11-10 · PR #40 (머지 4337a43) — L-07 AI 생성물 표시를 검수 기준으로 확인하고 시험으로 고정
+- **CI (head 290ab58, run 42727073288)**: backend success — pytest `882 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
+- **완료**: 룩북 내보내기 manifest `outputs[*]`와 패키지(ZIP) manifest(최상위·`outputs[*]`)의 표시 필드를 시험으로 고정, "사용자가 끌 수 없음" 시험 3건. 변이 5종 적발. 표는 §20.
+- **한계(기준이 요구한 명시)**: 메타데이터와 화면 배지뿐, **이미지 자체에 눈에 보이는 표시는 없음**(법무 검토 사항). 실제 외부 Provider로는 검증하지 않음.
+
 ### 2026-11-09 · PR #39 (머지 8bf3718) — D2: 이미지 버전 업로드의 권리 선언, `save_asset` 원자성
 - **CI (head d1ba50f, run 42724362735)**: backend success — pytest `879 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success; e2e success — `SUMMARY 10/10`, `6/6 rights`, `6/6 role scenarios`, `4/4 disclosure`, `13/13 layout`, `6/6 legal screen`, `4/4 account flow`. 로그에 `failed` 없음.
 - **완료(결함 2건 수정)**: 이미지 자산의 새 버전 업로드가 권리 선언 없이 되던 것(이제 서버가 강제, 선언은 출처 기록에 저장), `save_asset`이 자동 커밋 연결 위에서 한 트랜잭션이 아니었던 것(`BEGIN IMMEDIATE`; 고장 주입 시험). 변이 4종 적발. §19.
@@ -398,3 +403,18 @@ Production Supabase/Vercel 변경 금지, 유료 Provider 호출 금지, `DATABA
 - **한계(기준이 요구한 범위 명시)**: 이 표시는 **메타데이터와 화면 배지**뿐이다. **이미지 자체에 눈에 보이는 표시(워터마크·라벨)는 넣지 않았다.** 딥페이크 사례처럼 눈에 보이는 표시가 필요한지, 문구가 무엇이어야 하는지는 **법무 검토 사항**이라 임의로 정하지 않았다. 사진 스튜디오·룩북은 결정론적 로컬 처리(생성형 AI 아님)라 `false`가 맞고, 외부 생성 Provider 출력만 `true`다 — 실제 Provider로 검증한 적은 없다(mock 외 경로는 시험용 provider 이름으로만 확인).
 - **미검증**: PostgreSQL 경로의 manifest(`postgres_lookbooks.py`)는 같은 필드를 갖지만 이번에 시험을 추가하지 않음(런타임은 SQLite). 룩북 내보내기 manifest의 **최상위**에는 필드가 없고 `outputs[*]`에만 있음(패키지 manifest는 둘 다 있음) — 기준 문구상 충족으로 보되 일관성은 후속 정리 후보.
 - **시험**: 백엔드 `tests/test_ai_disclosure_inputs.py` 3건 + `tests/test_assets_api.py` 단언 2곳 추가.
+
+## 21. L-05 접속 로그를 `DEV_ACCEPTANCE_PACK` 기준으로 검수 (브랜치 l05-check)
+| 기준 | 결과 | 근거(파일·함수·시험) |
+|---|---|---|
+| 문서의 항목 목록과 코드가 일치 | **자동 확인 장치가 없어 추가** | 코드의 단일 출처 `app/access_log.py::LOGGED_FIELDS`(9개)·`OPTIONAL_FIELDS`(`error`, `client_ip`). `docs/RUNBOOK.md` §3-1에 키 표를 넣고 `tests/test_access_log.py::test_the_runbook_documents_exactly_the_keys_the_code_can_log`가 표의 키 집합 = 코드의 키 집합을 확인; `test_a_log_line_has_only_the_documented_keys`가 실제 로그 줄(정상·인증 실패·없는 경로·IP 켠 경우)의 키가 목록과 같음을 확인 |
+| 요청 본문이 로그에 없음 | **시험이 없어 추가** | `test_request_bodies_and_signed_urls_inside_bodies_never_reach_the_log`: 작업 생성 요청의 본문 문구와 필드 이름이 로그에 없음 |
+| 토큰이 로그에 없음 | 통과(기존 시험 + 변이) | `test_secrets_and_query_strings_never_reach_the_log`; 변이로 `authorization` 헤더를 기록하게 하면 4건 실패 |
+| 이미지 URL의 서명 값이 로그에 없음 | 통과(경로·쿼리) + **본문 안의 서명 URL은 시험 추가** | 쿼리 문자열은 기록하지 않음(라우트 템플릿만). 본문의 `model_image_url?signature=...`도 로그에 없음을 단언 |
+| 보관 기간 설정 | 통과 | `ACCESS_LOG_RETENTION_DAYS`(기본 30, 0은 거부) → `TimedRotatingFileHandler(backupCount=...)`; 시험 `test_file_logging_rotates_daily_and_keeps_a_bounded_number_of_files`와 `test_log_settings_reject_unsafe_values`; 보관 일수를 무시하는 변이 적발 |
+| 만료된 로그를 지우는 방법의 문서화 | **문서 보강** | RUNBOOK §3-1: 회전 시 자동 삭제(시험으로 확인) + 수동 삭제 명령(`find ... -mtime +N -delete`, **명령 자체는 시험하지 않음**) + 표준 출력 사용 시에는 받는 쪽 책임 |
+| 방침의 보유 기간과 일치 | **확인하지 못함** | 정책 문서의 보유 기간이 확정되지 않았고 저장소에 없음(`LEGAL_W02_RESULT`도 "접속 로그 실제 수집 항목"을 미확정으로 남김). 30일은 임시 기본값 |
+
+- **변이 검증(6종 적발)**: 본문 기록, `authorization` 기록, 원본 URL(쿼리 포함) 기록, 경로+쿼리 기록, 항목 목록에서 `actor` 누락(문서·코드 불일치), 보관 일수 무시.
+- **시험**: `tests/test_access_log.py` 12 → 16건(+4: 본문·본문 속 서명, 키 일치 2).
+- **한계(그대로)**: uvicorn 기본 접근 로그는 쿼리 문자열을 남기므로 운영에서 `--no-access-log` 필요(RUNBOOK에 있음, 배포 파일이 없어 강제하지 못함). 로그 파일은 백업 대상이 아님. `actor`는 가명이지만 `ASSET_SIGNING_SECRET`이 바뀌면 해시가 달라짐. 접속 로그의 법적 항목·보유 기간·접근 통제는 법무 확정 전.
