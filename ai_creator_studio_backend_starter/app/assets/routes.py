@@ -230,7 +230,11 @@ class AssetRelationRequest(BaseModel):
 
 
 @router.post("/{asset_id}/versions", status_code=201, response_model=AssetVersionMutationResponse)
-async def upload_asset_version(asset_id: str, file: UploadFile = File(...), user_id: str = Depends(current_user)):
+async def upload_asset_version(asset_id: str, file: UploadFile = File(...), user_id: str = Depends(current_user),
+                               rights_confirmed: bool | None = Form(default=None), depicts_person: bool | None = Form(default=None),
+                               likeness_consent: bool | None = Form(default=None)):
+    """New version of an asset. A new version of an IMAGE asset is a new photo, so it needs the same rights declaration as
+    POST /v1/assets/images (D2); 3D model versions are unaffected."""
     try:
         port = get_asset_bytes_port()
         workspace_id = port.workspace_of(asset_id)
@@ -249,9 +253,13 @@ async def upload_asset_version(asset_id: str, file: UploadFile = File(...), user
         validated = validate_asset_upload(filename, content, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)
         if (validated.media_type.startswith("image/")) != (current_asset["asset_kind"] == "image"):
             raise AssetValidationError("ASSET_KIND_MISMATCH", "A new version must keep the original asset kind.")
+        confirmation = (build_upload_confirmation(rights_confirmed, depicts_person, likeness_consent)
+                        if validated.media_type.startswith("image/") else None)
     except AssetValidationError as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": str(exc)}) from exc
     try:
+        if confirmation is not None:
+            return port.save_version(asset_id, user_id, filename, content, validated, upload_confirmation=confirmation)
         return port.save_version(asset_id, user_id, filename, content, validated)
     except Exception as exc:
         _store_failure(exc, "Asset version could not be stored")

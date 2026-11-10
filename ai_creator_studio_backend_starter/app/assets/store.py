@@ -144,6 +144,9 @@ def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: byte
         with destination.open("xb") as handle:
             handle.write(content)
         with _connect() as db:
+            # The connection is in autocommit mode (isolation_level=None), so without an explicit BEGIN each INSERT below
+            # would commit on its own and a failure part-way would leave a half-written asset (rollback is a no-op).
+            db.execute("BEGIN IMMEDIATE")
             if not db.execute("SELECT 1 FROM workspace_members WHERE workspace_id=? AND user_id=?", (workspace_id, owner_id)).fetchone():
                 raise ValueError("User is not a member of the workspace")
             db.execute("""INSERT INTO assets(asset_id, owner_id, workspace_id, original_filename,
@@ -619,7 +622,8 @@ def restore_asset_version(*, asset_id: str, workspace_id: str, version_id: str,
 
 
 def create_asset_version(*, asset_id: str, workspace_id: str, actor_id: str,
-                         filename: str, content: bytes, validated: Any) -> dict[str, Any]:
+                         filename: str, content: bytes, validated: Any,
+                         upload_confirmation: dict[str, Any] | None = None) -> dict[str, Any]:
     """Persist a new immutable asset version and atomically promote it as current."""
     initialize()
     root = config.ASSET_STORAGE_DIR.resolve(); root.mkdir(parents=True, exist_ok=True)
@@ -661,7 +665,8 @@ def create_asset_version(*, asset_id: str, workspace_id: str, actor_id: str,
                 VALUES(?,?,?,?,?,?,?,?)""",
                 ("ap_" + uuid.uuid4().hex, workspace_id, asset_id, version_number,
                  "asset.version_created", actor_id, json.dumps({"version_id": version_id,
-                 "previous_version": int(current)}, separators=(",", ":")), now))
+                 "previous_version": int(current), **({"rights": dict(upload_confirmation)} if upload_confirmation is not None else {})},
+                 separators=(",", ":")), now))
     except Exception:
         if created_file:
             destination.unlink(missing_ok=True)
