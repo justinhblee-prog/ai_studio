@@ -80,6 +80,8 @@ def test_workspace_monthly_limit_blocks_with_429_and_persists_nothing(cap_env, m
     blocked = post(n=9)
     assert blocked.status_code == 429
     assert blocked.json()["detail"]["code"] == "WORKSPACE_MONTHLY_LIMIT"
+    # R-023: the workspace's own limit and usage are in the body so the screen can show "n/m".
+    assert blocked.json()["detail"]["limit"] == 2 and blocked.json()["detail"]["used"] == 2
     assert count_jobs() == 2
     assert post(ws="cap-ws2", n=10).status_code == 202  # other workspace unaffected
 
@@ -102,6 +104,15 @@ def test_global_limit_spans_workspaces(cap_env, monkeypatch):
     assert post(ws="cap-ws2", n=2).status_code == 202
     third = post(n=3)
     assert third.status_code == 429 and third.json()["detail"]["code"] == "GLOBAL_MONTHLY_LIMIT"
+    # R-023: service-wide numbers are operating information and are not exposed.
+    assert set(third.json()["detail"]) == {"code", "message"}
+
+
+def test_kill_switch_response_carries_no_numbers(cap_env, monkeypatch):
+    use_paid(cap_env)
+    monkeypatch.setenv("AI_JOBS_DISABLED", "1")
+    blocked = post(n=1)
+    assert blocked.status_code == 429 and set(blocked.json()["detail"]) == {"code", "message"}
 
 
 def test_kill_switch_blocks_creation_and_worker_dispatch(cap_env, monkeypatch):

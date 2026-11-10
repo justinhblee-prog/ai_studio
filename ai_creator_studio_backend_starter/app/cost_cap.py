@@ -18,9 +18,12 @@ MOCK_PROVIDER = "mock"
 
 
 class CostCapExceeded(Exception):
-    def __init__(self, code: str, message: str) -> None:
+    def __init__(self, code: str, message: str, extra: dict | None = None) -> None:
         super().__init__(message)
         self.code, self.message = code, message
+        # Extra integer fields for the 429 body. Only the per-workspace limit sets them (its own limit/used);
+        # the global limit never does, so service-wide operating numbers are not exposed.
+        self.extra = dict(extra or {})
 
 
 def _int_env(name: str, default: int) -> int:
@@ -52,7 +55,8 @@ def enforce_in_transaction(conn, job: dict, now: datetime | None = None) -> None
             "SELECT COUNT(*) FROM generation_jobs WHERE workspace_id=? AND provider<>? AND created_at>=?",
             (job["workspace_id"], MOCK_PROVIDER, start)).fetchone()[0]
         if used >= per_ws:
-            raise CostCapExceeded("WORKSPACE_MONTHLY_LIMIT", "Monthly AI generation limit for this workspace is reached.")
+            raise CostCapExceeded("WORKSPACE_MONTHLY_LIMIT", "Monthly AI generation limit for this workspace is reached.",
+                                  {"limit": per_ws, "used": used})
     glob = _int_env("AI_JOB_LIMIT_GLOBAL_MONTH", 0)
     if glob:
         used = conn.execute(
