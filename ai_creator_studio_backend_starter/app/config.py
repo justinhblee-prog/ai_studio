@@ -19,6 +19,9 @@ GENERATION_DATABASE_PATH = Path(os.getenv("GENERATION_DATABASE_PATH")).resolve()
 ASSET_MAX_UPLOAD_BYTES = int(os.getenv("ASSET_MAX_UPLOAD_BYTES", str(100 * 1024 * 1024)))
 ASSET_PREVIEW_TTL_SECONDS = int(os.getenv("ASSET_PREVIEW_TTL_SECONDS", "300"))
 ASSET_SIGNING_SECRET = os.getenv("ASSET_SIGNING_SECRET", "")
+# R-032: the platform-owned default asset library. Its files live in their own folder, outside every workspace's private storage.
+LIBRARY_STORAGE_DIR = Path(os.getenv("LIBRARY_STORAGE_DIR", "./library_assets")).resolve()
+LIBRARY_IMPORT_DAILY_LIMIT = int(os.getenv("LIBRARY_IMPORT_DAILY_LIMIT", "200"))  # imports per workspace per 24h (429 beyond it)
 # L-04 / D2: image uploads must declare rights (and likeness consent if a person is shown). ON by default; set ASSET_REQUIRE_RIGHTS_CONFIRMATION=0 only for old clients.
 def env_flag(value: str | None) -> bool:
     """True only for an explicit opt-in value; unset, empty or unknown text is False."""

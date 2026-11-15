@@ -108,6 +108,9 @@ def initialize() -> None:
             asset_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL,
             state TEXT NOT NULL CHECK(state IN ('under_review','removed')), since TEXT NOT NULL, updated_at TEXT NOT NULL
         )""")
+        from app.library import LIBRARY_DDL  # R-032: platform-owned tables (no workspace, owner or created_by column on purpose)
+        for statement in LIBRARY_DDL:
+            db.execute(statement)
         # D2: one row per image whose uploader confirmed the rights. Deleting the asset deletes its row; if the asset stays
         # (shared workspace) an account purge replaces user_id with 'deleted-user' (see scripts/purge_requests.py).
         db.execute("""CREATE TABLE IF NOT EXISTS upload_rights_confirmations (
@@ -136,7 +139,8 @@ def initialize() -> None:
 
 
 def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: bytes, validated: Any,
-               upload_confirmation: dict[str, Any] | None = None) -> dict[str, Any]:
+               upload_confirmation: dict[str, Any] | None = None, provenance_event: str = "asset.uploaded",
+               provenance_extra: dict[str, Any] | None = None) -> dict[str, Any]:
     initialize()
     asset_id = "ast_" + uuid.uuid4().hex
     from app.assets.validation import storage_suffix
@@ -151,7 +155,9 @@ def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: byte
     now = datetime.now(timezone.utc).isoformat()
     from app.assets.rights import upload_details
     import json as _json
-    upload_details_json = _json.dumps(upload_details(upload_confirmation), separators=(",", ":"))
+    details = upload_details(upload_confirmation)
+    details.update(provenance_extra or {})  # R-032: a library import records where the copy came from
+    upload_details_json = _json.dumps(details, separators=(",", ":"))
     try:
         with destination.open("xb") as handle:
             handle.write(content)
@@ -175,7 +181,7 @@ def save_asset(*, owner_id: str, workspace_id: str, filename: str, content: byte
             db.execute("""INSERT INTO asset_provenance(provenance_id, workspace_id, asset_id,
                 version_number, event_type, actor_id, details_json, created_at)
                 VALUES(?,?,?,?,?,?,?,?)""",
-                ("ap_" + uuid.uuid4().hex, workspace_id, asset_id, 1, "asset.uploaded",
+                ("ap_" + uuid.uuid4().hex, workspace_id, asset_id, 1, provenance_event,
                  owner_id, upload_details_json, now))
             if upload_confirmation is not None and upload_confirmation.get("rights_confirmed"):
                 from app.legal import current_versions
