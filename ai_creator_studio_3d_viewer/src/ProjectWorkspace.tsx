@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import './ProjectWorkspace.css';
 import { useRequestScope } from './useRequestScope';
 import { publishProjectLifecycleChange } from './projectLifecycleEvents.mjs';
+import { errorText, responseErrorText } from './app/errorMessages.mjs';
 
 type ProjectStatus = 'ACTIVE' | 'ARCHIVED' | 'COMPLETED';
 type Project = {
@@ -24,13 +25,7 @@ export type ProjectWorkspaceProps = {
 };
 
 async function responseError(response: Response): Promise<string> {
-  try {
-    const body = await response.json();
-    const detail = body?.detail;
-    return typeof detail === 'string' ? detail : detail?.message || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
+  return responseErrorText(response);
 }
 
 export function ProjectWorkspace({ apiBaseUrl, accessToken, workspaceId }: ProjectWorkspaceProps) {
@@ -67,7 +62,7 @@ export function ProjectWorkspace({ apiBaseUrl, accessToken, workspaceId }: Proje
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal).catch((reason: unknown) => {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '프로젝트를 불러오지 못했습니다.');
+      if (!controller.signal.aborted) setError(errorText(reason, '프로젝트를 불러오지 못했습니다.'));
     });
     return () => controller.abort();
   }, [load]);
@@ -107,7 +102,7 @@ export function ProjectWorkspace({ apiBaseUrl, accessToken, workspaceId }: Proje
       clearForm();
       await load();
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '프로젝트를 저장하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '프로젝트를 저장하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }
@@ -127,7 +122,7 @@ export function ProjectWorkspace({ apiBaseUrl, accessToken, workspaceId }: Proje
       publishProjectLifecycleChange({ workspaceId, projectId: project.project_id });
       await load();
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '프로젝트 상태를 변경하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '프로젝트 상태를 변경하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }

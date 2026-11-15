@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import './ProjectProductAssignmentWorkspace.css';
 import { useRequestScope } from './useRequestScope';
 import { subscribeProjectLifecycleChanges } from './projectLifecycleEvents.mjs';
+import { errorText, responseErrorText } from './app/errorMessages.mjs';
 
 type Project = { project_id: string; workspace_id: string; name: string; project_type: string; status: string; description: string | null; external_reference: string | null; created_by: string; created_at: string; updated_at: string };
 type Product = { product_id: string; workspace_id: string; sku: string; name: string; description: string | null; category: string; status: string; created_by: string; created_at: string; updated_at: string; archived_at?: string | null; image_asset_ids: string[]; variants: Array<{ variant_id: string; product_id: string; workspace_id: string; sku: string; option_values: Record<string, string>; image_asset_ids: string[]; status: string; created_by: string; created_at: string; updated_at: string; archived_at?: string | null }> };
@@ -14,11 +15,7 @@ export type ProjectProductAssignmentWorkspaceProps = {
 };
 
 async function responseError(response: Response): Promise<string> {
-  try {
-    const body = await response.json();
-    const detail = body?.detail;
-    return typeof detail === 'string' ? detail : detail?.message || `요청 실패 (${response.status})`;
-  } catch { return `요청 실패 (${response.status})`; }
+  return responseErrorText(response);
 }
 
 export function ProjectProductAssignmentWorkspace({ apiBaseUrl, accessToken, workspaceId }: ProjectProductAssignmentWorkspaceProps) {
@@ -84,13 +81,13 @@ export function ProjectProductAssignmentWorkspace({ apiBaseUrl, accessToken, wor
 
   useEffect(() => {
     const controller = new AbortController();
-    loadCatalog(controller.signal).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '프로젝트/상품을 불러오지 못했습니다.'); });
+    loadCatalog(controller.signal).catch((reason: unknown) => { if (!controller.signal.aborted) setError(errorText(reason, '프로젝트/상품을 불러오지 못했습니다.')); });
     return () => controller.abort();
   }, [loadCatalog]);
 
   useEffect(() => subscribeProjectLifecycleChanges((change) => {
     if (change.workspaceId !== workspaceId) return;
-    loadCatalog().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : '프로젝트 상태 변경을 반영하지 못했습니다.'));
+    loadCatalog().catch((reason: unknown) => setError(errorText(reason, '프로젝트 상태 변경을 반영하지 못했습니다.')));
   }), [workspaceId, loadCatalog]);
 
   useEffect(() => {
@@ -103,7 +100,7 @@ export function ProjectProductAssignmentWorkspace({ apiBaseUrl, accessToken, wor
     const controller = new AbortController();
     loadAssignments(projectId, controller.signal).catch((reason: unknown) => {
       if (!controller.signal.aborted && selectedProjectRef.current === projectId) {
-        setError(reason instanceof Error ? reason.message : '상품 연결을 불러오지 못했습니다.');
+        setError(errorText(reason, '상품 연결을 불러오지 못했습니다.'));
       }
     });
     return () => {
@@ -134,7 +131,7 @@ export function ProjectProductAssignmentWorkspace({ apiBaseUrl, accessToken, wor
       if (!response.ok) throw new Error(await responseError(response));
       if (!isScopeCurrent(scope)) return;
       await loadAssignments(selectedProjectId);
-    } catch (reason) { if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '상품 연결을 저장하지 못했습니다.'); }
+    } catch (reason) { if (isScopeCurrent(scope)) setError(errorText(reason, '상품 연결을 저장하지 못했습니다.')); }
     finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, projectId, productIds, loadAssignments, captureScope, isScopeCurrent]);
 

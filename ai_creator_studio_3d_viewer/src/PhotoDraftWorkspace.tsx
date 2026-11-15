@@ -8,6 +8,7 @@ import { importLibraryItem } from './app/libraryClient.mjs';
 import { useRequestScope } from './useRequestScope';
 import { KeyedRequestGate } from './keyedRequestGate.mjs';
 import { AuthenticatedPreviewObjectUrls } from './authenticatedPreviewObjectUrls.mjs';
+import { errorText, responseErrorText } from './app/errorMessages.mjs';
 
 type ImageAsset = {
   asset_id: string;
@@ -75,13 +76,7 @@ export type PhotoDraftWorkspaceProps = {
 };
 
 async function responseError(response: Response): Promise<string> {
-  try {
-    const body = await response.json();
-    const detail = body?.detail;
-    return typeof detail === 'string' ? detail : detail?.message || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
+  return responseErrorText(response);
 }
 
 export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: PhotoDraftWorkspaceProps) {
@@ -154,7 +149,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal).catch((reason: unknown) => {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Photo Draft 정보를 불러오지 못했습니다.');
+      if (!controller.signal.aborted) setError(errorText(reason, 'Photo Draft 정보를 불러오지 못했습니다.'));
     });
     return () => controller.abort();
   }, [load]);
@@ -182,7 +177,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       if (!isScopeCurrent(scope)) return;
       setSourceAssetId(created.asset_id);
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '이미지를 업로드하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '이미지를 업로드하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) { reviewMutationInFlightRef.current = false; setBusy(false); }
     }
@@ -217,7 +212,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       if (!isScopeCurrent(scope)) return;
       setPrompt('');
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Photo Draft를 저장하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, 'Photo Draft를 저장하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }
@@ -243,7 +238,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       setPreviewUrls((current) => ({ ...current, [previewKey]: objectUrl }));
     } catch (reason) {
       if (isScopeCurrent(scope) && previewRequestGateRef.current.isCurrent(previewKey, previewRequestId)) {
-        setPreviewErrors((current) => ({ ...current, [previewKey]: reason instanceof Error ? reason.message : 'AssetVersion 미리보기를 불러오지 못했습니다.' }));
+        setPreviewErrors((current) => ({ ...current, [previewKey]: errorText(reason, 'AssetVersion 미리보기를 불러오지 못했습니다.') }));
       }
     } finally {
       if (isScopeCurrent(scope) && previewRequestGateRef.current.isCurrent(previewKey, previewRequestId)) setPreviewLoading((current) => ({ ...current, [previewKey]: false }));
@@ -273,7 +268,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       await load();
       if (!isScopeCurrent(scope)) return;
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '로컬 이미지 처리를 완료하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '로컬 이미지 처리를 완료하지 못했습니다.'));
     } finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, load, captureScope, isScopeCurrent]);
 
@@ -292,7 +287,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       setReviewComment('');
       await load();
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Photo 결과 검수 상태를 변경하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, 'Photo 결과 검수 상태를 변경하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) { reviewMutationInFlightRef.current = false; setBusy(false); }
     }
@@ -312,7 +307,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       if (!isScopeCurrent(scope)) return;
       setManifestJson(JSON.stringify(manifestResult, null, 2));
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Photo 결과 manifest를 내보내지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, 'Photo 결과 manifest를 내보내지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) { reviewMutationInFlightRef.current = false; setBusy(false); }
     }
@@ -334,7 +329,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       await load();
       if (!isScopeCurrent(scope)) return;
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Photo Draft를 보관하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, 'Photo Draft를 보관하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) { reviewMutationInFlightRef.current = false; setBusy(false); }
     }
@@ -371,7 +366,7 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
               actionLabel="가져와서 선택" busyExternal={busy}
               onAction={async (item) => {
                 try { const copy = await importLibraryItem(base, accessToken, item.item_id, workspaceId); await load(); setSourceAssetId(copy.asset_id); done(); }
-                catch (reason) { setError(reason instanceof Error ? reason.message : '라이브러리에서 가져오지 못했습니다.'); }
+                catch (reason) { setError(errorText(reason, '라이브러리에서 가져오지 못했습니다.')); }
               }}/>}
           />
           <label>편집 작업

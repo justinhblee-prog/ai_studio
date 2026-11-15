@@ -11,6 +11,7 @@ import AssetSourceTabs from './AssetSourceTabs';
 import LibraryBrowser from './LibraryBrowser';
 import { importLibraryItem } from './app/libraryClient.mjs';
 import type { LibraryItem } from './app/libraryClient.mjs';
+import { errorText, responseErrorText } from './app/errorMessages.mjs';
 
 type ImageAsset = { asset_id: string; original_filename: string };
 
@@ -43,7 +44,7 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
 
   useEffect(() => {
     setModelId(''); setGarmentId(''); setJob(null); setError('');
-    loadImages().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : '이미지 목록을 불러오지 못했습니다.'));
+    loadImages().catch((reason: unknown) => setError(errorText(reason, '이미지 목록을 불러오지 못했습니다.')));
   }, [loadImages]);
 
   const upload = async (event: ChangeEvent<HTMLInputElement>, assign: (id: string) => void) => {
@@ -60,14 +61,13 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
       if (!response.ok) {
         const code = await rightsErrorCode(response);
         if (code) throw new Error(RIGHTS_ERROR_MESSAGES[code]);
-        const body = await response.json().catch(() => ({}));
-        throw new Error(typeof body?.detail === 'string' ? body.detail : body?.detail?.message || `업로드 실패 (${response.status})`);
+        throw new Error(await responseErrorText(response));
       }
       const created = await response.json() as ImageAsset;
       await loadImages();
       assign(created.asset_id);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '이미지를 업로드하지 못했습니다.');
+      setError(errorText(reason, '이미지를 업로드하지 못했습니다.'));
     } finally { setBusy(false); }
   };
 
@@ -83,7 +83,7 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
       setJob(created);
       setRequestKey(`gen-${crypto.randomUUID()}`); // a new click is a new job; a retry of the same failed click reuses the key
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '생성을 시작하지 못했습니다.');
+      setError(errorText(reason, '생성을 시작하지 못했습니다.'));
     } finally { setBusy(false); }
   };
 
@@ -91,7 +91,7 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
     if (!job) return;
     setBusy(true); setError('');
     try { setJob(await loadGenerationJob(apiBaseUrl, accessToken, job.job_id)); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : '상태를 불러오지 못했습니다.'); }
+    catch (reason) { setError(errorText(reason, '상태를 불러오지 못했습니다.')); }
     finally { setBusy(false); }
   };
 
@@ -101,7 +101,7 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
       const copy = await importLibraryItem(apiBaseUrl, accessToken, item.item_id, workspaceId);
       await loadImages();
       assign(copy.asset_id); done();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : '라이브러리에서 가져오지 못했습니다.'); }
+    } catch (reason) { setError(errorText(reason, '라이브러리에서 가져오지 못했습니다.')); }
   };
 
   // R-033: "내 자산 / 라이브러리" tabs; "내 자산" (with the upload button) is shown first.

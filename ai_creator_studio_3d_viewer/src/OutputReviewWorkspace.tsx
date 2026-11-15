@@ -5,6 +5,7 @@ import { useRequestScope } from './useRequestScope';
 import { KeyedRequestGate } from './keyedRequestGate.mjs';
 import { AuthenticatedPreviewObjectUrls } from './authenticatedPreviewObjectUrls.mjs';
 import { aiDisclosureLabel } from './app/aiDisclosure.mjs';
+import { errorText, responseErrorText } from './app/errorMessages.mjs';
 
 type GeneratedOutput = {
   id: string;
@@ -64,13 +65,7 @@ export type OutputReviewWorkspaceProps = {
 };
 
 async function responseError(response: Response): Promise<string> {
-  try {
-    const body = await response.json();
-    const detail = body?.detail;
-    return typeof detail === 'string' ? detail : detail?.message || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
+  return responseErrorText(response);
 }
 
 export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId, viewerLabel }: OutputReviewWorkspaceProps) {
@@ -131,7 +126,7 @@ export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId, 
         return [output.id, previewObjectUrlsRef.current.replace(output.id, previewBlob), '', 0, previewRequestId] as const;
       } catch (reason) {
         if (!previewRequestGateRef.current.isCurrent(output.id, previewRequestId)) return [output.id, '', '', 0, previewRequestId] as const;
-        return [output.id, '', reason instanceof Error ? reason.message : 'AssetVersion 미리보기를 발급하지 못했습니다.', 0, previewRequestId] as const;
+        return [output.id, '', errorText(reason, 'AssetVersion 미리보기를 발급하지 못했습니다.'), 0, previewRequestId] as const;
       }
     }));
     if (!signal?.aborted && isScopeCurrent(scope) && requestId === loadSequenceRef.current) {
@@ -173,7 +168,7 @@ export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId, 
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal).catch((reason: unknown) => {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '생성 결과를 불러오지 못했습니다.');
+      if (!controller.signal.aborted) setError(errorText(reason, '생성 결과를 불러오지 못했습니다.'));
     });
     return () => controller.abort();
   }, [load]);
@@ -200,7 +195,7 @@ export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId, 
       if (!isScopeCurrent(scope) || !previewRequestGateRef.current.isCurrent(outputId, requestId)) return;
       setPreviewUrls((current) => ({ ...current, [outputId]: previewObjectUrlsRef.current.replace(outputId, blob) }));
     } catch (reason) {
-      if (isScopeCurrent(scope) && previewRequestGateRef.current.isCurrent(outputId, requestId)) setPreviewErrors((current) => ({ ...current, [outputId]: reason instanceof Error ? reason.message : 'AssetVersion 미리보기를 불러오지 못했습니다.' }));
+      if (isScopeCurrent(scope) && previewRequestGateRef.current.isCurrent(outputId, requestId)) setPreviewErrors((current) => ({ ...current, [outputId]: errorText(reason, 'AssetVersion 미리보기를 불러오지 못했습니다.') }));
     } finally {
       if (isScopeCurrent(scope) && previewRequestGateRef.current.isCurrent(outputId, requestId)) setPreviewLoading((current) => ({ ...current, [outputId]: false }));
     }
@@ -231,7 +226,7 @@ export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId, 
       setComment('');
       await load();
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '검토 상태를 저장하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '검토 상태를 저장하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) { reviewMutationInFlightRef.current = false; setBusy(false); }
     }
@@ -249,7 +244,7 @@ export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId, 
       if (!isScopeCurrent(scope)) return;
       setManifest(JSON.stringify(result, null, 2));
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '내보내기 manifest를 만들지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '내보내기 manifest를 만들지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) { reviewMutationInFlightRef.current = false; setBusy(false); }
     }

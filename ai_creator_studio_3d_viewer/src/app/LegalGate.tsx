@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DOCUMENT_LABELS, acceptRequired, setConsent } from './legalApi.mjs';
 import type { LegalStatus } from './legalApi.mjs';
 import LegalDocumentModal from './LegalDocumentModal';
+import { errorText } from './errorMessages.mjs';
 
 // The documents are legal-review drafts (src/legal); each one can be opened and read before accepting.
 export default function LegalGate({ api, token, status, onAccepted, onLogout }: {
@@ -24,7 +25,7 @@ export default function LegalGate({ api, token, status, onAccepted, onLogout }: 
       if (aiTraining) await setConsent(api, token, 'ai_training', true);
       onAccepted(next);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '동의 기록에 실패했습니다.');
+      setError(errorText(reason, '동의 기록에 실패했습니다.'));
     } finally { setBusy(false); }
   };
 
