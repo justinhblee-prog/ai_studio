@@ -24,7 +24,8 @@ PUBLIC = {("get", "/health"), ("get", "/v1/engines/capabilities"), ("get", "/v1/
 SELF_SCOPED = {("get", "/v1/workspaces"), ("get", "/v1/me/legal-status"), ("get", "/v1/me/deletion-requests"),
                ("get", "/v1/me/consents"), ("get", "/v1/auth/me"),
                ("get", "/v1/me/takedowns"),   # L-08: lists only the caller's own held assets
-               ("get", "/v1/library/items")}  # R-032: platform-owned default library, readable by every signed-in user (holds no workspace data)
+               ("get", "/v1/library/items"),
+               ("get", "/v1/features")}  # pilot service switches: global, no workspace data  # R-032: platform-owned default library, readable by every signed-in user (holds no workspace data)
 
 
 # Operations that any signed-in user may call and whose answer does not depend on the object (so it reveals nothing).
