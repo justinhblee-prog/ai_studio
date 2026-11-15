@@ -6,8 +6,9 @@ environment on every call so an operator can flip the kill switch without redepl
 of code (process env change + restart is still required for a running service).
 
   AI_JOBS_DISABLED=1                   kill switch: no new non-mock jobs, worker will not call providers
-  AI_JOB_LIMIT_PER_WORKSPACE_MONTH=N   default 200; 0 disables this limit
-  AI_JOB_LIMIT_GLOBAL_MONTH=N          default 0 (no global monthly limit)
+  AI_JOB_LIMIT_PER_WORKSPACE_MONTH=N   default 100 (pilot); 0 disables this limit
+  AI_JOB_LIMIT_GLOBAL_MONTH=N          default 500 (pilot); 0 disables this limit
+  AI_JOB_STOP_PERCENT=P                default 90: real calls stop at P% of a limit (soft caps keep a reserve)
 """
 from __future__ import annotations
 
@@ -42,6 +43,16 @@ def month_start(now: datetime | None = None) -> str:
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
 
+def stop_percent() -> int:
+    """Real calls stop at this share of a limit (default 90): the caps are soft (calls in flight and delayed counting can overshoot),
+    so the last part of the limit is a reserve. 100 = stop exactly at the limit."""
+    return min(100, max(1, _int_env("AI_JOB_STOP_PERCENT", 90)))
+
+
+def stop_at(limit: int) -> int:
+    return max(1, (limit * stop_percent()) // 100)
+
+
 def enforce_in_transaction(conn, job: dict, now: datetime | None = None) -> None:
     """Call inside the job-creating write transaction so concurrent creators serialize."""
     if job.get("provider") == MOCK_PROVIDER:
@@ -49,18 +60,18 @@ def enforce_in_transaction(conn, job: dict, now: datetime | None = None) -> None
     if kill_switch_on():
         raise CostCapExceeded("AI_JOBS_DISABLED", "AI generation is temporarily disabled.")
     start = month_start(now)
-    per_ws = _int_env("AI_JOB_LIMIT_PER_WORKSPACE_MONTH", 200)
+    per_ws = _int_env("AI_JOB_LIMIT_PER_WORKSPACE_MONTH", 100)
     if per_ws:
         used = conn.execute(
             "SELECT COUNT(*) FROM generation_jobs WHERE workspace_id=? AND provider<>? AND created_at>=?",
             (job["workspace_id"], MOCK_PROVIDER, start)).fetchone()[0]
-        if used >= per_ws:
+        if used >= stop_at(per_ws):
             raise CostCapExceeded("WORKSPACE_MONTHLY_LIMIT", "Monthly AI generation limit for this workspace is reached.",
                                   {"limit": per_ws, "used": used})
-    glob = _int_env("AI_JOB_LIMIT_GLOBAL_MONTH", 0)
+    glob = _int_env("AI_JOB_LIMIT_GLOBAL_MONTH", 500)
     if glob:
         used = conn.execute(
             "SELECT COUNT(*) FROM generation_jobs WHERE provider<>? AND created_at>=?",
             (MOCK_PROVIDER, start)).fetchone()[0]
-        if used >= glob:
+        if used >= stop_at(glob):
             raise CostCapExceeded("GLOBAL_MONTHLY_LIMIT", "Global monthly AI generation limit is reached.")

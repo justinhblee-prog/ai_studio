@@ -36,8 +36,9 @@ def cap_env(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "asset_api_tokens", lambda: {"token-cap-a": "cap-a"})
     monkeypatch.setattr(config, "PROVIDER_MODE", "mock")
     monkeypatch.setattr(config, "PROVIDER_ROUTING_MODE", "MANUAL")
-    for name in ("AI_JOBS_DISABLED", "AI_JOB_LIMIT_PER_WORKSPACE_MONTH", "AI_JOB_LIMIT_GLOBAL_MONTH"):
+    for name in ("AI_JOBS_DISABLED", "AI_JOB_LIMIT_PER_WORKSPACE_MONTH", "AI_JOB_LIMIT_GLOBAL_MONTH", "AI_JOB_STOP_PERCENT"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("AI_JOB_STOP_PERCENT", "100")  # the older tests below assert "blocked exactly at the limit"; the 90% rule has its own tests
     PaidStub.calls = 0
     for ws in ("cap-ws", "cap-ws2"):
         assert client.post("/v1/workspaces", headers=auth(), json={"workspace_id": ws}).status_code == 201
@@ -158,3 +159,26 @@ def test_concurrent_creates_never_exceed_the_limit(cap_env, monkeypatch):
     [t.start() for t in ts]; [t.join() for t in ts]
     assert codes.count(202) == 3 and codes.count(429) == 7, codes
     assert count_jobs() == 3
+
+
+def test_pilot_defaults_are_100_per_workspace_and_500_global_with_a_90_percent_stop(cap_env, monkeypatch):
+    from app import cost_cap
+    monkeypatch.delenv("AI_JOB_STOP_PERCENT")
+    assert cost_cap.stop_percent() == 90
+    assert [cost_cap.stop_at(n) for n in (100, 500, 10, 1, 2)] == [90, 450, 9, 1, 1]
+    monkeypatch.setenv("AI_JOB_STOP_PERCENT", "100"); assert cost_cap.stop_at(100) == 100
+    monkeypatch.setenv("AI_JOB_STOP_PERCENT", "0"); assert cost_cap.stop_percent() == 1     # never "stop at zero": clamped
+    monkeypatch.setenv("AI_JOB_STOP_PERCENT", "250"); assert cost_cap.stop_percent() == 100
+
+
+def test_real_calls_stop_at_90_percent_of_the_limit_with_the_true_limit_in_the_answer(cap_env, monkeypatch):
+    use_paid(cap_env)
+    monkeypatch.delenv("AI_JOB_STOP_PERCENT")
+    monkeypatch.setenv("AI_JOB_LIMIT_PER_WORKSPACE_MONTH", "10")
+    for n in range(9):
+        assert post(n=n).status_code == 202, n
+    blocked = post(n=99)
+    assert blocked.status_code == 429
+    assert blocked.json()["detail"]["code"] == "WORKSPACE_MONTHLY_LIMIT"
+    assert blocked.json()["detail"]["limit"] == 10 and blocked.json()["detail"]["used"] == 9
+    assert PaidStub.calls <= 9, "the blocked request never reached the provider"
