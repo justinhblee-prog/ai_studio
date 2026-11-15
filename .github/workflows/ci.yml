@@ -187,6 +187,11 @@ jobs:
           set -o pipefail
           node e2e/account_flow.mjs | tee e2e_account.txt
           grep -q "SUMMARY 4/4 account flow steps passed" e2e_account.txt
+      - name: UI audit report (R-030, prints findings, never fails the build)
+        working-directory: ai_creator_studio_3d_viewer
+        continue-on-error: true
+        run: |
+          node e2e/audit_flow.mjs | tee audit_report.txt
       - name: Keep the e2e logs for the release evidence page (R-031)
         if: always()
         uses: actions/upload-artifact@v4
