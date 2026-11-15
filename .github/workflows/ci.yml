@@ -124,7 +124,7 @@ jobs:
         run: |
           set -o pipefail
           node e2e/generation_flow.mjs | tee e2e_generation.txt
-          grep -q "SUMMARY 6/6 generation steps passed" e2e_generation.txt
+          grep -q "SUMMARY 9/9 generation steps passed" e2e_generation.txt
       - name: Roles, workspace isolation and mobile width
         working-directory: ai_creator_studio_3d_viewer
         run: |

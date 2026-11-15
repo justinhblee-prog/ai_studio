@@ -56,3 +56,73 @@ test('result image: only a succeeded job with an output is fetched; 404 or no ou
   await assert.rejects(() => loadJobResultBlob(API, 'tok', { job_id: 'f', status: 'succeeded', output_url: '/x' }), /결과 이미지를 불러오지 못했습니다/);
   assert.match(NO_RESULT_MESSAGE, /시험/);
 });
+
+import { createJobPoller, nextPollDelay, POLL_BASE_MS, POLL_MAX_MS, IMAGE_BROKEN_MESSAGE } from './jobResults.mjs';
+
+function fakeClock() {
+  let now = 0; let next = 1; const timers = new Map();
+  return {
+    setTimer: (fn, ms) => { const id = next++; timers.set(id, { fn, at: now + ms }); return id; },
+    clearTimer: (id) => timers.delete(id),
+    pending: () => timers.size,
+    now: () => now,
+    async advance(ms) {
+      const target = now + ms;
+      for (;;) {
+        const due = [...timers.entries()].filter(([, t]) => t.at <= target).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!due) break;
+        timers.delete(due[0]); now = due[1].at; await due[1].fn();
+      }
+      now = target;
+    },
+  };
+}
+
+test('poll delay: 10s, then doubles after each consecutive failure, capped', () => {
+  assert.deepEqual([0, 1, 2, 3, 4, 9].map(nextPollDelay), [10000, 20000, 40000, 80000, 80000, 80000]);
+  assert.equal(POLL_BASE_MS, 10000); assert.equal(POLL_MAX_MS, 80000);
+});
+
+test('the poller requests every 10s while a job is in progress and stops by itself once none is', async () => {
+  const clock = fakeClock(); let calls = 0; let active = true;
+  const poller = createJobPoller({ refresh: async () => { calls += 1; if (calls === 3) active = false; }, hasActive: () => active, ...clock });
+  poller.start();
+  await clock.advance(9999); assert.equal(calls, 0);
+  await clock.advance(1); assert.equal(calls, 1);
+  await clock.advance(20000); assert.equal(calls, 3);
+  await clock.advance(100000); assert.equal(calls, 3, 'no more requests once nothing is in progress');
+  assert.equal(poller.running, false); assert.equal(clock.pending(), 0);
+});
+
+test('when nothing is in progress the poller never requests', async () => {
+  const clock = fakeClock(); let calls = 0;
+  const poller = createJobPoller({ refresh: async () => { calls += 1; }, hasActive: () => false, ...clock });
+  poller.start(); await clock.advance(200000);
+  assert.equal(calls, 0); assert.equal(poller.running, false);
+});
+
+test('consecutive failures slow the poller down; a success resets it', async () => {
+  const clock = fakeClock(); const at = []; let fail = true;
+  const poller = createJobPoller({ refresh: async () => { at.push(clock.now()); if (fail) throw new Error('x'); }, hasActive: () => true, ...clock });
+  poller.start();
+  await clock.advance(70000);                       // fails at 10s, 30s, 70s (gaps 20s, 40s)
+  assert.deepEqual(at, [10000, 30000, 70000]);
+  fail = false; await clock.advance(80000);         // 4th call at 150s succeeds -> back to 10s gaps
+  assert.equal(at.at(-1), 150000);
+  await clock.advance(10000);
+  assert.equal(at.at(-1), 160000);
+  poller.stop();
+});
+
+test('a hidden tab makes no request, and stop() cancels the pending timer', async () => {
+  const clock = fakeClock(); let calls = 0; let hidden = true;
+  const poller = createJobPoller({ refresh: async () => { calls += 1; }, hasActive: () => true, isHidden: () => hidden, ...clock });
+  poller.start(); await clock.advance(60000);
+  assert.equal(calls, 0, 'hidden: nothing requested');
+  hidden = false; await clock.advance(10000);
+  assert.equal(calls, 1);
+  poller.stop(); assert.equal(clock.pending(), 0); assert.equal(poller.running, false);
+  await clock.advance(100000); assert.equal(calls, 1);
+});
+
+test('the broken-image notice is Korean', () => assert.match(IMAGE_BROKEN_MESSAGE, /표시하지 못했습니다/));
