@@ -2,6 +2,9 @@ import { RIGHTS_CONFIRMATION_COPY, RIGHTS_ERROR_MESSAGES } from './rightsConfirm
 import { appendRightsDeclaration, rightsErrorCode } from './app/rightsDeclaration.mjs';
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import './PhotoDraftWorkspace.css';
+import AssetSourceTabs from './AssetSourceTabs';
+import LibraryBrowser from './LibraryBrowser';
+import { importLibraryItem } from './app/libraryClient.mjs';
 import { useRequestScope } from './useRequestScope';
 import { KeyedRequestGate } from './keyedRequestGate.mjs';
 import { AuthenticatedPreviewObjectUrls } from './authenticatedPreviewObjectUrls.mjs';
@@ -356,12 +359,21 @@ export function PhotoDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: Ph
       {error && <p className="acs-photo-draft-error" role="alert">{error}</p>}
       <div className="acs-photo-draft-grid">
         <form className="acs-photo-draft-form" onSubmit={createDraft}>
-          <label>원본 이미지
-            <select value={sourceAssetId} onChange={(event) => setSourceAssetId(event.currentTarget.value)} disabled={busy || images.length === 0} required>
-              <option value="">이미지를 선택하세요</option>
-              {images.map((image) => <option key={image.asset_id} value={image.asset_id}>{image.original_filename}</option>)}
-            </select>
-          </label>
+          <AssetSourceTabs label="원본 이미지"
+            mine={<label>원본 이미지
+              <select value={sourceAssetId} onChange={(event) => setSourceAssetId(event.currentTarget.value)} disabled={busy || images.length === 0} required>
+                <option value="">이미지를 선택하세요</option>
+                {images.map((image) => <option key={image.asset_id} value={image.asset_id}>{image.original_filename}</option>)}
+              </select>
+            </label>}
+            library={(done) => <LibraryBrowser apiBaseUrl={base} accessToken={accessToken}
+              categories={['model', 'top', 'bottom', 'dress', 'outer', 'bag', 'hat', 'eyewear', 'shoes', 'jewelry', 'headwear', 'belt_scarf', 'background']}
+              actionLabel="가져와서 선택" busyExternal={busy}
+              onAction={async (item) => {
+                try { const copy = await importLibraryItem(base, accessToken, item.item_id, workspaceId); await load(); setSourceAssetId(copy.asset_id); done(); }
+                catch (reason) { setError(reason instanceof Error ? reason.message : '라이브러리에서 가져오지 못했습니다.'); }
+              }}/>}
+          />
           <label>편집 작업
             <select value={operation} onChange={(event) => setOperation(event.currentTarget.value as PhotoOperation)} disabled={busy}>
               <option value="ENHANCE">품질 향상</option><option value="BACKGROUND">배경 편집</option>

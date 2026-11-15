@@ -1,0 +1,18 @@
+export type LibraryItem = { item_id: string; category: string; subcategory?: string | null; name_ko: string; name_en?: string | null; tags: string[]; attributes: Record<string, string>; version: number; media_type: string; width: number; height: number; source: string; is_ai_generated: boolean; is_placeholder: boolean };
+export type LibraryList = { items: LibraryItem[]; next_cursor: string | null };
+export type LibraryGroup = { key: string; label: string; categories: string[] };
+export const GROUPS: readonly LibraryGroup[];
+export const CATEGORY_LABELS: Readonly<Record<string, string>>;
+export const MODEL_FILTERS: Readonly<Record<string, { label: string; options: [string, string][] }>>;
+export const AI_LABEL: string;
+export const TEST_MARK: string;
+export const EMPTY_MESSAGE: string;
+export const LOAD_FAILED_MESSAGE: string;
+export const IMPORT_LIMIT_MESSAGE: string;
+export function groupOf(key: string): LibraryGroup;
+export function labelsFor(item: Partial<LibraryItem> | null | undefined): string[];
+export function buildListQuery(query?: { category?: string; q?: string; attributes?: Record<string, string>; cursor?: string | null; limit?: number }): string;
+export function listLibraryItems(api: string, token: string, query?: Parameters<typeof buildListQuery>[0]): Promise<LibraryList>;
+export function libraryPreviewSrc(api: string, token: string, itemId: string): Promise<string>;
+export function importLibraryItem(api: string, token: string, itemId: string, workspaceId: string): Promise<{ asset_id: string; original_filename: string }>;
+export function importErrorFrom(error: unknown): Error;

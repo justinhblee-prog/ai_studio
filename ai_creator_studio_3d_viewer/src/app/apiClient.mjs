@@ -23,7 +23,8 @@ export async function apiRequest(baseUrl, path, { token, method = 'GET', body, s
     const detail = payload?.detail;
     const limitText = response.status === 429 ? generationLimitMessage(detail?.code, detail) : null;
     if (limitText) throw Object.assign(new Error(limitText), { code: detail.code });
-    throw new Error(typeof detail === 'string' ? detail : detail?.message || `API 요청 실패 (${response.status})`);
+    // status / code / detail ride along so a screen can word its own message (e.g. R-033 import limit with its numbers)
+    throw Object.assign(new Error(typeof detail === 'string' ? detail : detail?.message || `API 요청 실패 (${response.status})`), { status: response.status, ...(typeof detail === 'object' && detail?.code ? { code: detail.code, detail } : {}) });
   }
   return payload;
 }

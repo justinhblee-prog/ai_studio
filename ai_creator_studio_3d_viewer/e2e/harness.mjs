@@ -55,7 +55,7 @@ export async function startStack({ apiPort = 8765, webPort = 4765, extraEnv = {}
     ...process.env, PROVIDER_MODE: 'mock', ASSET_SIGNING_SECRET: 's'.repeat(48),
     ASSET_API_TOKENS: Object.values(USERS).map(u => `${u.token}:${u.id}`).join(','),
     ASSET_STORAGE_DIR: join(work, 'private'), ASSET_DATABASE_PATH: join(work, 'app.sqlite3'),
-    OUTPUT_DIR: join(work, 'outputs'), APP_CORS_ORIGINS: origin, ...extraEnv,
+    OUTPUT_DIR: join(work, 'outputs'), LIBRARY_STORAGE_DIR: join(work, 'library'), APP_CORS_ORIGINS: origin, ...extraEnv,
   };
   const api = spawn('python', ['-m', 'uvicorn', 'app.main:app', '--port', String(apiPort), '--host', '127.0.0.1'], { cwd: BACKEND_ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
   let apiLog = ''; api.stdout.on('data', d => { apiLog += d; }); api.stderr.on('data', d => { apiLog += d; });
@@ -195,4 +195,10 @@ export function sqliteExec(stack, sql, params = []) {
 export function seedFinishedJobOutput(stack, jobId) {
   const r = spawnSync('python', [resolve(here, 'seed_job_output.py'), jobId], { cwd: BACKEND_ROOT, env: { ...stack.env, PYTHONPATH: BACKEND_ROOT }, encoding: 'utf8', timeout: 60000 });
   if (r.status !== 0) throw new Error('seeding the job output failed: ' + (r.stderr || r.stdout).slice(-600));
+}
+
+// R-033: the default library is platform data, so e2e seeds it the way the import tool will (app.library.upsert_item), not through the API.
+export function seedLibrary(stack) {
+  const r = spawnSync('python', [resolve(here, 'seed_library.py')], { cwd: BACKEND_ROOT, env: { ...stack.env, PYTHONPATH: BACKEND_ROOT }, encoding: 'utf8', timeout: 60000 });
+  if (r.status !== 0) throw new Error('seeding the library failed: ' + (r.stderr || r.stdout).slice(-600));
 }

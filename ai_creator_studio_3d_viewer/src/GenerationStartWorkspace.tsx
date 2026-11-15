@@ -7,6 +7,10 @@ import {
   generationReady, loadGenerationJob, startGeneration,
 } from './app/generationStart.mjs';
 import type { GenerationJob } from './app/generationStart.mjs';
+import AssetSourceTabs from './AssetSourceTabs';
+import LibraryBrowser from './LibraryBrowser';
+import { importLibraryItem } from './app/libraryClient.mjs';
+import type { LibraryItem } from './app/libraryClient.mjs';
 
 type ImageAsset = { asset_id: string; original_filename: string };
 
@@ -91,13 +95,26 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
     finally { setBusy(false); }
   };
 
-  const picker = (label: string, value: string, set: (v: string) => void) => <label>{label}
-    <select value={value} onChange={event => set(event.currentTarget.value)} disabled={busy}>
-      <option value="">선택</option>
-      {images.map(image => <option key={image.asset_id} value={image.asset_id}>{image.original_filename}</option>)}
-    </select>
-    <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={`${label} 올리기`} disabled={busy} onChange={event => upload(event, set)}/>
-  </label>;
+  const pickFromLibrary = async (item: LibraryItem, assign: (id: string) => void, done: () => void) => {
+    setError('');
+    try {
+      const copy = await importLibraryItem(apiBaseUrl, accessToken, item.item_id, workspaceId);
+      await loadImages();
+      assign(copy.asset_id); done();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : '라이브러리에서 가져오지 못했습니다.'); }
+  };
+
+  // R-033: "내 자산 / 라이브러리" tabs; "내 자산" (with the upload button) is shown first.
+  const picker = (label: string, value: string, set: (v: string) => void, libraryCategories: string[]) => <AssetSourceTabs label={label}
+    mine={<label>{label}
+      <select value={value} onChange={event => set(event.currentTarget.value)} disabled={busy}>
+        <option value="">선택</option>
+        {images.map(image => <option key={image.asset_id} value={image.asset_id}>{image.original_filename}</option>)}
+      </select>
+      <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={`${label} 올리기`} disabled={busy} onChange={event => upload(event, set)}/>
+    </label>}
+    library={(done) => <LibraryBrowser apiBaseUrl={apiBaseUrl} accessToken={accessToken} categories={libraryCategories} actionLabel="가져와서 선택" busyExternal={busy} onAction={item => pickFromLibrary(item, set, done)}/>}
+  />;
 
   return <section className="module" aria-label="가상 착장 생성 시작">
     <div className="module-head"><div><small>VIRTUAL TRY-ON</small><h1>가상 착장 시험 생성 <span className="tag">시험 생성</span></h1>
@@ -111,8 +128,8 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
         <label><input type="checkbox" checked={depictsPerson} onChange={event => { setDepictsPerson(event.currentTarget.checked); if (!event.currentTarget.checked) setLikenessConsent(false); }}/> {RIGHTS_CONFIRMATION_COPY.depictsPerson}</label>
         {depictsPerson && <label><input type="checkbox" checked={likenessConsent} onChange={event => setLikenessConsent(event.currentTarget.checked)}/> {RIGHTS_CONFIRMATION_COPY.likenessConsent}</label>}
       </fieldset>
-      {picker('모델 사진', modelId, setModelId)}
-      {picker('의류 사진', garmentId, setGarmentId)}
+      {picker('모델 사진', modelId, setModelId, ['model'])}
+      {picker('의류 사진', garmentId, setGarmentId, ['top', 'bottom', 'dress', 'outer'])}
       <label>의류 종류<select value={category} onChange={e => setCategory(e.currentTarget.value)} disabled={busy}>{CATEGORY_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
       <label>품질 모드<select value={mode} onChange={e => setMode(e.currentTarget.value)} disabled={busy}>{MODE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
       <label>해상도<select value={resolution} onChange={e => setResolution(e.currentTarget.value)} disabled={busy}>{RESOLUTION_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>

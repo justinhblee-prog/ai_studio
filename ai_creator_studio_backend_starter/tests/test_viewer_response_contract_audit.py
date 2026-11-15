@@ -13,7 +13,7 @@ from validate_viewer_response_contract import audit_viewer_response_contracts  #
 
 def test_every_viewer_fetch_endpoint_has_a_success_json_schema_or_explicit_no_content():
     report = audit_viewer_response_contracts(VIEWER_ROOT, app.openapi())
-    assert report["viewer_source_files"] == 10  # R-027 added JobResultsWorkspace.tsx (R-026: GenerationStartWorkspace.tsx)
+    assert report["viewer_source_files"] == 13  # R-033 added LibraryBrowser/LibraryWorkspace/AssetSourceTabs; R-027 added JobResultsWorkspace.tsx (R-026: GenerationStartWorkspace.tsx)
     assert report["unique_endpoints"] == 52
     assert report["json_success_response_contracts"] == 50
     assert report["distinct_response_models"] == 28
