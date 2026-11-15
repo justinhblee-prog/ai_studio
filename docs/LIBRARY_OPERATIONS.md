@@ -17,7 +17,7 @@
 | `tool_and_date` | 예 | 만든 도구와 날짜. 예: `ChatGPT 이미지 생성, 2026-11-20` |
 | `rights_ok` | 예 | 이 이미지를 다른 사용자에게 제공해도 되는 권리를 **확인했으면 `yes`**. `no`나 빈칸이면 가져오기가 거부됩니다. |
 | `subcategory`, `name_en`, `tags`, `note` | 아니오 | 세부 종류, 영어 이름, 검색용 태그(쉼표로 구분), 메모(화면에는 안 보임) |
-| `likeness_check` | 모델은 권장 | 실존 인물과 닮지 않았는지 사람이 눈으로 확인했으면 `yes`. 비어 있으면 가져오기는 되지만 점검 결과에 경고가 나옵니다. |
+| `likeness_check` | 모델은 권장 | 실존 인물과 닮지 않았는지 사람이 눈으로 확인했으면 `yes`. 시험 환경에서는 비어 있어도 가져오기는 되지만 경고가 나오고, **운영 환경(`--production`)에서는 거부됩니다.** |
 | `status` | 아니오 | 비우면 `published`(바로 공개). `draft`로 올리면 사용자에게 안 보입니다. |
 | `is_placeholder` | 아니오 | 개발·시험용 SAMPLE 이미지일 때만 `yes`. **실제 서비스 항목에는 쓰지 않습니다.** |
 | `skin_tone` `hair` `body_type` `age_range` `region_style` | 모델만 필수 | 허용 값: skin_tone 1~6 / hair `straight` `wavy` `curly` `short` `covered` / body_type `slim` `regular` `plus` / age_range `20s` `30s` `40s` `50s` / region_style `east_asia` `southeast_asia` `south_asia` `middle_east` `africa` `europe` `latin_america`. 화면에서 고르기 쉽게 거르는 용도이며 실제 사람의 민족·정체성을 단정하지 않습니다. 모델이 아닌 항목에서는 비웁니다. |
@@ -55,7 +55,12 @@ SAMPLE 항목은 `is_placeholder=yes`이며, `--production` 옵션을 주거나 
 - 이미지 파일: `LIBRARY_STORAGE_DIR` 폴더(기본 `./library_assets`). 백업 스크립트(`scripts/backup_restore.py`)가 이 폴더도 함께 백업합니다.
 - 사용자의 계정·작업공간 삭제(purge)는 이 라이브러리를 건드리지 않습니다.
 
-## 7. 반드시 지킬 것
+## 7. 운영 설정값
+- `DOWNLOAD_MONTHLY_LIMIT`: 룩북 패키지 내려받기 월 한도(작업공간당, UTC 달력월). 파일럿 값 **100**(설계 창 결정 2026-11-15). 코드 기본값은 0(무제한)이므로 **운영 환경 변수에 100을 설정해야 적용됩니다.**
+- `PREVIEW_REQUIRE_ORIGIN`(기본 켜짐)과 `APP_CORS_ORIGINS`: 서명 이미지 주소는 허용 출처의 페이지에서만 열립니다. 운영에 앱 주소가 `APP_CORS_ORIGINS`에 있어야 합니다.
+- 알려진 한계(파일럿에서 수용): 로그인한 구성원은 화면용 보기 경로(`preview-content`, 작업 결과 이미지)로 이미지를 직접 받을 수 있고 이 경로는 감사·한도 대상이 아닙니다. 사용자 자산은 원본 해상도로 보입니다. 화면 캡처는 막을 수 없습니다.
+
+## 8. 반드시 지킬 것
 - 이미지 제작 도구의 이용약관상 **상업적 사용 가능 여부**와 **다른 사용자에게 제공해도 되는지**를 확인한 뒤에만 `rights_ok=yes`로 적습니다(법률 검토 대상).
 - 실존 인물·유명인을 닮은 얼굴, 상표·로고·글자·워터마크가 있는 이미지는 올리지 않습니다. 미성년 모델은 만들지 않습니다.
 - 이 도구는 운영 환경에 직접 연결하지 않습니다. 운영 반영은 사용자 승인 뒤 별도 절차로 진행합니다.

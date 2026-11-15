@@ -9,7 +9,8 @@ rights_ok, likeness_check, note, status, is_placeholder, and for category "model
 Rules: every problem is reported with its manifest line number; a row without rights_ok=yes, with a missing/oversized/unsupported
 image, an unknown category/source or (models) an attribute outside the allowed list is rejected. The same id twice is rejected.
 The same id with the same file is a no-op; the same id with a different file becomes a NEW VERSION (the old file is kept).
-Items marked is_placeholder (SAMPLE images) are refused when --production is given or ACS_ENVIRONMENT=production.
+Items marked is_placeholder (SAMPLE images), and model items whose likeness_check is not yes, are refused when --production is given or
+ACS_ENVIRONMENT=production (elsewhere the missing likeness_check is only a warning).
 Exit code: 0 = no rejected row, 1 = at least one rejected row (nothing is written), 2 = bad command line / unreadable manifest.
 This tool never calls a network service and never deletes files or database rows.
 """
@@ -84,7 +85,8 @@ def check_manifest(manifest: Path, image_dir: Path, *, production: bool, existin
             reject("rights_ok is not 'yes' (the right to provide this image must be confirmed)")
             continue
         placeholder = row.get("is_placeholder", "").lower() in YES
-        if placeholder and (production or os.environ.get("ACS_ENVIRONMENT", "").strip().lower() == "production"):
+        is_production = production or os.environ.get("ACS_ENVIRONMENT", "").strip().lower() == "production"
+        if placeholder and is_production:
             reject("a SAMPLE (placeholder) item cannot be imported into a production environment")
             continue
         name = row["file"]
@@ -118,6 +120,9 @@ def check_manifest(manifest: Path, image_dir: Path, *, production: bool, existin
             continue
         warning = ""
         if row["category"] == "model" and row.get("likeness_check", "").lower() not in YES:
+            if is_production:  # design decision 2026-11-15: real library images must have the human likeness check
+                reject("likeness_check is not 'yes': a model item cannot be imported into a production environment without the check")
+                continue
             warning = "likeness_check is not 'yes' (a person has not confirmed that the model resembles no real person)"
         current = existing.get(item_id)
         digest = hashlib.sha256(content).hexdigest()
