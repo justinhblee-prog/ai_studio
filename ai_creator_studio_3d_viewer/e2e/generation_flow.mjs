@@ -68,6 +68,24 @@ try {
     assert.equal((Array.isArray(list) ? list : list.items).length, 2);
   });
 
+  await run('R-027: the job list shows both jobs with a Korean state; opening one shows its detail and never a fake image', async () => {
+    await gotoPage(page, '생성 작업 결과');
+    const results = page.locator('section[aria-label="생성 작업 결과"]');
+    const rows = results.locator('ul[aria-label="작업 목록"] li');
+    await rows.first().waitFor({ timeout: 10000 });
+    assert.equal(await rows.count(), 2);
+    assert.match(await results.innerText(), /시험 생성/);
+    for (const text of await rows.allInnerTexts()) assert.match(text, /대기|진행|완료|실패/);
+    await rows.first().getByRole('button').click();
+    const detail = results.locator('[aria-label="작업 상세"]');
+    await detail.waitFor({ timeout: 10000 });
+    assert.match(await detail.innerText(), /job_[0-9a-f]+/);
+    assert.match(await detail.innerText(), /mock \(시험 생성\)/);
+    if (/상태: 완료/.test(await detail.innerText())) {
+      await detail.getByText(/표시할 결과 이미지가 없습니다|AI 생성 이미지 표시 대상/).first().waitFor({ timeout: 10000 });
+    }
+  });
+
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} generation steps passed`);
 } catch { failed = true; }
 finally { await browser.close(); await stack.stop(); }

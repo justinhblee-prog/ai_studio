@@ -1,0 +1,12 @@
+import type { GenerationJob } from './generationStart.mjs';
+export const STATUS_LABELS: Record<string, string>;
+export const EMPTY_LIST_MESSAGE: string;
+export const NO_RESULT_MESSAGE: string;
+export const TEST_MARK: string;
+export function statusGroup(status: string | undefined | null): 'waiting' | 'running' | 'done' | 'failed' | 'unknown';
+export function statusLabel(status: string | undefined | null): string;
+export function isActive(status: string | undefined | null): boolean;
+export function failureMessage(errorCode: string | null | undefined): string;
+export function listGenerationJobs(api: string, token: string, workspaceId: string, options?: { limit?: number; offset?: number }): Promise<GenerationJob[]>;
+export function listJobOutputs(api: string, token: string, jobId: string): Promise<{ id: string }[]>;
+export function loadJobResultBlob(api: string, token: string, job: GenerationJob): Promise<Blob | null>;

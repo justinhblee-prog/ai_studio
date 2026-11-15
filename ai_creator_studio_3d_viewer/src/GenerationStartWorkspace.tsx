@@ -127,6 +127,6 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
       {job.message && <div>{job.message}</div>}
       <button type="button" className="outline" onClick={refresh} disabled={busy}>상태 새로고침</button>
     </div>}
-    <p className="gen-note">생성 중·완료 표시와 결과 이미지 열람은 이 화면의 범위 밖입니다(시험 엔진은 이미지를 만들지 않습니다). 결과는 실제 엔진 연결 후 "결과물 검수" 화면에서 확인합니다.</p>
+    <p className="gen-note">시작한 작업의 상태와 결과는 "생성 작업 결과" 메뉴에서 확인합니다(시험 엔진은 이미지를 만들지 않습니다).</p>
   </section>;
 }
