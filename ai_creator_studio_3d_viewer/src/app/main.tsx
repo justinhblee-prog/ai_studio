@@ -7,6 +7,7 @@ import ProjectProductAssignmentWorkspace from '../ProjectProductAssignmentWorksp
 import PhotoDraftWorkspace from '../PhotoDraftWorkspace';
 import LookbookDraftWorkspace from '../LookbookDraftWorkspace';
 import GenerationStartWorkspace from '../GenerationStartWorkspace';
+import JobResultsWorkspace from '../JobResultsWorkspace';
 import OutputReviewWorkspace from '../OutputReviewWorkspace';
 import Studio3DViewer from '../Studio3DViewer';
 import { apiRequest, loadOrCreateWorkspace } from './apiClient.mjs';
@@ -40,7 +41,7 @@ type AuthUser = { id: string; email?: string };
 const nav = [
   ['overview', '대시보드', '⌂'], ['projects', '프로젝트 관리', '▦'], ['assets', '에셋 라이브러리', '◇'],
   ['viewer', '3D 스튜디오', '◈'], ['products', '상품 카탈로그', '▤'], ['assign', '프로젝트·상품 연결', '⇄'],
-  ['photo', '포토 스튜디오', '▧'], ['generate', '가상 착장 시험 생성', '✦'], ['lookbook', '룩북 스튜디오', '▣'], ['review', '결과물 검수', '✓'],
+  ['photo', '포토 스튜디오', '▧'], ['generate', '가상 착장 시험 생성', '✦'], ['jobs', '생성 작업 결과', '☰'], ['lookbook', '룩북 스튜디오', '▣'], ['review', '결과물 검수', '✓'],
 ] as const;
 
 function AuthGate({
@@ -262,6 +263,7 @@ function App() {
         {page === 'products' && <ProductCatalogWorkspace {...common}/ >}
         {page === 'assign' && <ProjectProductAssignmentWorkspace {...common}/ >}
         {page === 'photo' && <PhotoDraftWorkspace {...common}/ >}
+        {page === 'jobs' && <JobResultsWorkspace {...common}/>}
         {page === 'generate' && <GenerationStartWorkspace {...common} publicBase={import.meta.env.VITE_ASSET_PUBLIC_BASE_URL || ''}/ >}
         {page === 'lookbook' && <LookbookDraftWorkspace {...common}/ >}
         {page === 'review' && (job.trim() ? <OutputReviewWorkspace apiBaseUrl={api} accessToken={session.access_token} jobId={job.trim()}/> : <div className="warning">결과 검수를 위해 상단 설정에서 Job ID를 입력해 주세요.</div>)}
