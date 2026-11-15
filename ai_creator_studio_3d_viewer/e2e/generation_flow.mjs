@@ -100,7 +100,7 @@ try {
     await rowFor(state.doneId).click();
     const detail = resultsScreen().locator('[aria-label="작업 상세"]');
     await detail.locator('img').waitFor({ timeout: 15000 });
-    assert.ok(await detail.locator('img').evaluate(img => img.complete && img.naturalWidth > 0), 'the image really decoded');
+    await page.waitForFunction(() => { const i = document.querySelector('[aria-label="작업 상세"] img'); return !!i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 });  // really decoded
     assert.match(await detail.innerText(), /시험 생성/);
     assert.equal(await detail.locator('img').getAttribute('alt'), '생성 결과 이미지 (시험 생성)');
   });
