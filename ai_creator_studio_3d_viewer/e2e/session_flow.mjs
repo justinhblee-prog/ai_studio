@@ -43,7 +43,8 @@ try {
     assert.equal(await gen().getByLabel(/추가 요청/).inputValue(), TYPED);
     assert.ok(await gen().isVisible(), 'still on the same screen');
     const group = gen().getByRole('group', { name: '모델 사진 고르기' });
-    await group.getByRole('tab', { name: '라이브러리' }).click();
+    // the library list that failed with the 401 is still on screen with its own retry button: repeating the action now works
+    await group.getByRole('button', { name: '다시 시도' }).click();
     await group.locator('ul[aria-label="라이브러리 항목"] li').first().waitFor({ timeout: 15000 });
   });
 
