@@ -9,6 +9,7 @@ of code (process env change + restart is still required for a running service).
   AI_JOB_LIMIT_PER_WORKSPACE_MONTH=N   default 100 (pilot); 0 disables this limit
   AI_JOB_LIMIT_GLOBAL_MONTH=N          default 500 (pilot); 0 disables this limit
   AI_JOB_STOP_PERCENT=P                default 90: real calls stop at P% of a limit (soft caps keep a reserve)
+  AI_PROVIDER_DAILY_LIMIT=N            real jobs per provider per UTC day across all workspaces; default 0 = off (also AI_PROVIDER_DAILY_LIMIT_<PROVIDER>, e.g. _FASHN, overrides it)
   AI_COST_LIMIT_USD_MONTH=X            total monthly provider spend in USD (estimated from the per-job unit cost below). NOT SET = real calls refused.
 """
 from __future__ import annotations
@@ -75,6 +76,13 @@ def enforce_in_transaction(conn, job: dict, now: datetime | None = None) -> None
         usd_limit = 0.0
     if usd_limit <= 0:  # no total-spend limit configured: a real call would be unbounded in money, so refuse it
         raise CostCapExceeded("AI_JOBS_DISABLED", "AI generation is disabled until a monthly spend limit is configured.")
+    provider = str(job.get("provider") or "")
+    daily = _int_env("AI_PROVIDER_DAILY_LIMIT_" + provider.upper().replace("-", "_"), _int_env("AI_PROVIDER_DAILY_LIMIT", 0))
+    if daily:
+        day_start = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        used_today = conn.execute("SELECT COUNT(*) FROM generation_jobs WHERE provider=? AND created_at>=?", (provider, day_start)).fetchone()[0]
+        if used_today >= stop_at(daily):  # service-wide number: not exposed in the answer
+            raise CostCapExceeded("DAILY_JOB_LIMIT_EXCEEDED", "Daily limit for this AI provider is reached.")
     spent = sum(unit_cost(row[0]) * row[1] for row in conn.execute(
         "SELECT provider, COUNT(*) FROM generation_jobs WHERE provider<>? AND created_at>=? GROUP BY provider", (MOCK_PROVIDER, start)))
     if spent + unit_cost(job.get("provider")) > usd_limit * stop_percent() / 100 + 1e-9:
