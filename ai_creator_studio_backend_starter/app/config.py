@@ -50,6 +50,13 @@ def asset_api_tokens() -> dict[str, str]:
     return result
 
 APP_CORS_ORIGINS = tuple(origin.strip() for origin in os.getenv("APP_CORS_ORIGINS", "").split(",") if origin.strip())
+# R-035: image protection. Signed preview links may only be fetched by pages of this application: when allowed origins are configured
+# (APP_CORS_ORIGINS) a request must carry a matching Origin or Referer header (PREVIEW_REQUIRE_ORIGIN=0 switches the check off).
+PREVIEW_REQUIRE_ORIGIN = env_flag_default_on(os.getenv("PREVIEW_REQUIRE_ORIGIN"))
+PREVIEW_ALLOWED_ORIGINS = tuple(o.rstrip("/") for o in APP_CORS_ORIGINS)
+LIBRARY_PREVIEW_MAX_EDGE = int(os.getenv("LIBRARY_PREVIEW_MAX_EDGE", "1200"))  # library images are shown downscaled, never at original size
+# Package downloads per workspace per calendar month (UTC). 0 = no limit: the value is a product decision that has not been made yet.
+DOWNLOAD_MONTHLY_LIMIT = int(os.getenv("DOWNLOAD_MONTHLY_LIMIT", "0"))
 
 # Supabase Auth user endpoint is used to validate browser access tokens. The
 # publishable/anon key is safe for this server-side validation call; service-role

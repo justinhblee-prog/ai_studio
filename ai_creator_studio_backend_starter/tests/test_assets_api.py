@@ -1468,7 +1468,30 @@ def test_lookbook_assembles_only_approved_photo_outputs_with_product_variant_sna
     unauthenticated_download = client.get(f"{package_parts.path}?{package_parts.query}")
     assert unauthenticated_download.status_code == 401
     viewer_download = client.get(f"{package_parts.path}?{package_parts.query}", headers=auth("token-user-b"))
-    assert viewer_download.status_code == 200
+    assert viewer_download.status_code == 403  # R-035: a viewer cannot take the package away (editor or higher only)
+    assert "attachment" in package_download.headers["content-disposition"]
+    with sqlite3.connect(asset_env / "assets.sqlite3") as db:
+        audit = db.execute("SELECT workspace_id,actor_id,kind,object_id,size_bytes FROM download_audit").fetchall()
+    # R-035: exactly the editor's download was recorded (who, what, how big); the refused viewer left no row
+    assert audit == [("ws-a", "user-a", "lookbook_package", package_result["export_id"], len(package_download.content))]
+    import app.config as _config
+    _config.DOWNLOAD_MONTHLY_LIMIT = 1
+    try:
+        over_limit = client.get(f"{package_parts.path}?{package_parts.query}", headers=auth())
+    finally:
+        _config.DOWNLOAD_MONTHLY_LIMIT = 0
+    assert over_limit.status_code == 429
+    assert over_limit.json()["detail"] == {"code": "DOWNLOAD_MONTHLY_LIMIT", "limit": 1, "used": 1,
+                                           "message": "Monthly download limit reached for this workspace."}
+    with sqlite3.connect(asset_env / "assets.sqlite3") as db:
+        assert db.execute("SELECT COUNT(*) FROM download_audit").fetchone()[0] == 1, "a refused download is not recorded as a download"
+        db.execute("UPDATE lookbook_drafts SET workflow_status='DRAFT' WHERE draft_id=?", (draft_id,))
+        db.commit()
+    not_approved = client.get(f"{package_parts.path}?{package_parts.query}", headers=auth())
+    assert not_approved.status_code == 409, "a package of a lookbook that is no longer approved cannot be downloaded"
+    with sqlite3.connect(asset_env / "assets.sqlite3") as db:
+        db.execute("UPDATE lookbook_drafts SET workflow_status='APPROVED' WHERE draft_id=?", (draft_id,))
+        db.commit()
     with sqlite3.connect(asset_env / "assets.sqlite3") as db:
         db.execute("DELETE FROM workspace_members WHERE workspace_id='ws-a' AND user_id='user-b'")
         db.commit()

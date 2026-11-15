@@ -254,6 +254,13 @@ def initialize() -> None:
             created_at TEXT NOT NULL, expires_at INTEGER NOT NULL
         )""")
         db.execute("CREATE INDEX IF NOT EXISTS idx_lookbook_package_exports ON lookbook_output_package_exports(draft_id,created_at DESC)")
+        # R-035: one row per package download (who, when, what, how big). The code only ever inserts. No update/delete trigger on purpose: an
+        # account purge anonymises actor_id and a workspace purge deletes the rows, as for every other workspace table.
+        db.execute("""CREATE TABLE IF NOT EXISTS download_audit (
+            download_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, actor_id TEXT NOT NULL, kind TEXT NOT NULL,
+            object_id TEXT NOT NULL, size_bytes INTEGER NOT NULL, created_at TEXT NOT NULL
+        )""")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_download_audit_month ON download_audit(workspace_id,created_at)")
         db.execute("""CREATE TRIGGER IF NOT EXISTS trg_lookbook_package_exports_no_update
             BEFORE UPDATE ON lookbook_output_package_exports
             BEGIN SELECT RAISE(ABORT, 'lookbook package export audit is append-only'); END""")
@@ -1033,9 +1040,12 @@ def download_lookbook_output_package(export_id: str, expires: int, signature: st
         raise HTTPException(status_code=404, detail="Lookbook package export not found")
     # Signed URLs are short-lived bearer credentials, but they do not replace current
     # workspace authorization. Membership/role changes take effect immediately.
-    (authorize or require_role)(row["workspace_id"], user_id, {"owner", "admin", "editor", "viewer"})
+    # R-035: downloading is an editor-or-higher action (a viewer may look at the screens but cannot take the package away).
+    (authorize or require_role)(row["workspace_id"], user_id, {"owner", "admin", "editor"})
     if int(row["expires_at"]) < now or expires > int(row["expires_at"]):
         raise HTTPException(status_code=410, detail="Lookbook package export expired")
+    if fetch_row is None:  # SQLite path (the PostgreSQL port has no download audit yet; that backend is not active)
+        _check_download_allowed(row)
     package_dir = _lookbook_package_dir()
     storage_key = row["storage_key"]
     if not storage_key or Path(storage_key).name != storage_key:
@@ -1058,11 +1068,49 @@ def download_lookbook_output_package(export_id: str, expires: int, signature: st
     if actual_size != int(row["package_size_bytes"]) or digest != row["package_sha256"]:
         raise HTTPException(status_code=409, detail="Lookbook package file integrity check failed")
     try:
-        return open_private_file_response(path, media_type="application/zip",
+        response = open_private_file_response(path, media_type="application/zip",
             filename=f"lookbook-{row['draft_id']}.zip", expected_size=int(row["package_size_bytes"]),
             expected_sha256=row["package_sha256"])
     except PrivateFileError as exc:
         raise HTTPException(status_code=409, detail="Lookbook package failed descriptor integrity validation") from exc
+    if fetch_row is None:
+        _record_download(row, user_id)  # recorded only once the verified file is really being handed out
+    return response
+
+
+def _month_start() -> str:
+    now = datetime.now(timezone.utc)
+    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+
+def _check_download_allowed(row) -> None:
+    """Only a package whose lookbook is STILL approved can be taken, and only within the workspace's monthly download limit."""
+    initialize(); db = _connect()
+    try:
+        draft = db.execute("SELECT workflow_status, archived_at FROM lookbook_drafts WHERE draft_id=?", (row["draft_id"],)).fetchone()
+        latest = db.execute("SELECT decision FROM lookbook_output_assembly_review_events WHERE draft_id=? ORDER BY rowid DESC LIMIT 1",
+                            (row["draft_id"],)).fetchone()
+        if not draft or draft["archived_at"] or draft["workflow_status"] != "APPROVED" or not latest or latest["decision"] != "approved":
+            raise HTTPException(status_code=409, detail="Only approved Lookbook outputs can be downloaded")
+        limit = config.DOWNLOAD_MONTHLY_LIMIT
+        if limit > 0:
+            used = db.execute("SELECT COUNT(*) AS n FROM download_audit WHERE workspace_id=? AND created_at>=?",
+                              (row["workspace_id"], _month_start())).fetchone()["n"]
+            if used >= limit:
+                raise HTTPException(status_code=429, detail={"code": "DOWNLOAD_MONTHLY_LIMIT", "limit": limit, "used": used,
+                                                             "message": "Monthly download limit reached for this workspace."})
+    finally:
+        db.close()
+
+
+def _record_download(row, actor_id: str) -> None:
+    initialize(); db = _connect()
+    try:
+        db.execute("INSERT INTO download_audit(download_id,workspace_id,actor_id,kind,object_id,size_bytes,created_at) VALUES(?,?,?,?,?,?,?)",
+                   ("dl_" + uuid.uuid4().hex, row["workspace_id"], actor_id, "lookbook_package", row["export_id"],
+                    int(row["package_size_bytes"]), _now()))
+    finally:
+        db.close()
 
 
 def export_approved_manifest(draft_id: str, workspace_id: str) -> dict[str, Any]:
