@@ -1,4 +1,4 @@
-import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import ProjectWorkspace from '../ProjectWorkspace';
 import AssetWorkspace from '../AssetWorkspace';
@@ -10,6 +10,8 @@ import GenerationStartWorkspace from '../GenerationStartWorkspace';
 import JobResultsWorkspace from '../JobResultsWorkspace';
 import LibraryWorkspace from '../LibraryWorkspace';
 import { installImageGuard } from './imageGuard.mjs';
+import { installUnauthorizedWatcher } from './sessionGuard.mjs';
+import SessionExpiredDialog from './SessionExpiredDialog';
 import OutputReviewWorkspace from '../OutputReviewWorkspace';
 import Studio3DViewer from '../Studio3DViewer';
 import { apiRequest, loadOrCreateWorkspace } from './apiClient.mjs';
@@ -130,6 +132,12 @@ function App() {
   const [apiState, setApiState] = useState<'checking' | 'online' | 'offline'>('checking');
   const [connectionError, setConnectionError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [expired, setExpired] = useState(false);       // R-030 A: the server no longer accepts the login: ask again on top of the screen
+  const [renewedNotice, setRenewedNotice] = useState(false);
+  const sessionRef = useRef<AuthSession | null>(null);
+  const apiRef = useRef(api);
+  const renewing = useRef(false);
+  sessionRef.current = session; apiRef.current = api;
 
   const connectSession = useCallback(async (candidate: AuthSession) => {
     setBusy(true); setConnectionError(''); setApiState('checking');
@@ -179,12 +187,33 @@ function App() {
         const next = await refreshSession(supabaseConfig, session);
         saveSession(next); setSession(next);
       } catch {
-        clearSession(); setSession(null); setUser(null); setWorkspaces([]); setWorkspace('');
-        setConnectionError('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
+        setExpired(true); // R-030 A: ask for the password on top of the current screen instead of dropping the screen's contents
       }
     }, delay);
     return () => window.clearTimeout(timer);
   }, [session, supabaseConfig]);
+
+  // R-030 A: a 401 from our API anywhere (any screen) -> try to renew the session quietly; if that fails, ask for the password again.
+  useEffect(() => installUnauthorizedWatcher({
+    getApiBase: () => apiRef.current,
+    onUnauthorized: () => {
+      const current = sessionRef.current;
+      if (!current || renewing.current) return;
+      renewing.current = true;
+      refreshSession(supabaseConfig, current)
+        .then(next => { saveSession(next); setSession(next); setRenewedNotice(true); })
+        .catch(() => setExpired(true))
+        .finally(() => { renewing.current = false; });
+    },
+  }), [supabaseConfig]);
+
+  const renewed = (next: AuthSession) => {
+    const previous = sessionRef.current?.user?.id;
+    saveSession(next); setSession(next); setExpired(false); setRenewedNotice(true);
+    if (previous && next.user?.id && previous !== next.user.id) { // a different account signed in: nothing of the old one may stay
+      setUser(null); setWorkspaces([]); setWorkspace(''); setJob(''); setLegal(null); setApiState('checking'); setPage('overview');
+    }
+  };
 
   const acceptSession = async (candidate: AuthSession) => {
     saveSession(candidate);
@@ -198,7 +227,7 @@ function App() {
     catch { /* local session is still cleared even if remote revocation is unavailable */ }
     finally {
       clearSession(); setSession(null); setUser(null); setWorkspaces([]); setWorkspace(''); setJob(''); setLegal(null);
-      setApiState('checking'); setConnectionError(''); setPage('overview'); setBusy(false);
+      setApiState('checking'); setConnectionError(''); setPage('overview'); setBusy(false); setExpired(false); setRenewedNotice(false);
     }
   };
 
@@ -251,6 +280,7 @@ function App() {
         {API_EDITABLE && <p>API 주소를 변경하면 인증된 세션으로 연결 및 사용자 권한을 다시 확인합니다.</p>}
         <AccountPanel api={api} token={session.access_token}/></section>}
       {connectionError && <div className="connection-alert" role="alert">{connectionError}</div>}
+      {renewedNotice && !expired && <div className="connection-alert" role="status">다시 로그인되었습니다. 방금 실패한 작업이 있으면 다시 실행해 주세요. <button type="button" className="text-button" onClick={() => setRenewedNotice(false)}>닫기</button></div>}
       {page === 'overview' ? <>
         <section className="hero"><div><div className="eyebrow">AI-POWERED CREATIVE PRODUCTION</div><h1>당신의 아이디어를<br/><em>프로페셔널 콘텐츠</em>로.</h1>
           <p>패션·캐릭터·제품 콘텐츠를 한 공간에서 기획하고 제작하고 관리하세요.</p><button className="primary" onClick={() => setPage('projects')}>프로젝트 시작하기 ↗</button></div>
@@ -273,6 +303,7 @@ function App() {
         {page === 'review' && (job.trim() ? <OutputReviewWorkspace apiBaseUrl={api} accessToken={session.access_token} jobId={job.trim()} viewerLabel={(session as { user?: { email?: string; id?: string } }).user?.email || (session as { user?: { id?: string } }).user?.id || ''}/> : <div className="warning">결과 검수를 위해 상단 설정에서 Job ID를 입력해 주세요.</div>)}
       </section>}
     </main>
+    {expired && <SessionExpiredDialog config={supabaseConfig} email={user?.email || session.user?.email || ''} onRenewed={renewed} onLogout={logout}/>}
   </div>;
 }
 
