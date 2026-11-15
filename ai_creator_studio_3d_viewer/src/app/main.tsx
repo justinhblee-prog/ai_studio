@@ -137,6 +137,7 @@ function App() {
   const sessionRef = useRef<AuthSession | null>(null);
   const apiRef = useRef(api);
   const renewing = useRef(false);
+  const connectedFor = useRef<string | null>(null); // user id the app is already connected for: a renewed token for the SAME user must not reload the screen
   sessionRef.current = session; apiRef.current = api;
 
   const connectSession = useCallback(async (candidate: AuthSession) => {
@@ -158,7 +159,9 @@ function App() {
       setWorkspaces(workspaceResult.workspaces as Workspace[]);
       setWorkspace(workspaceResult.workspace.workspace_id);
       setApiState('online');
+      connectedFor.current = (authenticatedUser as AuthUser).id;
     } catch (reason) {
+      connectedFor.current = null;
       setApiState('offline');
       setConnectionError(reason instanceof Error ? reason.message : 'Backend 연결에 실패했습니다.');
       setSession(candidate); saveSession(candidate);
@@ -174,8 +177,10 @@ function App() {
     }
   }, []);
 
+  useEffect(() => { connectedFor.current = null; }, [api, supabaseConfig]); // a different API address always means a fresh connection
   useEffect(() => {
     if (!session) return;
+    if (connectedFor.current && connectedFor.current === session.user?.id) return; // same user, new token (renewal or re-login): keep the screen as it is
     connectSession(session).catch(() => undefined);
   }, [session, connectSession]);
 
@@ -211,6 +216,7 @@ function App() {
     const previous = sessionRef.current?.user?.id;
     saveSession(next); setSession(next); setExpired(false); setRenewedNotice(true);
     if (previous && next.user?.id && previous !== next.user.id) { // a different account signed in: nothing of the old one may stay
+      connectedFor.current = null;
       setUser(null); setWorkspaces([]); setWorkspace(''); setJob(''); setLegal(null); setApiState('checking'); setPage('overview');
     }
   };
@@ -226,6 +232,7 @@ function App() {
     try { if (active) await signOut(supabaseConfig, active); }
     catch { /* local session is still cleared even if remote revocation is unavailable */ }
     finally {
+      connectedFor.current = null;
       clearSession(); setSession(null); setUser(null); setWorkspaces([]); setWorkspace(''); setJob(''); setLegal(null);
       setApiState('checking'); setConnectionError(''); setPage('overview'); setBusy(false); setExpired(false); setRenewedNotice(false);
     }
