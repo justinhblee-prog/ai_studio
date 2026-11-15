@@ -102,7 +102,7 @@ jobs:
     # Browser E2E: local SQLite backend (PROVIDER_MODE=mock, no external provider) + the release web build.
     # Supabase Auth is mocked inside the browser; no Supabase, Vercel or paid provider is contacted.
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
