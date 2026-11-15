@@ -38,6 +38,8 @@ def cap_env(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "PROVIDER_ROUTING_MODE", "MANUAL")
     for name in ("AI_JOBS_DISABLED", "AI_JOB_LIMIT_PER_WORKSPACE_MONTH", "AI_JOB_LIMIT_GLOBAL_MONTH", "AI_JOB_STOP_PERCENT"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.delenv("AI_COST_LIMIT_USD_MONTH", raising=False)
+    monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "100000")  # money cap far away so the older tests keep testing the job-count caps
     monkeypatch.setenv("AI_JOB_STOP_PERCENT", "100")  # the older tests below assert "blocked exactly at the limit"; the 90% rule has its own tests
     PaidStub.calls = 0
     for ws in ("cap-ws", "cap-ws2"):
@@ -182,3 +184,35 @@ def test_real_calls_stop_at_90_percent_of_the_limit_with_the_true_limit_in_the_a
     assert blocked.json()["detail"]["code"] == "WORKSPACE_MONTHLY_LIMIT"
     assert blocked.json()["detail"]["limit"] == 10 and blocked.json()["detail"]["used"] == 9
     assert PaidStub.calls <= 9, "the blocked request never reached the provider"
+
+
+def test_real_calls_are_refused_while_no_usd_limit_is_configured(cap_env, monkeypatch):
+    use_paid(cap_env)
+    monkeypatch.delenv("AI_COST_LIMIT_USD_MONTH")
+    refused = post()
+    assert refused.status_code == 429 and refused.json()["detail"]["code"] == "AI_JOBS_DISABLED"
+    assert PaidStub.calls == 0
+    monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "not a number")
+    assert post(n=1).status_code == 429 and PaidStub.calls == 0
+    monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "0")
+    assert post(n=2).status_code == 429 and PaidStub.calls == 0
+
+
+def test_the_usd_limit_stops_real_calls_at_90_percent_and_never_limits_mock(cap_env, monkeypatch):
+    use_paid(cap_env)
+    monkeypatch.delenv("AI_JOB_STOP_PERCENT")
+    monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "1.00")   # 90% = $0.90 = 12 jobs at $0.075
+    for n in range(12):
+        assert post(ws="cap-ws" if n % 2 else "cap-ws2", n=n).status_code == 202, n
+    blocked = post(n=99)
+    assert blocked.status_code == 429 and blocked.json()["detail"]["code"] == "GLOBAL_MONTHLY_LIMIT"
+    assert "limit" not in blocked.json()["detail"] and "used" not in blocked.json()["detail"], "service-wide money numbers are not exposed"
+    assert PaidStub.calls == 12
+    monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "2.00")   # raising the limit lets calls through again
+    assert post(n=100).status_code == 202
+
+
+def test_unit_costs_default_to_the_safe_side():
+    from app import cost_cap
+    assert cost_cap.unit_cost("fashn") == 0.075 and cost_cap.unit_cost("FASHN") == 0.075
+    assert cost_cap.unit_cost("some-new-provider") == 0.10
