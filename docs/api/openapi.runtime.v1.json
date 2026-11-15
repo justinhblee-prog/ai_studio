@@ -961,6 +961,40 @@
         "title": "EventListResponse",
         "type": "object"
       },
+      "FeatureState": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "status"
+        ],
+        "title": "FeatureState",
+        "type": "object"
+      },
+      "FeaturesResponse": {
+        "properties": {
+          "features": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FeatureState"
+            },
+            "title": "Features",
+            "type": "object"
+          }
+        },
+        "required": [
+          "features"
+        ],
+        "title": "FeaturesResponse",
+        "type": "object"
+      },
       "GeneratedOutputItemResponse": {
         "additionalProperties": true,
         "properties": {
@@ -5742,6 +5776,55 @@
           }
         },
         "summary": "List Models"
+      }
+    },
+    "/v1/features": {
+      "get": {
+        "operationId": "getFeatures",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeaturesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Features",
+        "tags": [
+          "features"
+        ]
       }
     },
     "/v1/generation-jobs": {
