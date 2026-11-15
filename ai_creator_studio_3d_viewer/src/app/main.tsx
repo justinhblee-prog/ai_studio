@@ -9,6 +9,7 @@ import LookbookDraftWorkspace from '../LookbookDraftWorkspace';
 import GenerationStartWorkspace from '../GenerationStartWorkspace';
 import JobResultsWorkspace from '../JobResultsWorkspace';
 import LibraryWorkspace from '../LibraryWorkspace';
+import { installImageGuard } from './imageGuard.mjs';
 import OutputReviewWorkspace from '../OutputReviewWorkspace';
 import Studio3DViewer from '../Studio3DViewer';
 import { apiRequest, loadOrCreateWorkspace } from './apiClient.mjs';
@@ -118,6 +119,7 @@ function App() {
     hostname: window.location.hostname,
   }));
   const [session, setSession] = useState<AuthSession | null>(() => loadSession() as AuthSession | null);
+  useEffect(() => installImageGuard(document), []); // R-035: no right-click menu / drag-to-save on pictures
   const [user, setUser] = useState<AuthUser | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState('');
@@ -268,7 +270,7 @@ function App() {
         {page === 'jobs' && <JobResultsWorkspace {...common}/>}
         {page === 'generate' && <GenerationStartWorkspace {...common} publicBase={import.meta.env.VITE_ASSET_PUBLIC_BASE_URL || ''}/ >}
         {page === 'lookbook' && <LookbookDraftWorkspace {...common}/ >}
-        {page === 'review' && (job.trim() ? <OutputReviewWorkspace apiBaseUrl={api} accessToken={session.access_token} jobId={job.trim()}/> : <div className="warning">결과 검수를 위해 상단 설정에서 Job ID를 입력해 주세요.</div>)}
+        {page === 'review' && (job.trim() ? <OutputReviewWorkspace apiBaseUrl={api} accessToken={session.access_token} jobId={job.trim()} viewerLabel={(session as { user?: { email?: string; id?: string } }).user?.email || (session as { user?: { id?: string } }).user?.id || ''}/> : <div className="warning">결과 검수를 위해 상단 설정에서 Job ID를 입력해 주세요.</div>)}
       </section>}
     </main>
   </div>;

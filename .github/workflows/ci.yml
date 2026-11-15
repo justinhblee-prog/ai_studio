@@ -153,7 +153,7 @@ jobs:
         run: |
           set -o pipefail
           node e2e/library_flow.mjs | tee e2e_library.txt
-          grep -q "SUMMARY 6/6 library steps passed" e2e_library.txt
+          grep -q "SUMMARY 7/7 library steps passed" e2e_library.txt
       - name: Roles, workspace isolation and mobile width
         working-directory: ai_creator_studio_3d_viewer
         run: |
@@ -165,7 +165,7 @@ jobs:
         run: |
           set -o pipefail
           node e2e/disclosure_flow.mjs | tee e2e_disclosure.txt
-          grep -q "SUMMARY 4/4 disclosure steps passed" e2e_disclosure.txt
+          grep -q "SUMMARY 5/5 disclosure steps passed" e2e_disclosure.txt
       - name: Responsive layout, no sideways scrolling (360-1280 px)
         working-directory: ai_creator_studio_3d_viewer
         run: |

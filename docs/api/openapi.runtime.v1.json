@@ -7219,7 +7219,7 @@
     },
     "/v1/library/items/{item_id}/versions/{version}/preview": {
       "get": {
-        "description": "Short-lived signed link (like the asset preview links): usable by an <img> tag, valid for the item's current version only.",
+        "description": "Short-lived signed link (like the asset preview links): usable by an <img> tag, valid for the item's current version only.\nThe picture is a downscaled screen copy (long edge at most LIBRARY_PREVIEW_MAX_EDGE), never the original file.",
         "operationId": "previewLibraryItem",
         "parameters": [
           {

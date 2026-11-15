@@ -31,3 +31,7 @@
 .account-delete p { margin: 0; opacity: .85; }
 .outline.danger { border-color: #c0392b; color: #c0392b; }
 @media (max-width: 480px) { .legal-gate { padding: 20px 16px; } }
+
+/* R-035: pictures cannot be dragged or selected, are not offered by long-press, and are left out of printouts (supporting measures only) */
+img, canvas { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }
+@media print { img, canvas, [data-protect-image] { display: none !important; } body::before { content: "이미지는 인쇄되지 않습니다."; display: block; padding: 12px; } }
