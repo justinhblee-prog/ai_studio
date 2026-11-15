@@ -317,7 +317,27 @@ def preview_bytes(item_id: str, version: int, expires: int, signature: str) -> t
     item, content, _ = _read_current(item_id)
     if item["version"] != version:  # a link to an older version stops working once the item has a newer one
         raise LibraryError("LIBRARY_NOT_FOUND", "Library item not found.", 404)
-    return content, item["media_type"]
+    return screen_copy(content, item["media_type"]), item["media_type"]
+
+
+def screen_copy(content: bytes, media_type: str, max_edge: int | None = None) -> bytes:
+    """The picture as shown on screen (R-035): scaled so its long edge is at most LIBRARY_PREVIEW_MAX_EDGE (never enlarged), re-encoded
+    from the pixels so no embedded metadata is passed on. The original-resolution file is only ever copied into a workspace by an import."""
+    from PIL import Image
+    limit = int(max_edge or config.LIBRARY_PREVIEW_MAX_EDGE)
+    fmt = {"image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WEBP"}[media_type]
+    with Image.open(BytesIO(content)) as image:
+        image.load()
+        width, height = image.size
+        scale = min(1.0, limit / max(width, height))
+        if scale < 1.0:
+            image = image.resize((max(1, round(width * scale)), max(1, round(height * scale))), Image.LANCZOS)
+        if fmt == "JPEG" and image.mode not in ("RGB", "L"):
+            image = image.convert("RGB")
+        out = BytesIO()
+        options = {"PNG": {"optimize": True}, "JPEG": {"quality": 85, "optimize": True}, "WEBP": {"quality": 85}}[fmt]
+        image.save(out, format=fmt, **options)
+    return out.getvalue()
 
 
 # ---------------------------------------------------------------------------------------------------- copy into a workspace

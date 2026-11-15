@@ -136,7 +136,9 @@ def test_signed_preview_works_without_a_token_and_only_for_the_current_published
     add(env, content=png((1, 2, 3)))
     url = client.get("/v1/library/items/top-01/preview-url", headers=auth("b")).json()["url"]
     ok = client.get(url)  # an <img> tag sends no Authorization header
-    assert ok.status_code == 200 and ok.headers["content-type"] == "image/png" and ok.content == png((1, 2, 3))
+    assert ok.status_code == 200 and ok.headers["content-type"] == "image/png"
+    with Image.open(BytesIO(ok.content)) as shown:  # R-035: a screen copy re-encoded from the pixels, not the stored file's bytes
+        assert shown.size == (24, 32) and shown.convert("RGB").getpixel((0, 0)) == (1, 2, 3)
     assert client.get(url.replace("signature=", "signature=0")).status_code == 403
     assert client.get(url.replace("expires=", "expires=1")).status_code == 403
     add(env, content=png((9, 9, 9)))  # a new version: the old link must stop working

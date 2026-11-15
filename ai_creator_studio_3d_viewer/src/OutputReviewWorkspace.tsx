@@ -1,3 +1,4 @@
+import { watermarkStyle, watermarkText } from './app/imageGuard.mjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './OutputReviewWorkspace.css';
 import { useRequestScope } from './useRequestScope';
@@ -59,6 +60,7 @@ export type OutputReviewWorkspaceProps = {
   apiBaseUrl: string;
   accessToken: string;
   jobId: string;
+  viewerLabel?: string; // R-035: shown (with the time) as a faint repeated watermark over previews
 };
 
 async function responseError(response: Response): Promise<string> {
@@ -71,7 +73,7 @@ async function responseError(response: Response): Promise<string> {
   }
 }
 
-export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId }: OutputReviewWorkspaceProps) {
+export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId, viewerLabel }: OutputReviewWorkspaceProps) {
   const base = apiBaseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${accessToken}` };
   const { capture: captureScope, isCurrent: isScopeCurrent } = useRequestScope([base, accessToken, jobId]);
@@ -269,7 +271,7 @@ export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId }
           <p className={`acs-ai-label acs-ai-label-${disclosure.kind}`} data-ai-disclosure={disclosure.kind}>{disclosure.text}</p>
           <p>{output.mime_type} · {output.size_bytes.toLocaleString()} bytes · Asset link: {output.asset_link_status}</p>
           {review?.output.asset_version_id && <><button type="button" disabled={!!previewLoading[output.id]} onClick={() => loadOutputPreview(output.id)}>{previewLoading[output.id] ? '미리보기 불러오는 중…' : previewUrls[output.id] ? '미리보기 새로고침' : '미리보기 불러오기 / 재시도'}</button>{previewErrors[output.id] && <small role="status">{previewErrors[output.id]}</small>}{previewExpiries[output.id] && <small>링크 만료 예정: {new Date(previewExpiries[output.id] * 1000).toLocaleTimeString()}</small>}</>}
-          {previewUrls[output.id] && <img className="acs-output-review-preview" src={previewUrls[output.id]} alt="검수 대상 immutable AssetVersion 미리보기" loading="lazy" onError={(event) => handlePreviewImageError(output.id, event.currentTarget.src)} />}
+          {previewUrls[output.id] && <div className="acs-watermarked" data-protect-image><img className="acs-output-review-preview" src={previewUrls[output.id]} alt="검수 대상 immutable AssetVersion 미리보기" loading="lazy" onError={(event) => handlePreviewImageError(output.id, event.currentTarget.src)} /><div className="acs-watermark" aria-hidden="true" data-testid="preview-watermark" style={watermarkStyle(watermarkText(viewerLabel))}/></div>}
           {review?.output.asset_version_id && <dl>
             <div><dt>Asset</dt><dd>{review.output.asset_id}</dd></div>
             <div><dt>Immutable Version</dt><dd>{review.output.asset_version_id}</dd></div>

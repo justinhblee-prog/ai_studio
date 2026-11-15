@@ -95,6 +95,22 @@ try {
     assert.ok((await assets()).some(a => a.asset_id === chosen && /background-01/.test(a.original_filename)));
   });
 
+  await run('R-035: a library picture loads from the app only (no origin = refused), is a downscaled uncached inline copy, and cannot be saved with right click or drag', async () => {
+    await page.locator('button.nav', { hasText: '라이브러리' }).filter({ hasNotText: '에셋' }).click();
+    await cards().first().locator('img').waitFor({ timeout: 10000 });
+    const src = await cards().first().locator('img').getAttribute('src');
+    const direct = await page.request.get(src);                                   // like typing the address into a browser: no Origin, no Referer
+    assert.equal(direct.status(), 403, 'a signed address opened outside the app is refused');
+    const other = await page.request.get(src, { headers: { Origin: 'https://evil.example' } });
+    assert.equal(other.status(), 403, 'another site cannot embed it');
+    const inApp = await page.request.get(src, { headers: { Origin: stack.webUrl } });
+    assert.equal(inApp.status(), 200);
+    assert.equal(inApp.headers()['cache-control'], 'private, no-store');
+    assert.match(inApp.headers()['content-disposition'], /^inline/);
+    const blocked = await cards().first().locator('img').evaluate(el => ['contextmenu', 'dragstart'].map(type => { const ev = new Event(type, { bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev.defaultPrevented; }));
+    assert.deepEqual(blocked, [true, true]);
+  });
+
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} library steps passed`);
 } catch { failed = true; }
 finally { await browser.close(); await stack.stop(); }

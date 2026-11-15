@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from app import library
+from app.image_guard import IMAGE_HEADERS, check_embed_origin
 from app.assets.routes import current_user, require_role
 from app.viewer_responses import AssetRecordResponse
 
@@ -83,13 +84,15 @@ async def library_preview_url(item_id: str, user_id: str = Depends(current_user)
 
 
 @router.get("/items/{item_id}/versions/{version}/preview", operation_id="previewLibraryItem")
-async def preview_library_item(item_id: str, version: int, expires: int, signature: str):
-    """Short-lived signed link (like the asset preview links): usable by an <img> tag, valid for the item's current version only."""
+async def preview_library_item(request: Request, item_id: str, version: int, expires: int, signature: str):
+    """Short-lived signed link (like the asset preview links): usable by an <img> tag, valid for the item's current version only.
+    The picture is a downscaled screen copy (long edge at most LIBRARY_PREVIEW_MAX_EDGE), never the original file."""
+    check_embed_origin(request)  # R-035: only pages of this application may load library images
     try:
         content, media_type = library.preview_bytes(item_id, version, expires, signature)
     except library.LibraryError as exc:
         _raise(exc)
-    return Response(content=content, media_type=media_type, headers={"Cache-Control": "private, max-age=60", "X-Content-Type-Options": "nosniff"})
+    return Response(content=content, media_type=media_type, headers=IMAGE_HEADERS)
 
 
 @router.post("/items/{item_id}/import", status_code=201, response_model=AssetRecordResponse, operation_id="importLibraryItem")

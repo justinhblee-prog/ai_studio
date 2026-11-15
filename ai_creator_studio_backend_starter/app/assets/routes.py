@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query
 import httpx
 from pydantic import BaseModel, Field
 from starlette.responses import StreamingResponse
+from app.image_guard import check_embed_origin
 from app.private_file_response import PrivateFileError, open_private_file_response
 from app.ports.asset_bytes import get_asset_bytes_port
 from app.ports.assets import get_asset_metadata_port
@@ -398,13 +399,14 @@ async def preview_asset_version_content(asset_id: str, version_id: str, user_id:
     version, path = _verified_version_path(asset_id, workspace_id, version_id)
     try:
         return open_private_file_response(path, media_type=version["media_type"],
-            expected_size=int(version["size_bytes"]), expected_sha256=version["checksum_sha256"])
+            expected_size=int(version["size_bytes"]), expected_sha256=version["checksum_sha256"], inline=True)
     except PrivateFileError as exc:
         raise HTTPException(status_code=409, detail="Asset version file failed descriptor integrity validation") from exc
 
 
 @router.get("/{asset_id}/versions/{version_id}/preview")
-async def preview_asset_version(asset_id: str, version_id: str, expires: int, signature: str):
+async def preview_asset_version(request: Request, asset_id: str, version_id: str, expires: int, signature: str):
+    check_embed_origin(request)  # R-035: only pages of this application may load the image
     now = int(time.time())
     if expires < now or expires > now + 901:
         raise HTTPException(status_code=403, detail="Asset version preview URL expired or invalid")
@@ -417,13 +419,14 @@ async def preview_asset_version(asset_id: str, version_id: str, expires: int, si
     version, path = _verified_version_path(asset_id, workspace_id, version_id)
     try:
         return open_private_file_response(path, media_type=version["media_type"],
-            expected_size=int(version["size_bytes"]), expected_sha256=version["checksum_sha256"])
+            expected_size=int(version["size_bytes"]), expected_sha256=version["checksum_sha256"], inline=True)
     except PrivateFileError as exc:
         raise HTTPException(status_code=409, detail="Asset version file failed descriptor integrity validation") from exc
 
 
 @router.get("/{asset_id}/preview")
-async def preview_asset(asset_id: str, expires: int, signature: str):
+async def preview_asset(request: Request, asset_id: str, expires: int, signature: str):
+    check_embed_origin(request)  # R-035
     now = int(time.time())
     if expires < now or expires > now + 901:
         raise HTTPException(status_code=403, detail="Preview URL expired or invalid")
@@ -439,7 +442,7 @@ async def preview_asset(asset_id: str, expires: int, signature: str):
     if media is None:
         raise HTTPException(status_code=415, detail="Unsupported stored asset media type")
     try:
-        return open_private_file_response(path, media_type=media, filename=path.name)
+        return open_private_file_response(path, media_type=media, filename=path.name, inline=True)
     except PrivateFileError as exc:
         raise HTTPException(status_code=409, detail="Asset preview file is not safely readable") from exc
 

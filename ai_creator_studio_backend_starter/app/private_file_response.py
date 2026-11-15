@@ -22,7 +22,7 @@ class PrivateFileError(Exception):
 def open_private_file_response(
     path: str | Path, *, media_type: str, filename: str | None = None,
     expected_size: int | None = None, expected_sha256: str | None = None,
-    headers: Mapping[str, str] | None = None, chunk_size: int = 1024 * 1024,
+    headers: Mapping[str, str] | None = None, chunk_size: int = 1024 * 1024, inline: bool = False,
 ) -> StreamingResponse:
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
@@ -59,7 +59,9 @@ def open_private_file_response(
     if filename:
         # Avoid injecting untrusted header control characters.
         safe_name = Path(filename).name.replace("\r", "").replace("\n", "").replace('"', "")
-        response_headers["Content-Disposition"] = f'attachment; filename="{safe_name}"'
+        response_headers["Content-Disposition"] = f'{"inline" if inline else "attachment"}; filename="{safe_name}"'
+    elif inline:
+        response_headers["Content-Disposition"] = "inline"
     if headers:
         response_headers.update(dict(headers))
 

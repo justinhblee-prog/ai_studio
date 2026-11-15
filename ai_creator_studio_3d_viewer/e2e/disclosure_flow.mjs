@@ -59,6 +59,25 @@ try {
     assert.deepEqual(exported.body.manifest.outputs.map(o => o.is_ai_generated), [true]);
   });
 
+  await run('R-035: a review preview loads inside the app, carries a faint name+time watermark, and cannot be saved with right click or drag', async () => {
+    const item = page.locator('article.acs-output-review-item').first();
+    await item.getByRole('button', { name: /미리보기/ }).click();
+    const img = item.locator('img.acs-output-review-preview');
+    await img.waitFor({ timeout: 15000 });
+    await page.waitForFunction(() => { const i = document.querySelector('img.acs-output-review-preview'); return !!i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 });
+    const wm = item.locator('[data-testid=preview-watermark]');
+    const style = await wm.evaluate(e => e.style.backgroundImage);
+    assert.match(decodeURIComponent(style), new RegExp(USERS.owner.email.replace('.', '\.')), 'the watermark names the viewer');
+    assert.equal(await wm.evaluate(e => getComputedStyle(e).pointerEvents), 'none');
+    const blocked = await img.evaluate(el => ['contextmenu', 'dragstart'].map(type => { const ev = new Event(type, { bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev.defaultPrevented; }));
+    assert.deepEqual(blocked, [true, true]);
+    const input = page.locator('main input').first();
+    if (await input.count()) assert.equal(await input.evaluate(el => { const ev = new Event('contextmenu', { bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev.defaultPrevented; }), false, 'text fields keep their normal menu');
+    await page.emulateMedia({ media: 'print' });
+    assert.equal(await img.evaluate(el => getComputedStyle(el.closest('[data-protect-image]')).display), 'none', 'pictures are left out of a printout');
+    await page.emulateMedia({ media: 'screen' });
+  });
+
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} disclosure steps passed`);
 } catch (error) { if (!(globalThis.__reported)) console.log('ERROR ' + (error && error.stack || error).toString().slice(0, 800)); failed = true; }
 finally { await browser.close(); await stack.stop(); }
