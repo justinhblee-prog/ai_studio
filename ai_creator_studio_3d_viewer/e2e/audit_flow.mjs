@@ -2,7 +2,9 @@
 // Real: web bundle, backend, SQLite. Mocked: Supabase Auth. No AI provider is called. Run: node e2e/audit_flow.mjs
 import { startStack, chromium, loginThroughUi, gotoPage, newUserPage, seedSharedWorkspace, USERS } from './harness.mjs';
 
-const SCREENS = ['대시보드', '프로젝트 관리', '에셋 라이브러리', '3D 스튜디오', '상품 카탈로그', '프로젝트·상품 연결', '포토 스튜디오', '가상 착장 시험 생성', '생성 작업 결과', '룩북 스튜디오', '결과물 검수'];
+const SCREENS = ['대시보드', '프로젝트 관리', '에셋 라이브러리', '3D 스튜디오', '상품 카탈로그', '프로젝트·상품 연결', '포토 스튜디오', '라이브러리', '가상 착장 시험 생성', '생성 작업 결과', '룩북 스튜디오', '결과물 검수'];
+// "라이브러리" is also part of "에셋 라이브러리": the shared gotoPage would match two menu buttons
+const go = (page, screen) => (screen === '라이브러리' ? page.locator('button.nav', { hasText: '라이브러리' }).filter({ hasNotText: '에셋' }).click() : gotoPage(page, screen));
 const findings = [];
 const add = (screen, category, detail) => { findings.push({ screen, category, detail }); console.log(`FINDING | ${screen} | ${category} | ${detail}`); };
 const RETRY = /다시 시도|재시도|새로고침|다시 불러오기|다시 확인/;
@@ -27,7 +29,7 @@ try {
     await page.route('**/v1/**', handler);
     for (const screen of SCREENS) {
       try {
-        await gotoPage(page, screen);
+        await go(page, screen);
         await page.waitForTimeout(900);
         const info = await page.evaluate((retrySrc) => {
           const main = document.querySelector('main') || document.body;
@@ -56,7 +58,7 @@ try {
 
   // 2) accessible names, labels, focus visibility, per screen
   for (const screen of SCREENS) {
-    await gotoPage(page, screen);
+    await go(page, screen);
     await page.waitForTimeout(500);
     const res = await page.evaluate(() => {
       const visible = el => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
@@ -111,7 +113,7 @@ try {
   // 4) phone width: sideways scroll on EVERY screen, and which element is widest
   await page.setViewportSize({ width: 360, height: 800 });
   for (const screen of SCREENS) {
-    await gotoPage(page, screen); await page.waitForTimeout(400);
+    await go(page, screen); await page.waitForTimeout(400);
     const m = await page.evaluate(() => {
       const inner = window.innerWidth; const scroll = document.documentElement.scrollWidth;
       let worst = null;
