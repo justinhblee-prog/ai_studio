@@ -22,7 +22,7 @@ content = buffer.getvalue()
 storage_key = f"{job_id}.attempt-e2e-001.png"
 (config.OUTPUT_DIR / storage_key).write_bytes(content)
 now = datetime.now(timezone.utc)
-task_id = "poll_e2e_seed"
+task_id = f"poll_e2e_seed_{job_id}"  # unique per job so more than one job can be seeded in a run
 with job_repository._connect() as db:
     db.execute("UPDATE generation_jobs SET status='post_processing' WHERE job_id=?", (job_id,))
     db.execute("UPDATE generation_executions SET status='post_processing' WHERE job_id=?", (job_id,))
