@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import './ProductCatalogWorkspace.css';
 import { useRequestScope } from './useRequestScope';
+import { errorText, responseErrorText } from './app/errorMessages.mjs';
 
 type ImageAsset = { asset_id: string; original_filename: string };
 type Product = {
@@ -27,13 +28,7 @@ export type ProductCatalogWorkspaceProps = {
 };
 
 async function responseError(response: Response): Promise<string> {
-  try {
-    const body = await response.json();
-    const detail = body?.detail;
-    return typeof detail === 'string' ? detail : detail?.message || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
+  return responseErrorText(response);
 }
 
 export function ProductCatalogWorkspace({ apiBaseUrl, accessToken, workspaceId }: ProductCatalogWorkspaceProps) {
@@ -90,7 +85,7 @@ export function ProductCatalogWorkspace({ apiBaseUrl, accessToken, workspaceId }
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal).catch((reason: unknown) => {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '상품 카탈로그를 불러오지 못했습니다.');
+      if (!controller.signal.aborted) setError(errorText(reason, '상품 카탈로그를 불러오지 못했습니다.'));
     });
     return () => controller.abort();
   }, [load]);
@@ -130,7 +125,7 @@ export function ProductCatalogWorkspace({ apiBaseUrl, accessToken, workspaceId }
       clearProductForm();
       await load();
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '상품을 저장하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '상품을 저장하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }
@@ -153,7 +148,7 @@ export function ProductCatalogWorkspace({ apiBaseUrl, accessToken, workspaceId }
       if (variantParentId === productId) clearVariantForm();
       await load();
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '상품을 보관하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '상품을 보관하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }
@@ -223,7 +218,7 @@ export function ProductCatalogWorkspace({ apiBaseUrl, accessToken, workspaceId }
       clearVariantForm();
       await load();
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '상품 옵션을 저장하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '상품 옵션을 저장하지 못했습니다.'));
     } finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, variantParentId, editingVariantId, variantSku, variantColor, variantSize, variantExtraOptions, variantImageAssetIds, clearVariantForm, load, captureScope, isScopeCurrent]);
 
@@ -236,7 +231,7 @@ export function ProductCatalogWorkspace({ apiBaseUrl, accessToken, workspaceId }
       if (!isScopeCurrent(scope)) return;
       if (editingVariantId === variantId) clearVariantForm();
       await load();
-    } catch (reason) { if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '상품 옵션을 보관하지 못했습니다.'); }
+    } catch (reason) { if (isScopeCurrent(scope)) setError(errorText(reason, '상품 옵션을 보관하지 못했습니다.')); }
     finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, editingVariantId, clearVariantForm, load, captureScope, isScopeCurrent]);
 

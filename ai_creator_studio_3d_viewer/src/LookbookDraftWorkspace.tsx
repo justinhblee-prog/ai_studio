@@ -5,6 +5,7 @@ import { subscribeProjectLifecycleChanges } from './projectLifecycleEvents.mjs';
 import { KeyedRequestGate } from './keyedRequestGate.mjs';
 import { AuthenticatedPreviewObjectUrls } from './authenticatedPreviewObjectUrls.mjs';
 import { getSignedDownloadExpiry, isSignedLinkUsable, isCurrentPreviewUrl } from './lookbookPreviewLinks.mjs';
+import { errorText, responseErrorText } from './app/errorMessages.mjs';
 
 type ImageAsset = { asset_id: string; original_filename: string };
 type Project = { project_id: string; workspace_id: string; name: string; project_type: string; status: string; description: string | null; external_reference: string | null; created_by: string; created_at: string; updated_at: string };
@@ -48,13 +49,7 @@ export type LookbookDraftWorkspaceProps = {
 };
 
 async function responseError(response: Response): Promise<string> {
-  try {
-    const body = await response.json();
-    const detail = body?.detail;
-    return typeof detail === 'string' ? detail : detail?.message || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
+  return responseErrorText(response);
 }
 
 export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }: LookbookDraftWorkspaceProps) {
@@ -169,14 +164,14 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal).catch((reason: unknown) => {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Lookbook 자료를 불러오지 못했습니다.');
+      if (!controller.signal.aborted) setError(errorText(reason, 'Lookbook 자료를 불러오지 못했습니다.'));
     });
     return () => controller.abort();
   }, [load]);
 
   useEffect(() => subscribeProjectLifecycleChanges((change) => {
     if (change.workspaceId !== workspaceId) return;
-    load().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : '프로젝트 상태 변경을 반영하지 못했습니다.'));
+    load().catch((reason: unknown) => setError(errorText(reason, '프로젝트 상태 변경을 반영하지 못했습니다.')));
   }), [workspaceId, load]);
 
   const createDraft = useCallback(async (event: FormEvent<HTMLFormElement>) => {
@@ -206,7 +201,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       await load();
       if (!isScopeCurrent(scope)) return;
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Lookbook 초안을 저장하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, 'Lookbook 초안을 저장하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }
@@ -224,7 +219,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       if (!isScopeCurrent(scope)) return;
       await load();
       if (!isScopeCurrent(scope)) return;
-    } catch (reason) { if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '검토 상태를 변경하지 못했습니다.'); }
+    } catch (reason) { if (isScopeCurrent(scope)) setError(errorText(reason, '검토 상태를 변경하지 못했습니다.')); }
     finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, reviewComment, load, captureScope, isScopeCurrent]);
 
@@ -240,7 +235,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       const manifestResult = await response.json();
       if (!isManifestRequestCurrent()) return;
       setManifestJson(JSON.stringify(manifestResult, null, 2));
-    } catch (reason) { if (isManifestRequestCurrent()) setError(reason instanceof Error ? reason.message : '승인된 기획안 manifest를 불러오지 못했습니다.'); }
+    } catch (reason) { if (isManifestRequestCurrent()) setError(errorText(reason, '승인된 기획안 manifest를 불러오지 못했습니다.')); }
     finally { if (isManifestRequestCurrent()) setBusy(false); }
   }, [base, accessToken, workspaceId, captureScope, isScopeCurrent]);
 
@@ -268,7 +263,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       if (!isCurrent()) return;
       outputPreviewUrlRef.current[outputId] = '';
       setOutputPreviewUrls((current) => ({ ...current, [outputId]: '' }));
-      setOutputPreviewStates((current) => ({ ...current, [outputId]: { status: 'error', expiresAt: null, error: reason instanceof Error ? reason.message : '미리보기 링크를 발급하지 못했습니다.' } }));
+      setOutputPreviewStates((current) => ({ ...current, [outputId]: { status: 'error', expiresAt: null, error: errorText(reason, '미리보기 링크를 발급하지 못했습니다.') } }));
     }
   }, [base, accessToken, captureScope, isScopeCurrent]);
 
@@ -323,7 +318,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       setOutputPageOrder(outputResult.items.length + 1); setOutputCaption('');
       setAssemblyDraftId(draftId);
     } catch (reason) {
-      if (isAssemblyRequestCurrent()) setError(reason instanceof Error ? reason.message : '승인된 Photo 결과를 불러오지 못했습니다.');
+      if (isAssemblyRequestCurrent()) setError(errorText(reason, '승인된 Photo 결과를 불러오지 못했습니다.'));
     } finally { if (isAssemblyRequestCurrent()) setBusy(false); }
   }, [base, accessToken, workspaceId, captureScope, isScopeCurrent, requestOutputPreview]);
 
@@ -341,7 +336,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       if (!isScopeCurrent(scope)) return;
       await loadOutputAssembly(assemblyDraftId);
       if (!isScopeCurrent(scope)) return;
-    } catch (reason) { if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Photo 결과를 Lookbook에 연결하지 못했습니다.'); }
+    } catch (reason) { if (isScopeCurrent(scope)) setError(errorText(reason, 'Photo 결과를 Lookbook에 연결하지 못했습니다.')); }
     finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, assemblyDraftId, selectedPhotoRunId, selectedVariantId, outputPageOrder, outputCaption, loadOutputAssembly, captureScope, isScopeCurrent]);
 
@@ -355,7 +350,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       if (!isScopeCurrent(scope)) return;
       await loadOutputAssembly(assemblyDraftId);
       if (!isScopeCurrent(scope)) return;
-    } catch (reason) { if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Lookbook 조립 검토를 요청하지 못했습니다.'); }
+    } catch (reason) { if (isScopeCurrent(scope)) setError(errorText(reason, 'Lookbook 조립 검토를 요청하지 못했습니다.')); }
     finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, assemblyDraftId, loadOutputAssembly, captureScope, isScopeCurrent]);
 
@@ -372,7 +367,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       if (!isScopeCurrent(scope)) return;
       await loadOutputAssembly(assemblyDraftId);
       if (!isScopeCurrent(scope)) return;
-    } catch (reason) { if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Lookbook 조립 검토를 완료하지 못했습니다.'); }
+    } catch (reason) { if (isScopeCurrent(scope)) setError(errorText(reason, 'Lookbook 조립 검토를 완료하지 못했습니다.')); }
     finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, assemblyDraftId, assemblyReviewComment, loadOutputAssembly, captureScope, isScopeCurrent]);
 
@@ -391,7 +386,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       if (!historyResponse.ok) throw new Error(await responseError(historyResponse));
       const historyResult = await historyResponse.json() as { items: PackageExportHistoryItem[] };
       if (isScopeCurrent(scope)) setPackageExportHistory(historyResult.items);
-    } catch (reason) { if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '내부 Lookbook ZIP을 만들지 못했습니다.'); }
+    } catch (reason) { if (isScopeCurrent(scope)) setError(errorText(reason, '내부 Lookbook ZIP을 만들지 못했습니다.')); }
     finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, assemblyDraftId, assemblyReview, captureScope, isScopeCurrent]);
 
@@ -421,7 +416,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch (reason) {
-      if (isCurrent()) setPackageDownloadError(reason instanceof Error ? reason.message : 'ZIP 다운로드에 실패했습니다. 서명 링크가 만료되었을 수 있습니다.');
+      if (isCurrent()) setPackageDownloadError(errorText(reason, 'ZIP 다운로드에 실패했습니다. 서명 링크가 만료되었을 수 있습니다.'));
     } finally {
       if (isCurrent()) setPackageDownloadBusy(false);
     }
@@ -438,7 +433,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       const manifestResult = await response.json();
       if (!isScopeCurrent(scope)) return;
       setOutputManifestJson(JSON.stringify(manifestResult, null, 2));
-    } catch (reason) { if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Lookbook 결과 manifest를 만들지 못했습니다.'); }
+    } catch (reason) { if (isScopeCurrent(scope)) setError(errorText(reason, 'Lookbook 결과 manifest를 만들지 못했습니다.')); }
     finally { if (isScopeCurrent(scope)) setBusy(false); }
   }, [base, accessToken, workspaceId, assemblyDraftId, assemblyReview, captureScope, isScopeCurrent]);
 
@@ -456,7 +451,7 @@ export function LookbookDraftWorkspace({ apiBaseUrl, accessToken, workspaceId }:
       await load();
       if (!isScopeCurrent(scope)) return;
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Lookbook 초안을 보관하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, 'Lookbook 초안을 보관하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }

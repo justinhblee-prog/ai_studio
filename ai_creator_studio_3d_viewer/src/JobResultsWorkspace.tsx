@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GenerationJob } from './app/generationStart.mjs';
+import { errorText } from './app/errorMessages.mjs';
 import {
   EMPTY_LIST_MESSAGE, IMAGE_BROKEN_MESSAGE, NO_RESULT_MESSAGE, TEST_MARK, createJobPoller, failureMessage, isActive, listGenerationJobs, loadJobResultBlob, statusGroup, statusLabel,
 } from './app/jobResults.mjs';
@@ -23,7 +24,7 @@ export default function JobResultsWorkspace({ apiBaseUrl, accessToken, workspace
   const refresh = useCallback(async () => {
     setBusy(true); setError('');
     try { applyJobs(await listGenerationJobs(apiBaseUrl, accessToken, workspaceId)); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : '작업 목록을 불러오지 못했습니다.'); }
+    catch (reason) { setError(errorText(reason, '작업 목록을 불러오지 못했습니다.')); }
     finally { setBusy(false); }
   }, [apiBaseUrl, accessToken, workspaceId, applyJobs]);
 
@@ -55,7 +56,7 @@ export default function JobResultsWorkspace({ apiBaseUrl, accessToken, workspace
       if (revoked) return;
       if (!blob) { setImageState('missing'); return; }
       created = URL.createObjectURL(blob); setImageUrl(created); setImageState('ready');
-    }).catch((reason: unknown) => { if (!revoked) { setImageState('missing'); setError(reason instanceof Error ? reason.message : '결과 이미지를 불러오지 못했습니다.'); } });
+    }).catch((reason: unknown) => { if (!revoked) { setImageState('missing'); setError(errorText(reason, '결과 이미지를 불러오지 못했습니다.')); } });
     return () => { revoked = true; if (created) URL.revokeObjectURL(created); };
   // keyed on the primitives: an auto refresh replaces the object but must not re-download an unchanged image
   }, [apiBaseUrl, accessToken, selected?.job_id, selected?.status, selected?.output_url]); // eslint-disable-line react-hooks/exhaustive-deps

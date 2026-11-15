@@ -3,6 +3,7 @@ import LibraryBrowser from './LibraryBrowser';
 import { GROUPS, groupOf, importLibraryItem } from './app/libraryClient.mjs';
 import type { LibraryItem } from './app/libraryClient.mjs';
 import './LibraryBrowser.css';
+import { errorText } from './app/errorMessages.mjs';
 
 type Props = { apiBaseUrl: string; accessToken: string; workspaceId: string };
 
@@ -19,7 +20,7 @@ export default function LibraryWorkspace({ apiBaseUrl, accessToken, workspaceId 
       await importLibraryItem(apiBaseUrl, accessToken, item.item_id, workspaceId);
       setMessage(`"${item.name_ko}"을(를) 내 자산에 가져왔습니다. 포토 스튜디오나 가상 착장 시험 생성의 "내 자산"에서 고를 수 있습니다.`);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '가져오지 못했습니다.');
+      setError(errorText(reason, '가져오지 못했습니다.'));
     }
   };
 

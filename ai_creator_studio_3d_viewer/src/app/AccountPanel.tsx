@@ -3,6 +3,7 @@ import { cancelDeletionRequest, loadConsents, loadDeletionRequests, requestAccou
 import type { ConsentItem, DeletionRequest } from './legalApi.mjs';
 import { DOCUMENT_LABELS } from './legalApi.mjs';
 import LegalDocumentModal from './LegalDocumentModal';
+import { errorText } from './errorMessages.mjs';
 
 // Shown inside the settings panel: the optional AI-training consent (withdrawable) and account deletion requests.
 export default function AccountPanel({ api, token }: { api: string; token: string }) {
@@ -17,13 +18,13 @@ export default function AccountPanel({ api, token }: { api: string; token: strin
     try {
       const [c, r] = await Promise.all([loadConsents(api, token), loadDeletionRequests(api, token)]);
       setConsents(c); setRequests(r); setError('');
-    } catch (reason) { setError(reason instanceof Error ? reason.message : '계정 정보를 불러오지 못했습니다.'); }
+    } catch (reason) { setError(errorText(reason, '계정 정보를 불러오지 못했습니다.')); }
   }, [api, token]);
   useEffect(() => { void reload(); }, [reload]);
 
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true); setError('');
-    try { await fn(); await reload(); } catch (reason) { setError(reason instanceof Error ? reason.message : '요청에 실패했습니다.'); }
+    try { await fn(); await reload(); } catch (reason) { setError(errorText(reason, '요청에 실패했습니다.')); }
     finally { setBusy(false); }
   };
   const ai = consents.find(c => c.purpose === 'ai_training');

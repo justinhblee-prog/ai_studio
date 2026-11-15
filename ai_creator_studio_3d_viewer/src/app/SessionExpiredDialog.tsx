@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { signInWithPassword } from './supabaseAuth.mjs';
 import type { AuthSession } from './supabaseAuth.mjs';
+import { authErrorText } from './errorMessages.mjs';
 
 type Props = {
   config: Parameters<typeof signInWithPassword>[0];
@@ -23,7 +24,7 @@ export default function SessionExpiredDialog({ config, email, onRenewed, onLogou
     event.preventDefault();
     setBusy(true); setError('');
     try { onRenewed(await signInWithPassword(config, mail, password) as AuthSession); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : '로그인하지 못했습니다. 이메일과 비밀번호를 확인해 주세요.'); }
+    catch (reason) { setError(authErrorText(reason)); }
     finally { setBusy(false); }
   };
 

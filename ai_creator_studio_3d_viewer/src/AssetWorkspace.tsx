@@ -2,6 +2,7 @@ import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Studio3DViewer from './Studio3DViewer';
 import './AssetWorkspace.css';
 import { useRequestScope } from './useRequestScope';
+import { errorText, responseErrorText } from './app/errorMessages.mjs';
 
 type AssetRecord = {
   asset_id: string;
@@ -40,13 +41,7 @@ type AssetWorkspaceProps = {
 };
 
 async function readError(response: Response): Promise<string> {
-  try {
-    const body = await response.json();
-    const detail = body?.detail;
-    return typeof detail === 'string' ? detail : detail?.message || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
+  return responseErrorText(response);
 }
 
 export function AssetWorkspace({ apiBaseUrl, accessToken, workspaceId }: AssetWorkspaceProps) {
@@ -85,7 +80,7 @@ export function AssetWorkspace({ apiBaseUrl, accessToken, workspaceId }: AssetWo
     setBusy(false);
     const controller = new AbortController();
     loadAssets(controller.signal).catch((reason: unknown) => {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '자산 목록을 불러오지 못했습니다.');
+      if (!controller.signal.aborted) setError(errorText(reason, '자산 목록을 불러오지 못했습니다.'));
     });
     return () => {
       controller.abort();
@@ -125,7 +120,7 @@ export function AssetWorkspace({ apiBaseUrl, accessToken, workspaceId }: AssetWo
       setPreviewUrl(`${base}/v1/assets/${encodeURIComponent(assetId)}/versions/${encodeURIComponent(currentVersion.version_id)}/preview-content`);
     } catch (reason) {
       if (isSelectionCurrent()) {
-        setError(reason instanceof Error ? reason.message : '미리보기 주소를 발급하지 못했습니다.');
+        setError(errorText(reason, '미리보기 주소를 발급하지 못했습니다.'));
         setSelectedId(null);
       }
     } finally {
@@ -155,7 +150,7 @@ export function AssetWorkspace({ apiBaseUrl, accessToken, workspaceId }: AssetWo
       if (!isScopeCurrent(scope)) return;
       await selectAsset(assetId);
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '이전 버전을 복원하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '이전 버전을 복원하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }
@@ -181,7 +176,7 @@ export function AssetWorkspace({ apiBaseUrl, accessToken, workspaceId }: AssetWo
       if (!isScopeCurrent(scope)) return;
       await selectAsset(created.asset_id);
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '파일을 업로드하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '파일을 업로드하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }
@@ -205,7 +200,7 @@ export function AssetWorkspace({ apiBaseUrl, accessToken, workspaceId }: AssetWo
       }
       await loadAssets();
     } catch (reason) {
-      if (isScopeCurrent(scope)) setError(reason instanceof Error ? reason.message : '자산을 삭제하지 못했습니다.');
+      if (isScopeCurrent(scope)) setError(errorText(reason, '자산을 삭제하지 못했습니다.'));
     } finally {
       if (isScopeCurrent(scope)) setBusy(false);
     }

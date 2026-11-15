@@ -38,6 +38,7 @@ import AccountPanel from './AccountPanel';
 import { gateState, loadLegalStatus } from './legalApi.mjs';
 import type { LegalStatus } from './legalApi.mjs';
 import './shell.css';
+import { authErrorText, errorText } from './errorMessages.mjs';
 
 type Workspace = { workspace_id: string; role?: string; owner_id?: string };
 type AuthUser = { id: string; email?: string };
@@ -80,7 +81,7 @@ function AuthGate({
         await onAuthenticated(session as AuthSession);
       }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '인증 요청에 실패했습니다.');
+      setError(authErrorText(reason));
     } finally { setBusy(false); }
   };
 
@@ -163,7 +164,7 @@ function App() {
     } catch (reason) {
       connectedFor.current = null;
       setApiState('offline');
-      setConnectionError(reason instanceof Error ? reason.message : 'Backend 연결에 실패했습니다.');
+      setConnectionError(errorText(reason, 'Backend 연결에 실패했습니다.'));
       setSession(candidate); saveSession(candidate);
       throw reason;
     } finally { setBusy(false); }
@@ -247,7 +248,7 @@ function App() {
         body: { workspace_id: `ws_${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}` },
       }) as Workspace;
       const next = [...workspaces, created]; setWorkspaces(next); setWorkspace(created.workspace_id);
-    } catch (reason) { setConnectionError(reason instanceof Error ? reason.message : 'Workspace 생성에 실패했습니다.'); }
+    } catch (reason) { setConnectionError(errorText(reason, 'Workspace 생성에 실패했습니다.')); }
     finally { setBusy(false); }
   };
 
