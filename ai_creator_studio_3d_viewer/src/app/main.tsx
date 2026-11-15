@@ -129,6 +129,7 @@ function App() {
   const [legal, setLegal] = useState<LegalStatus | null>(null);
   const [job, setJob] = useState('');
   const [page, setPage] = useState('overview');
+  const [reloadKey, setReloadKey] = useState(0); // R-030 C: "다시 불러오기" remounts the current screen so a failed load can be retried
   const [settings, setSettings] = useState(false);
   const [apiState, setApiState] = useState<'checking' | 'online' | 'offline'>('checking');
   const [connectionError, setConnectionError] = useState('');
@@ -297,7 +298,7 @@ function App() {
         <div className="tiles">{nav.slice(1).map(([id, label, icon], i) => <button className="tile" key={id} onClick={() => setPage(id)}><span className="tile-icon">{icon}</span><b>{label}</b>
           <small>{['프로젝트 생성 및 상태 관리','파일 업로드·버전·미리보기','3D 모델 업로드 및 뷰어','상품 및 옵션 관리','프로젝트에 상품 연결','이미지 초안 및 작업 실행','룩북 초안·구성·검토','생성 결과 승인 및 반려'][i]}</small><span className="tile-arrow">↗</span></button>)}</div>
         <div className="notice"><b>실제 데이터 기반 작업실</b><span>현재 사용자 인증과 Workspace 권한을 확인했습니다. 각 모듈은 설정된 Backend API를 호출합니다. AI 생성 Provider 및 3D 제작 기능은 별도 실연동 검증 상태를 확인해야 합니다.</span></div>
-      </> : <section className="module"><div className="module-head"><div><small>STUDIO MODULE</small><h1>{activePage}</h1><p>인증된 계정 · {workspace}</p></div><button className="outline" onClick={() => setPage('overview')}>← 대시보드</button></div>
+      </> : <section className="module" key={`${page}-${reloadKey}`}><div className="module-head"><div><small>STUDIO MODULE</small><h1>{activePage}</h1><p>인증된 계정 · {workspace}</p></div><div><button className="outline" onClick={() => setReloadKey(k => k + 1)} title="이 화면의 내용을 다시 불러옵니다(입력 중인 내용은 지워집니다)">다시 불러오기</button> <button className="outline" onClick={() => setPage('overview')}>← 대시보드</button></div></div>
         {page === 'projects' && <ProjectWorkspace {...common}/ >}
         {page === 'assets' && <AssetWorkspace {...common}/ >}
         {page === 'viewer' && <Studio3DViewer label="AI Creator Studio 3D Viewer" showGrid autoPlay/>}

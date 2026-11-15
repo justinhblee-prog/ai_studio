@@ -165,7 +165,7 @@ jobs:
         run: |
           set -o pipefail
           node e2e/errors_flow.mjs | tee e2e_errors.txt
-          grep -q "SUMMARY 4/4 error message steps passed" e2e_errors.txt
+          grep -q "SUMMARY 5/5 error message steps passed" e2e_errors.txt
       - name: Roles, workspace isolation and mobile width
         working-directory: ai_creator_studio_3d_viewer
         run: |
