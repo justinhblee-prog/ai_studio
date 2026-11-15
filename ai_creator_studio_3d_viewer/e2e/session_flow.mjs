@@ -55,8 +55,9 @@ try {
     await dialog().waitFor({ timeout: 15000 });
     await page.unroute(`${stack.apiUrl}/v1/**`, reject401);
     await dialog().getByRole('button', { name: /로그아웃/ }).click();
-    await page.getByRole('button', { name: '로그인' }).first().waitFor({ timeout: 15000 });
-    assert.equal(await page.locator('.workspace-select').count(), 0);
+    await dialog().waitFor({ state: 'detached', timeout: 15000 });
+    await page.locator('.workspace-select').waitFor({ state: 'detached', timeout: 15000 });
+    await page.getByRole('button', { name: '로그인', exact: true }).first().waitFor({ timeout: 15000 });   // the start page (its own "로그인" button)
   });
 
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} session steps passed`);
