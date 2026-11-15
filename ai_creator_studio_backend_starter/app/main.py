@@ -32,6 +32,7 @@ from app.characters import router as characters_router
 from app.projects import router as projects_router
 from app.legal import router as legal_router
 from app.library_routes import router as library_router
+from app.features_routes import router as features_router
 from app.photo_engine import router as photo_drafts_router
 from app.lookbook import router as lookbook_drafts_router
 from app.products import router as products_router
@@ -121,6 +122,7 @@ app.include_router(characters_router)
 app.include_router(projects_router)
 app.include_router(legal_router)
 app.include_router(library_router)
+app.include_router(features_router)
 app.include_router(moderation_router)
 app.include_router(photo_drafts_router)
 app.include_router(lookbook_drafts_router)

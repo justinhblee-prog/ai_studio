@@ -57,6 +57,10 @@ PREVIEW_ALLOWED_ORIGINS = tuple(o.rstrip("/") for o in APP_CORS_ORIGINS)
 LIBRARY_PREVIEW_MAX_EDGE = int(os.getenv("LIBRARY_PREVIEW_MAX_EDGE", "1200"))  # library images are shown downscaled, never at original size
 # Package downloads per workspace per calendar month (UTC). 0 = no limit: the value is a product decision that has not been made yet.
 DOWNLOAD_MONTHLY_LIMIT = int(os.getenv("DOWNLOAD_MONTHLY_LIMIT", "0"))
+# Pilot service switches (all OFF by default; only an explicit opt-in turns a service on). A service that is off is shown as a pilot preview.
+FEATURE_FLAGS = ("tryon", "character", "three_d", "video", "market")
+def feature_enabled(name: str) -> bool:
+    return env_flag(os.getenv("FEATURE_" + name.upper()))
 
 # Supabase Auth user endpoint is used to validate browser access tokens. The
 # publishable/anon key is safe for this server-side validation call; service-role
