@@ -14,9 +14,7 @@ FRONT_LOG = "# pass 4\n# fail 0\n# skipped 0\n# pass 8\n# fail 0\n# skipped 0\n"
 def write_logs(tmp_path):
     (tmp_path / "pytest.txt").write_text(PYTEST_LOG)
     (tmp_path / "frontend.txt").write_text(FRONT_LOG)
-    (tmp_path / "live.txt").write_text("..
-78 passed, 1 warning in 34.81s
-")
+    (tmp_path / "live.txt").write_text("..\n78 passed, 1 warning in 34.81s\n")
     (tmp_path / "e2e_generation.txt").write_text("PASS x\nSUMMARY 9/9 generation steps passed\n")
     (tmp_path / "e2e_roles.txt").write_text("SUMMARY 5/6 role scenarios passed\n")
     (tmp_path / "e2e_broken.txt").write_text("crashed before any summary\n")
