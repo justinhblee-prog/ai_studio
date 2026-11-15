@@ -288,3 +288,19 @@ def test_acknowledging_is_recorded_once_with_who_and_when_and_checks_role_and_pr
     assert notice(provider="mock").status_code == 422 and notice(provider="nope").status_code == 422
     assert client.post("/v1/external-provider-notices", json={"workspace_id": "cap-ws", "provider": "fashn"}).status_code == 401
     assert notice(ws="not-my-workspace").status_code == 404
+
+
+def test_the_notice_refusal_carries_the_providers_data_handling_facts_and_unknown_providers_are_explicitly_unknown(cap_env, monkeypatch):
+    import app.config as config
+    from app.provider_registry import PROVIDER_DATA_POLICY, data_policy
+    use_paid(cap_env)
+    monkeypatch.setattr(config, "EXTERNAL_NOTICE_REQUIRED", True)
+    policy = post(n=1).json()["detail"]["data_policy"]
+    assert policy["trains_on_customer_content"] is False and policy["terms_check_required"] is True
+    assert "3 days" in policy["output_retention"] and "no deletion API" in policy["request_log_deletion"]
+    assert all(p["terms_check_required"] is True for p in PROVIDER_DATA_POLICY.values()), "documentation-based facts stay flagged until the terms are reviewed"
+    unknown = data_policy("some-new-provider")
+    assert unknown["trains_on_customer_content"] is None and unknown["terms_check_required"] is True and "do not enable" in unknown["note"]
+    PROVIDER_DATA_POLICY["fashn"]["input_retention"] = "changed"
+    assert data_policy("fashn")["input_retention"] != "x" and data_policy("FASHN") is not PROVIDER_DATA_POLICY["fashn"], "callers get a copy"
+    PROVIDER_DATA_POLICY["fashn"]["input_retention"] = "base64 input is deleted after processing (within a day); URL inputs leave only the URL in the request log"

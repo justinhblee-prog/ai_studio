@@ -257,7 +257,9 @@ async def create_job(body: CreateTryOnJob, idempotency_key: str | None = Header(
     if provider.name != "mock" and config.EXTERNAL_NOTICE_REQUIRED:
         from app.external_notice import acknowledged
         if not acknowledged(body.workspace_id, user_id, provider.name):
+            from app.provider_registry import data_policy
             raise HTTPException(status_code=409, detail={"code": "EXTERNAL_NOTICE_REQUIRED", "provider": provider.name,
+                "data_policy": data_policy(provider.name),
                 "message": "Acknowledge that photos are sent to the external AI service before starting this job."})
     job_id = "job_" + uuid.uuid4().hex
     job = {
