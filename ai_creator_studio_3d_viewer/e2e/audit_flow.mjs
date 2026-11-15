@@ -29,6 +29,12 @@ try {
     await page.route('**/v1/**', handler);
     for (const screen of SCREENS) {
       try {
+        if (mode === '401') {  // the sign-in dialog (R-030 A) covers the screen after the first 401: start every screen from a fresh page
+          await page.unroute('**/v1/**', handler);
+          await page.reload(); await page.locator('.workspace-select').waitFor({ timeout: 20000 });
+          await page.locator('.workspace-select').selectOption(seed.workspace);
+          await page.route('**/v1/**', handler);
+        }
         await go(page, screen);
         await page.waitForTimeout(900);
         const info = await page.evaluate((retrySrc) => {
@@ -40,7 +46,7 @@ try {
           return { text: text.slice(0, 2000), alerts, retry, loginShown: /로그인/.test(document.body.innerText) && !!document.querySelector('input[type=password], input[type=email]') };
         }, RETRY.source);
         const where = `${screen} (${mode})`;
-        if (mode === '401' && info.loginShown) continue; // session-expiry handled by returning to login: fine
+        if (mode === '401' && (info.loginShown || await page.getByRole('dialog', { name: '로그인이 만료되었습니다' }).count())) continue; // handled: the sign-in dialog opens over the screen (R-030 A)
         const msg = info.alerts.join(' / ');
         if (!msg) add(screen, `오류 안내 없음 [${mode}]`, '화면에 오류·상태 안내(role=alert 등)가 보이지 않음(빈 화면이거나 조용히 실패)');
         else {
@@ -52,6 +58,8 @@ try {
       } catch (error) { add(screen, `점검 실패 [${mode}]`, String(error.message).split('\n')[0].slice(0, 150)); }
     }
     await page.unroute('**/v1/**', handler);
+    await page.reload(); await page.locator('.workspace-select').waitFor({ timeout: 20000 });   // every mode starts from a clean page
+    await page.locator('.workspace-select').selectOption(seed.workspace);
   }
   await page.reload(); await page.locator('.workspace-select').waitFor({ timeout: 20000 });
   await page.locator('.workspace-select').selectOption(seed.workspace);
