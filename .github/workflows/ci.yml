@@ -102,7 +102,11 @@ jobs:
     # Browser E2E: local SQLite backend (PROVIDER_MODE=mock, no external provider) + the release web build.
     # Supabase Auth is mocked inside the browser; no Supabase, Vercel or paid provider is contacted.
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [a, b]   # the browser flows are split in two parallel jobs (they took 20 minutes in one)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -131,60 +135,70 @@ jobs:
           VITE_SUPABASE_ANON_KEY: e2e-anon-not-a-secret
         run: npm run build
       - name: Pilot flow
+        if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/pilot_flow.mjs | tee e2e.txt
           grep -q "SUMMARY 10/10 steps passed" e2e.txt
       - name: Rights declaration flow (L-04, enforcement on)
+        if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/rights_flow.mjs | tee e2e_rights.txt
           grep -q "SUMMARY 6/6 rights steps passed" e2e_rights.txt
       - name: Try-on generation start screen (R-026, mock provider)
+        if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/generation_flow.mjs | tee e2e_generation.txt
           grep -q "SUMMARY 9/9 generation steps passed" e2e_generation.txt
       - name: Default asset library screen and pickers (R-033)
+        if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/library_flow.mjs | tee e2e_library.txt
           grep -q "SUMMARY 7/7 library steps passed" e2e_library.txt
       - name: Expired login asks again on top of the screen (R-030 A)
+        if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/session_flow.mjs | tee e2e_session.txt
           grep -q "SUMMARY 3/3 session steps passed" e2e_session.txt
       - name: Korean error messages for 503, 429 and a lost connection (R-030 B)
+        if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/errors_flow.mjs | tee e2e_errors.txt
           grep -q "SUMMARY 5/5 error message steps passed" e2e_errors.txt
       - name: Roles, workspace isolation and mobile width
+        if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/roles_flow.mjs | tee e2e_roles.txt
           grep -q "SUMMARY 6/6 role scenarios passed" e2e_roles.txt
       - name: AI generated disclosure on provider outputs (L-07)
+        if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/disclosure_flow.mjs | tee e2e_disclosure.txt
           grep -q "SUMMARY 5/5 disclosure steps passed" e2e_disclosure.txt
       - name: Responsive layout, no sideways scrolling (360-1280 px)
+        if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/layout_flow.mjs | tee e2e_layout.txt
           grep -q "SUMMARY 13/13 layout checks passed" e2e_layout.txt
       - name: Legal acceptance gate, AI-training consent and deletion requests in the browser
+        if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
@@ -192,7 +206,7 @@ jobs:
           E2E_SCREENSHOT_DIR=e2e_screens node e2e/legal_flow.mjs | tee e2e_legal.txt
           grep -q "SUMMARY 8/8 legal screen steps passed" e2e_legal.txt
       - name: Keep the legal modal screenshots (looked at by hand, not asserted)
-        if: always()
+        if: always() && matrix.group == 'b'
         uses: actions/upload-artifact@v4
         with:
           name: legal-modal-screens
@@ -200,12 +214,14 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Account and data-protection API flows (legal, deletion requests, Character guard)
+        if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer
         run: |
           set -o pipefail
           node e2e/account_flow.mjs | tee e2e_account.txt
           grep -q "SUMMARY 4/4 account flow steps passed" e2e_account.txt
       - name: UI audit report (R-030, prints findings, never fails the build)
+        if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer
         continue-on-error: true
         run: |
@@ -214,7 +230,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: evidence-e2e
+          name: evidence-e2e-${{ matrix.group }}
           path: ai_creator_studio_3d_viewer/e2e*.txt
           if-no-files-found: ignore
           retention-days: 14
