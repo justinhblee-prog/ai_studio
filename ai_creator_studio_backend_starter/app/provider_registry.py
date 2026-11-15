@@ -42,6 +42,27 @@ _RECORDS = (
         "Official API docs reviewed; live/sandbox contract, rights and usage evidence pending."),
 )
 
+# What each provider does with the photos we send (R-037 / reply 14). Taken from the provider's public documentation read on 2026-11-15 and NOT
+# verified by a live call or by a signed agreement: every entry must keep "terms_check_required" until the provider's terms are reviewed.
+PROVIDER_DATA_POLICY = {
+    "fashn": {
+        "trains_on_customer_content": False,          # documentation: customer content is not used for training unless opted in by separate agreement
+        "input_retention": "base64 input is deleted after processing (within a day); URL inputs leave only the URL in the request log",
+        "output_retention": "CDN output is deleted after 3 days (return_base64 output expires after 60 minutes): copy the result at once",
+        "request_log_deletion": "request records are not deleted automatically and there is no deletion API: ask the provider by e-mail",
+        "source": "https://docs.fashn.ai/ (read 2026-11-15)",
+        "terms_check_required": True,
+    },
+}
+
+
+def data_policy(provider_id: str) -> dict[str, Any]:
+    """The provider's data handling facts, or an explicit 'unknown' record (never an empty answer that could read as 'safe')."""
+    found = PROVIDER_DATA_POLICY.get(str(provider_id).lower())
+    return dict(found) if found else {"trains_on_customer_content": None, "terms_check_required": True,
+                                      "note": "No data-handling facts recorded for this provider: do not enable it before they are."}
+
+
 def list_capabilities() -> list[dict[str, Any]]:
     return [{**asdict(item), "evidence_ref": list(item.evidence_ref)} for item in _RECORDS]
 
