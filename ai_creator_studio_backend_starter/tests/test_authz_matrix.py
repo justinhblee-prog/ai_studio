@@ -16,13 +16,15 @@ from app.main import app
 client = TestClient(app)
 PUBLIC = {("get", "/health"), ("get", "/v1/engines/capabilities"), ("get", "/v1/engines/models"),
           ("get", "/v1/legal/documents"), ("get", "/v1/assets/{asset_id}/preview"),
-          ("get", "/v1/assets/{asset_id}/versions/{version_id}/preview")}
+          ("get", "/v1/assets/{asset_id}/versions/{version_id}/preview"),
+          ("get", "/v1/library/items/{item_id}/versions/{version}/preview")}  # R-032: signed, short-lived library preview link
 
 
 # Caller-scoped reads: a 200 is correct, but they must not expose another user's data (checked below).
 SELF_SCOPED = {("get", "/v1/workspaces"), ("get", "/v1/me/legal-status"), ("get", "/v1/me/deletion-requests"),
                ("get", "/v1/me/consents"), ("get", "/v1/auth/me"),
-               ("get", "/v1/me/takedowns")}   # L-08: lists only the caller's own held assets
+               ("get", "/v1/me/takedowns"),   # L-08: lists only the caller's own held assets
+               ("get", "/v1/library/items")}  # R-032: platform-owned default library, readable by every signed-in user (holds no workspace data)
 
 
 # Operations that any signed-in user may call and whose answer does not depend on the object (so it reveals nothing).

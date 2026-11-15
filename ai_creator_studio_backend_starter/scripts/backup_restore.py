@@ -223,7 +223,8 @@ def _runtime_sources() -> tuple[dict[str, Path], dict[str, Path]]:
     databases = {"assets": Path(config.ASSET_DATABASE_PATH)}
     if config.GENERATION_DATABASE_PATH:
         databases["generation"] = Path(config.GENERATION_DATABASE_PATH)
-    return databases, {"private_assets": Path(config.ASSET_STORAGE_DIR), "outputs": Path(config.OUTPUT_DIR)}
+    return databases, {"private_assets": Path(config.ASSET_STORAGE_DIR), "outputs": Path(config.OUTPUT_DIR),
+                             "library": Path(config.LIBRARY_STORAGE_DIR)}  # R-032: the default library files
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -248,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"ok": True, "totals": manifest["totals"]}, indent=2))
         else:
             print(json.dumps(restore(args.backup_dir, args.target), indent=2))
-            print("To use the restored copy set ASSET_DATABASE_PATH, ASSET_STORAGE_DIR and OUTPUT_DIR to the paths above.", file=sys.stderr)
+            print("To use the restored copy set ASSET_DATABASE_PATH, ASSET_STORAGE_DIR, OUTPUT_DIR and LIBRARY_STORAGE_DIR to the paths above.", file=sys.stderr)
     except BackupError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1

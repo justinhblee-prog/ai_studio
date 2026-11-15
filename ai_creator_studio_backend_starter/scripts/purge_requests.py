@@ -31,6 +31,7 @@ TERMINAL_JOB_STATES = {"succeeded", "failed"}
 GLOBAL_TABLES = {
     "acs_schema_migrations", "generation_schema_migrations", "generation_worker_heartbeats",
     "generation_ops_alerts", "generation_ops_alert_deliveries", "deletion_requests", "sqlite_sequence",
+    "library_items", "library_item_versions",  # R-032: platform-owned default library, never part of a workspace or account purge
 }
 USER_TABLES = ("legal_acceptances", "consents")
 ANON_COLUMNS = ("actor_id", "owner_id", "created_by")
