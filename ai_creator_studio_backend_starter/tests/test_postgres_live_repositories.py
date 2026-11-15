@@ -2655,29 +2655,30 @@ def _lookbook_package_scenario(lb, mk_run, mk_draft, ws, owner, editor, viewer, 
 
     def dl(user, e=eid, x=exp, s=sig):
         return lambda: lb.download_package(e, x, s, user)
-    r = step("download-viewer", dl(viewer), lambda r: (r.status_code, r.media_type))
+    r = step("download-editor", dl(editor), lambda r: (r.status_code, r.media_type))
+    step("download-viewer-refused", dl(viewer))  # R-035: a viewer cannot take the package away
     data = body(r[1]) if r[0] == "ok" else b""
     out.append(("download-zip", "ok", zip_view(data)))
     out.append(("download-matches-recorded-hash", "ok",
                 __import__("hashlib").sha256(data).hexdigest() == first["package_sha256"]))
     step("download-outsider", dl(outsider))
-    step("download-bad-signature", dl(viewer, s="0" * 64))
-    step("download-expired-url", dl(viewer, x=int(time.time()) - 5,
+    step("download-bad-signature", dl(editor, s="0" * 64))
+    step("download-expired-url", dl(editor, x=int(time.time()) - 5,
                                     s=__import__("app.lookbook", fromlist=["x"])._lookbook_package_signature(eid, int(time.time()) - 5)))
-    step("download-far-future-url", dl(viewer, x=int(time.time()) + 5000,
+    step("download-far-future-url", dl(editor, x=int(time.time()) + 5000,
                                        s=__import__("app.lookbook", fromlist=["x"])._lookbook_package_signature(eid, int(time.time()) + 5000)))
     from app.lookbook import _lookbook_package_signature as sign
-    step("download-unknown-export", dl(viewer, e="lbx_" + "0" * 32, s=sign("lbx_" + "0" * 32, exp), x=exp))
+    step("download-unknown-export", dl(editor, e="lbx_" + "0" * 32, s=sign("lbx_" + "0" * 32, exp), x=exp))
     path = storage_dir / "lookbook_exports" / f"{second['export_id']}.zip"
     e2, x2, s2 = parts(second)
     original = path.read_bytes()
     path.write_bytes(original + b"x")
-    step("download-tampered", lambda: lb.download_package(e2, x2, s2, viewer))
-    step("list-tampered-still-available", lambda: lb.package_exports(d, ws, viewer), lambda r: [i["status"] for i in r["items"]])
+    step("download-tampered", lambda: lb.download_package(e2, x2, s2, editor))
+    step("list-tampered-still-available", lambda: lb.package_exports(d, ws, editor), lambda r: [i["status"] for i in r["items"]])
     path.write_bytes(original)
     path.unlink()
-    step("download-file-missing", lambda: lb.download_package(e2, x2, s2, viewer))
-    step("list-file-missing", lambda: lb.package_exports(d, ws, viewer), lambda r: [i["status"] for i in r["items"]])
+    step("download-file-missing", lambda: lb.download_package(e2, x2, s2, editor))
+    step("list-file-missing", lambda: lb.package_exports(d, ws, editor), lambda r: [i["status"] for i in r["items"]])
     return out
 
 
@@ -2798,7 +2799,7 @@ def test_lookbook_package_export_port_parity_sqlite_vs_postgresql(repos, tmp_pat
     shown = {label: (s_, d) for label, s_, d in sqlite_out}
     assert shown["create"][0] == "ok" and shown["create-viewer"][0] == 403 and shown["create-outsider"][0] == 404
     assert shown["create-plan-unapproved"][0] == 409 and shown["create-assembly-in-review"][0] == 409
-    assert shown["download-viewer"][0] == "ok" and shown["download-zip"][0] == "ok"
+    assert shown["download-editor"][0] == "ok" and shown["download-viewer-refused"][0] == 403 and shown["download-zip"][0] == "ok"
     assert shown["download-matches-recorded-hash"] == ("ok", True) and shown["list-order-newest-first"] == ("ok", True)
     assert shown["download-tampered"][0] == 409 and shown["download-file-missing"][0] == 410
     assert shown["download-bad-signature"][0] == 403 and shown["download-expired-url"][0] == 403
