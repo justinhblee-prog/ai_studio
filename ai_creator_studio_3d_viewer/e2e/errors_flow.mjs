@@ -32,11 +32,20 @@ try {
         const joined = alerts.join(' | ');
         if (!joined.includes(expect)) bad.push(`${screen}: expected "${expect}" but saw "${joined.slice(0, 120)}"`);
         if (ENGLISH.test(joined)) bad.push(`${screen}: English wording visible: "${joined.slice(0, 120)}"`);
+        if (!(await page.getByRole('button', { name: '다시 불러오기' }).isVisible())) bad.push(`${screen}: no retry (다시 불러오기) button`);
       }
       await page.unroute(`${stack.apiUrl}/v1/**`, handler);
       assert.deepEqual(bad, [], bad.join('\n'));
     });
   }
+  await run('the retry button reloads a screen that failed: after the server is back the error is gone', async () => {
+    await page.route(`${stack.apiUrl}/v1/**`, modes['503 (server trouble)'].handler);
+    await gotoPage(page, '프로젝트 관리');
+    await page.locator('main [role=alert], main .auth-error').first().waitFor({ timeout: 10000 });
+    await page.unroute(`${stack.apiUrl}/v1/**`, modes['503 (server trouble)'].handler);
+    await page.getByRole('button', { name: '다시 불러오기' }).click();
+    await page.waitForFunction(() => !document.querySelector('main [role=alert], main .auth-error'), null, { timeout: 15000 });
+  });
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} error message steps passed`);
 } catch { failed = true; }
 finally { await browser.close(); await stack.stop(); }
