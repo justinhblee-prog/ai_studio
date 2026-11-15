@@ -210,7 +210,6 @@ def test_purging_a_workspace_never_touches_the_library(env):
     state = library_state(env)
     client.get("/v1/me/legal-status", headers=auth("b"))  # creates the legal / deletion tables
     db = db_of(env)
-    db.execute("UPDATE generation_jobs SET status='failed'")
     at = (datetime.now(timezone.utc) - timedelta(days=10)).isoformat()
     db.execute("INSERT INTO deletion_requests(request_id,user_id,scope,workspace_id,status,reason,requested_at) VALUES(?,?,?,?,?,?,?)",
                ("del_b", "user-b", "workspace_content", "wb", "pending", "why", at))
