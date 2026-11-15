@@ -25,7 +25,8 @@ try {
     assert.equal(await cards().count(), 2);
     for (const text of await cards().allInnerTexts()) assert.match(text, /AI 생성 이미지/);
     await cards().first().locator('img').waitFor({ timeout: 10000 });
-    assert.ok(await cards().first().locator('img').evaluate(img => img.complete && img.naturalWidth > 0), 'the signed preview really loads');
+    // the <img> exists as soon as its address is known; wait until the browser has really decoded it
+    await page.waitForFunction(() => { const i = document.querySelector('ul[aria-label="라이브러리 항목"] li img'); return !!i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 });
     const all = await screen().innerText();
     assert.doesNotMatch(all, /초안 셔츠|내린 셔츠/);
   });
