@@ -1,0 +1,21 @@
+.lib-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.lib-tabs button { border: 1px solid #dce0e6; background: #fff; border-radius: 999px; padding: 7px 13px; font: 600 11px/1.4 'DM Sans','Noto Sans KR',sans-serif; cursor: pointer; color: #18202c; }
+.lib-tabs button[aria-selected="true"], .lib-tabs button[aria-pressed="true"] { background: #d9f36a; border-color: #b9cf4d; }
+.lib-tabs button:focus-visible, .lib-card button:focus-visible { outline: 2px solid #4e6718; outline-offset: 2px; }
+.lib-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 8px 0 12px; }
+.lib-bar label { display: grid; gap: 4px; font-size: 10px; color: #66717e; }
+.lib-bar input, .lib-bar select { min-width: 0; max-width: 100%; border: 1px solid #dce1e7; border-radius: 6px; padding: 8px; font: 11px 'DM Sans','Noto Sans KR',sans-serif; }
+.lib-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.lib-card { border: 1px solid #e2e5ea; border-radius: 10px; background: #fff; padding: 8px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.lib-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; background: #f1f3f5; border-radius: 6px; display: block; }
+.lib-card.is-large img { aspect-ratio: auto; max-height: 70vh; }
+.lib-thumb-missing { display: grid; place-items: center; aspect-ratio: 3 / 4; background: #f1f3f5; border-radius: 6px; font-size: 10px; color: #8b95a2; text-align: center; padding: 6px; }
+.lib-card b { font-size: 12px; overflow-wrap: anywhere; }
+.lib-card small { font-size: 10px; color: #647080; overflow-wrap: anywhere; }
+.lib-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #eef1f4; color: #283444; margin-right: 4px; }
+.lib-badge.ai { background: #e7f0ff; color: #1b4a9c; }
+.lib-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.lib-actions button { border: 1px solid #dce0e6; background: #fff; border-radius: 7px; padding: 7px 9px; font: 600 10px/1.4 'DM Sans','Noto Sans KR',sans-serif; cursor: pointer; }
+.lib-actions button.primary { background: #d9f36a; border: 0; }
+.lib-note { font-size: 11px; color: #276b36; }
+.lib-picker { border: 1px dashed #dce0e6; border-radius: 10px; padding: 10px; }
