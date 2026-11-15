@@ -36,7 +36,7 @@ def cap_env(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "asset_api_tokens", lambda: {"token-cap-a": "cap-a"})
     monkeypatch.setattr(config, "PROVIDER_MODE", "mock")
     monkeypatch.setattr(config, "PROVIDER_ROUTING_MODE", "MANUAL")
-    for name in ("AI_JOBS_DISABLED", "AI_JOB_LIMIT_PER_WORKSPACE_MONTH", "AI_JOB_LIMIT_GLOBAL_MONTH", "AI_JOB_STOP_PERCENT"):
+    for name in ("AI_JOBS_DISABLED", "AI_JOB_LIMIT_PER_WORKSPACE_MONTH", "AI_JOB_LIMIT_GLOBAL_MONTH", "AI_JOB_STOP_PERCENT", "AI_PROVIDER_DAILY_LIMIT", "AI_PROVIDER_DAILY_LIMIT_FASHN"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.delenv("AI_COST_LIMIT_USD_MONTH", raising=False)
     monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "100000")  # money cap far away so the older tests keep testing the job-count caps
@@ -238,3 +238,21 @@ def test_mock_jobs_are_recorded_with_zero_cost(cap_env):
     assert created.status_code == 202
     db = sqlite3.connect(config.GENERATION_DATABASE_PATH)
     assert db.execute("SELECT provider, estimated_cost_usd FROM generation_job_costs WHERE job_id=?", (created.json()["job_id"],)).fetchone() == ("mock", 0.0)
+
+
+def test_a_provider_has_its_own_daily_limit_across_workspaces_without_exposing_numbers(cap_env, monkeypatch):
+    use_paid(cap_env)
+    monkeypatch.setenv("AI_PROVIDER_DAILY_LIMIT", "3")
+    assert [post(ws=("cap-ws", "cap-ws2")[n % 2], n=n).status_code for n in range(3)] == [202, 202, 202]
+    blocked = post(n=9)
+    assert blocked.status_code == 429 and blocked.json()["detail"]["code"] == "DAILY_JOB_LIMIT_EXCEEDED"
+    assert "limit" not in blocked.json()["detail"] and "used" not in blocked.json()["detail"]
+    monkeypatch.setenv("AI_PROVIDER_DAILY_LIMIT_FASHN", "5")   # the provider-specific value overrides the general one
+    assert post(n=10).status_code == 202
+    monkeypatch.delenv("AI_PROVIDER_DAILY_LIMIT_FASHN"); monkeypatch.setenv("AI_PROVIDER_DAILY_LIMIT", "0")
+    assert post(n=11).status_code == 202, "0 switches the limit off"
+
+
+def test_the_provider_daily_limit_never_applies_to_mock(cap_env, monkeypatch):
+    monkeypatch.setenv("AI_PROVIDER_DAILY_LIMIT", "1")
+    assert [post(n=n).status_code for n in range(4)] == [202] * 4
