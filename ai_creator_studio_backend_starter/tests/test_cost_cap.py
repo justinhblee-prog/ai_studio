@@ -256,3 +256,35 @@ def test_a_provider_has_its_own_daily_limit_across_workspaces_without_exposing_n
 def test_the_provider_daily_limit_never_applies_to_mock(cap_env, monkeypatch):
     monkeypatch.setenv("AI_PROVIDER_DAILY_LIMIT", "1")
     assert [post(n=n).status_code for n in range(4)] == [202] * 4
+
+
+# ---------------------------------------------------------------------------------------- external-transfer notice (R-037)
+def notice(provider="fashn", token="token-cap-a", ws="cap-ws"):
+    return client.post("/v1/external-provider-notices", headers=auth(token), json={"workspace_id": ws, "provider": provider})
+
+
+def test_a_real_provider_job_needs_the_external_transfer_notice_first_and_mock_never_does(cap_env, monkeypatch):
+    import app.config as config
+    use_paid(cap_env)
+    monkeypatch.setattr(config, "EXTERNAL_NOTICE_REQUIRED", True)
+    refused = post(n=1)
+    assert refused.status_code == 409 and refused.json()["detail"]["code"] == "EXTERNAL_NOTICE_REQUIRED" and refused.json()["detail"]["provider"] == "fashn"
+    ok = notice()
+    assert ok.status_code == 200 and ok.json()["acknowledged"] is True and ok.json()["provider"] == "fashn"
+    assert post(n=2).status_code == 202
+    assert post(ws="cap-ws2", n=3).status_code == 409, "the notice is per workspace"
+    monkeypatch.setattr(config, "EXTERNAL_NOTICE_REQUIRED", False)
+    assert post(ws="cap-ws2", n=4).status_code == 202, "the requirement can be switched off"
+
+
+def test_acknowledging_is_recorded_once_with_who_and_when_and_checks_role_and_provider(cap_env):
+    import sqlite3
+    import app.config as config
+    first = notice()
+    second = notice()
+    assert first.status_code == second.status_code == 200 and first.json()["acknowledged_at"] == second.json()["acknowledged_at"]
+    db = sqlite3.connect(config.ASSET_DATABASE_PATH)
+    assert db.execute("SELECT workspace_id, actor_id, provider FROM external_provider_notices").fetchall() == [("cap-ws", "cap-a", "fashn")]
+    assert notice(provider="mock").status_code == 422 and notice(provider="nope").status_code == 422
+    assert client.post("/v1/external-provider-notices", json={"workspace_id": "cap-ws", "provider": "fashn"}).status_code == 401
+    assert notice(ws="not-my-workspace").status_code == 404

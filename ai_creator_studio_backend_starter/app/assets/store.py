@@ -108,6 +108,10 @@ def initialize() -> None:
             asset_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL,
             state TEXT NOT NULL CHECK(state IN ('under_review','removed')), since TEXT NOT NULL, updated_at TEXT NOT NULL
         )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS external_provider_notices (
+            notice_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, actor_id TEXT NOT NULL, provider TEXT NOT NULL, created_at TEXT NOT NULL,
+            UNIQUE(workspace_id, actor_id, provider)
+        )""")  # R-037: who acknowledged, for which provider, when (audit of the external-transfer notice)
         from app.library import LIBRARY_DDL  # R-032: platform-owned tables (no workspace, owner or created_by column on purpose)
         for statement in LIBRARY_DDL:
             db.execute(statement)

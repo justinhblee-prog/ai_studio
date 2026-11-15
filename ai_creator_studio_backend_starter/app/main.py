@@ -33,6 +33,7 @@ from app.projects import router as projects_router
 from app.legal import router as legal_router
 from app.library_routes import router as library_router
 from app.features_routes import router as features_router
+from app.external_notice import router as external_notice_router
 from app.photo_engine import router as photo_drafts_router
 from app.lookbook import router as lookbook_drafts_router
 from app.products import router as products_router
@@ -123,6 +124,7 @@ app.include_router(projects_router)
 app.include_router(legal_router)
 app.include_router(library_router)
 app.include_router(features_router)
+app.include_router(external_notice_router)
 app.include_router(moderation_router)
 app.include_router(photo_drafts_router)
 app.include_router(lookbook_drafts_router)
@@ -252,6 +254,11 @@ async def create_job(body: CreateTryOnJob, idempotency_key: str | None = Header(
             validator(payload)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail={"code": "VALIDATION_ERROR", "message": str(exc)}) from exc
+    if provider.name != "mock" and config.EXTERNAL_NOTICE_REQUIRED:
+        from app.external_notice import acknowledged
+        if not acknowledged(body.workspace_id, user_id, provider.name):
+            raise HTTPException(status_code=409, detail={"code": "EXTERNAL_NOTICE_REQUIRED", "provider": provider.name,
+                "message": "Acknowledge that photos are sent to the external AI service before starting this job."})
     job_id = "job_" + uuid.uuid4().hex
     job = {
         "job_id": job_id, "workspace_id": body.workspace_id, "owner_id": user_id,
