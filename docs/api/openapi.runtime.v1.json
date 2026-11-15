@@ -2416,6 +2416,53 @@
         "title": "ManifestExportResponse",
         "type": "object"
       },
+      "NoticeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Provider",
+            "type": "string"
+          },
+          "workspace_id": {
+            "maxLength": 64,
+            "minLength": 2,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]+$",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "provider"
+        ],
+        "title": "NoticeRequest",
+        "type": "object"
+      },
+      "NoticeResponse": {
+        "properties": {
+          "acknowledged": {
+            "title": "Acknowledged",
+            "type": "boolean"
+          },
+          "acknowledged_at": {
+            "title": "Acknowledged At",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "acknowledged",
+          "acknowledged_at"
+        ],
+        "title": "NoticeResponse",
+        "type": "object"
+      },
       "Outfit": {
         "additionalProperties": true,
         "properties": {
@@ -5776,6 +5823,65 @@
           }
         },
         "summary": "List Models"
+      }
+    },
+    "/v1/external-provider-notices": {
+      "post": {
+        "operationId": "acknowledgeExternalProviderNotice",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoticeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoticeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge",
+        "tags": [
+          "external-provider-notices"
+        ]
       }
     },
     "/v1/features": {
