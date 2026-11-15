@@ -22,6 +22,13 @@ MOCK_PROVIDER = "mock"
 # live call). Unknown providers are counted at the higher default so the cap errs on the safe side.
 UNIT_COST_USD = {"fashn": 0.075}
 DEFAULT_UNIT_COST_USD = 0.10
+# Providers that charge for a request even when it fails. FASHN documents that failed requests consume no credits, so a failed FASHN job is not
+# counted as spend (documentation-based, not verified by a live call). Unknown providers are assumed to bill failures: the cap errs on the safe side.
+BILLS_FAILED_JOBS = {"fashn": False}
+
+
+def bills_failed(provider: str) -> bool:
+    return BILLS_FAILED_JOBS.get(str(provider).lower(), True)
 
 
 def unit_cost(provider: str) -> float:
@@ -83,8 +90,9 @@ def enforce_in_transaction(conn, job: dict, now: datetime | None = None) -> None
         used_today = conn.execute("SELECT COUNT(*) FROM generation_jobs WHERE provider=? AND created_at>=?", (provider, day_start)).fetchone()[0]
         if used_today >= stop_at(daily):  # service-wide number: not exposed in the answer
             raise CostCapExceeded("DAILY_JOB_LIMIT_EXCEEDED", "Daily limit for this AI provider is reached.")
-    spent = sum(unit_cost(row[0]) * row[1] for row in conn.execute(
-        "SELECT provider, COUNT(*) FROM generation_jobs WHERE provider<>? AND created_at>=? GROUP BY provider", (MOCK_PROVIDER, start)))
+    spent = sum(unit_cost(row[0]) * (row[1] if bills_failed(row[0]) else row[2]) for row in conn.execute(
+        "SELECT provider, COUNT(*), SUM(CASE WHEN status<>'failed' THEN 1 ELSE 0 END) FROM generation_jobs "
+        "WHERE provider<>? AND created_at>=? GROUP BY provider", (MOCK_PROVIDER, start)))
     if spent + unit_cost(job.get("provider")) > usd_limit * stop_percent() / 100 + 1e-9:
         raise CostCapExceeded("GLOBAL_MONTHLY_LIMIT", "Monthly AI spend limit is reached.")
     per_ws = _int_env("AI_JOB_LIMIT_PER_WORKSPACE_MONTH", 100)

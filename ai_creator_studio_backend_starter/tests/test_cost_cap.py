@@ -304,3 +304,34 @@ def test_the_notice_refusal_carries_the_providers_data_handling_facts_and_unknow
     PROVIDER_DATA_POLICY["fashn"]["input_retention"] = "changed"
     assert data_policy("fashn")["input_retention"] != "x" and data_policy("FASHN") is not PROVIDER_DATA_POLICY["fashn"], "callers get a copy"
     PROVIDER_DATA_POLICY["fashn"]["input_retention"] = "base64 input is deleted after processing (within a day); URL inputs leave only the URL in the request log"
+
+
+def test_a_failed_job_of_a_provider_that_does_not_bill_failures_is_not_counted_as_spend(cap_env, monkeypatch):
+    import sqlite3
+    import app.config as config
+    from app import cost_cap
+    use_paid(cap_env)
+    monkeypatch.delenv("AI_JOB_STOP_PERCENT")
+    monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "0.20")   # 90% = $0.18 = 2 jobs at $0.075 (a 3rd would make $0.225)
+    ids = [post(n=n).json()["job_id"] for n in range(2)]
+    assert post(n=5).status_code == 429
+    db = sqlite3.connect(config.GENERATION_DATABASE_PATH)
+    db.execute("UPDATE generation_jobs SET status='failed' WHERE job_id=?", (ids[0],)); db.commit()
+    assert post(n=6).status_code == 202, "the failed job no longer counts: the provider did not charge for it"
+    assert post(n=7).status_code == 429
+    assert cost_cap.bills_failed("fashn") is False and cost_cap.bills_failed("some-new-provider") is True
+
+
+def test_a_failed_job_of_an_unknown_provider_still_counts_as_spend(cap_env, monkeypatch):
+    import sqlite3
+    import app.config as config
+    from app import cost_cap
+    monkeypatch.setitem(cost_cap.UNIT_COST_USD, "fashn", 0.075)
+    monkeypatch.setitem(cost_cap.BILLS_FAILED_JOBS, "fashn", True)   # pretend the provider bills failures
+    use_paid(cap_env)
+    monkeypatch.delenv("AI_JOB_STOP_PERCENT")
+    monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "0.20")
+    ids = [post(n=n).json()["job_id"] for n in range(2)]
+    db = sqlite3.connect(config.GENERATION_DATABASE_PATH)
+    db.execute("UPDATE generation_jobs SET status='failed' WHERE job_id=?", (ids[0],)); db.commit()
+    assert post(n=6).status_code == 429, "billed failures stay in the spend"
