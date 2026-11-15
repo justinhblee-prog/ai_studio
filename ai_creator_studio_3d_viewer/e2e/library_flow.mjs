@@ -19,7 +19,8 @@ try {
   await run('the Library screen lists the published models, each labelled "AI 생성 이미지" with a real picture; draft and retired items are absent', async () => {
     await loginThroughUi(page, stack.webUrl, USERS.owner);
     state.workspace = await page.locator('.workspace-select').inputValue();
-    await gotoPage(page, '라이브러리');
+    // "라이브러리" is also part of "에셋 라이브러리", so the shared gotoPage would match two menu buttons
+    await page.locator('button.nav', { hasText: '라이브러리' }).filter({ hasNotText: '에셋' }).click();
     await cards().first().waitFor({ timeout: 15000 });
     assert.equal(await cards().count(), 2);
     for (const text of await cards().allInnerTexts()) assert.match(text, /AI 생성 이미지/);
