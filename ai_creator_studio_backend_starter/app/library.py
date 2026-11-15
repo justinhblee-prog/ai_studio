@@ -185,9 +185,6 @@ def upsert_item(fields: dict[str, Any], content: bytes, filename: str) -> dict[s
                 with target.open("xb") as handle:  # exclusive: an existing file is never overwritten (and never deleted below)
                     handle.write(content)
                 written = target
-                db.execute("""INSERT INTO library_item_versions(item_id, version, storage_key, media_type, size_bytes,
-                    checksum_sha256, width, height, created_at) VALUES(?,?,?,?,?,?,?,?,?)""",
-                           (meta["item_id"], version, key, validated.media_type, len(content), checksum, width, height, now))
             values = (meta["category"], meta["subcategory"], meta["name_ko"], meta["name_en"],
                       json.dumps(meta["tags"], ensure_ascii=False), json.dumps(meta["attributes"], sort_keys=True),
                       meta["status"], version, meta["source"], meta["tool_and_date"], int(meta["is_placeholder"]), meta["note"], now)
@@ -204,6 +201,10 @@ def upsert_item(fields: dict[str, Any], content: bytes, filename: str) -> dict[s
                 after = db.execute("SELECT * FROM library_items WHERE item_id=?", (meta["item_id"],)).fetchone()
                 changed = any(before[k] != after[k] for k in before.keys() if k != "updated_at")
                 action = "new_version" if not same_file else ("updated" if changed else "unchanged")
+            if not same_file:  # the version row references the item row, so it is written after it
+                db.execute("""INSERT INTO library_item_versions(item_id, version, storage_key, media_type, size_bytes,
+                    checksum_sha256, width, height, created_at) VALUES(?,?,?,?,?,?,?,?,?)""",
+                           (meta["item_id"], version, key, validated.media_type, len(content), checksum, width, height, now))
     except Exception:
         if written is not None:
             written.unlink(missing_ok=True)
