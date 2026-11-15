@@ -72,6 +72,8 @@ class SQLiteJobRepository:
                 check_limit(daily_job_limit, int(used), current)
             from app.cost_cap import enforce_in_transaction
             enforce_in_transaction(conn, job)
+            from app.cost_cap import MOCK_PROVIDER, unit_cost
+            _cost = 0.0 if job.get("provider") == MOCK_PROVIDER else unit_cost(job.get("provider"))
             conn.execute("""INSERT INTO generation_jobs
                 (job_id,workspace_id,owner_id,status,provider,model,provider_request_id,output_url,error_code,message,payload_hash,payload_json,provider_output_url,created_at,updated_at)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -79,6 +81,8 @@ class SQLiteJobRepository:
                  job.get("model"), job.get("provider_request_id"), job.get("output_url"), job.get("error_code"),
                  job.get("message"), job["payload_hash"], json.dumps(job["payload"], sort_keys=True),
                  job.get("provider_output_url"), now, now))
+            conn.execute("INSERT INTO generation_job_costs(job_id,provider,estimated_cost_usd,created_at) VALUES(?,?,?,?)",
+                         (job["job_id"], job["provider"], _cost, now))
             SQLiteExecutionRepository().create_initial_attempt_in_transaction(
                 conn, job_id=job["job_id"], execution_id="exec_" + uuid.uuid4().hex,
                 provider=job["provider"], started_at=now)

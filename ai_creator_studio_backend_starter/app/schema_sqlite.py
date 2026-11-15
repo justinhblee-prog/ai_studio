@@ -28,6 +28,16 @@ CORE_SCHEMA = r"""
         );
         CREATE INDEX IF NOT EXISTS idx_generation_jobs_workspace_created
             ON generation_jobs(workspace_id, created_at DESC);
+        -- R-037: what each job is expected to cost (estimated from the per-job unit price; 0 for the built-in mock) and, once known, how long it
+        -- took and how it ended. One row per job; deleted together with the job.
+        CREATE TABLE IF NOT EXISTS generation_job_costs (
+            job_id TEXT PRIMARY KEY REFERENCES generation_jobs(job_id) ON DELETE CASCADE,
+            provider TEXT NOT NULL,
+            estimated_cost_usd REAL NOT NULL CHECK(estimated_cost_usd >= 0),
+            latency_ms INTEGER,
+            error_code TEXT,
+            created_at TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS generation_executions (
             execution_id TEXT PRIMARY KEY,
             job_id TEXT NOT NULL REFERENCES generation_jobs(job_id) ON DELETE CASCADE,

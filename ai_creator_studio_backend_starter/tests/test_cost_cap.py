@@ -215,3 +215,26 @@ def test_unit_costs_default_to_the_safe_side():
     from app import cost_cap
     assert cost_cap.unit_cost("fashn") == 0.075 and cost_cap.unit_cost("FASHN") == 0.075
     assert cost_cap.unit_cost("some-new-provider") == 0.10
+
+
+def test_every_job_gets_a_cost_row_estimated_from_the_unit_price_and_a_refused_request_leaves_none(cap_env, monkeypatch):
+    import sqlite3
+    import app.config as config
+    use_paid(cap_env)
+    paid = post(n=1)
+    assert paid.status_code == 202
+    monkeypatch.setenv("AI_JOB_LIMIT_PER_WORKSPACE_MONTH", "1")
+    assert post(n=2).status_code == 429                    # refused: nothing may be recorded for it
+    db = sqlite3.connect(config.GENERATION_DATABASE_PATH)
+    rows = db.execute("SELECT job_id, provider, estimated_cost_usd, latency_ms, error_code FROM generation_job_costs").fetchall()
+    assert rows == [(paid.json()["job_id"], "fashn", 0.075, None, None)]
+    assert db.execute("SELECT COUNT(*) FROM generation_jobs").fetchone()[0] == 1
+
+
+def test_mock_jobs_are_recorded_with_zero_cost(cap_env):
+    import sqlite3
+    import app.config as config
+    created = post(n=3)
+    assert created.status_code == 202
+    db = sqlite3.connect(config.GENERATION_DATABASE_PATH)
+    assert db.execute("SELECT provider, estimated_cost_usd FROM generation_job_costs WHERE job_id=?", (created.json()["job_id"],)).fetchone() == ("mock", 0.0)
