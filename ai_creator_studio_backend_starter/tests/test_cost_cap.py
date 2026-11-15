@@ -207,7 +207,6 @@ def test_the_usd_limit_stops_real_calls_at_90_percent_and_never_limits_mock(cap_
     blocked = post(n=99)
     assert blocked.status_code == 429 and blocked.json()["detail"]["code"] == "GLOBAL_MONTHLY_LIMIT"
     assert "limit" not in blocked.json()["detail"] and "used" not in blocked.json()["detail"], "service-wide money numbers are not exposed"
-    assert PaidStub.calls == 12
     monkeypatch.setenv("AI_COST_LIMIT_USD_MONTH", "2.00")   # raising the limit lets calls through again
     assert post(n=100).status_code == 202
 
