@@ -108,6 +108,9 @@ def render(logs_dir, commit, env):
         for i, r in enumerate(runs, 1):
             out.append(f"- 실행 {i}: passed {r['passed']}, failed {r['failed']}, skipped {r['skipped']}, error {r['error']}")
         out.append(f"- 합계: passed {sum(r['passed'] for r in runs)}, failed {sum(r['failed'] for r in runs)}, skipped {sum(r['skipped'] for r in runs)}")
+    live_text = read(d / "live.txt") if d else None
+    live = parse_pytest(live_text) if live_text else []
+    out.append("- 실제 PostgreSQL 저장소 시험(live.txt, 위 합계와 별개): " + (f"passed {live[-1]['passed']}, failed {live[-1]['failed']}, skipped {live[-1]['skipped']}" if live else UNKNOWN))
     out += ["", "## 프런트 시험 (`npm run test:source`)", ""]
     front = read(d / "frontend.txt") if d else None
     if front is None:
@@ -125,14 +128,14 @@ def render(logs_dir, commit, env):
             out.append(f"| {f.name} | {UNKNOWN} | SUMMARY 줄 없음 | 실패 또는 미완료 |")
         else:
             out.append(f"| {f.name} | {got[0]}/{got[1]} | {got[2]} | {'통과' if got[0] == got[1] else '실패'} |")
-    out += ["", "## 운영 플래그·기본값 (이 환경에서 읽은 유효값)", "", "| 이름 | 값 | 출처 |", "|---|---|---|"]
+    out += ["", "## 운영 플래그·기본값 (이 문서를 만든 CI 환경에서 읽은 값 — 실제 운영 환경의 값이 아님)", "", "| 이름 | 값 | 출처 |", "|---|---|---|"]
     for name, default, kind in SETTINGS:
         value, source = effective(name, default, kind, env)
         out.append(f"| `{name}` | `{value}` | {source} |")
     out += ["", "## 비밀값 (이름만, 값은 쓰지 않음)", ""]
     names = secret_names(env)
     out += [f"- `{n}`: {'설정됨' if env[n].strip() else '비어 있음'}" for n in names] or ["- (비밀로 보이는 환경 변수 없음)"]
-    out += ["", "## 이 문서가 말해 주지 않는 것", "", "- GitHub의 실제 run 번호·실서버·실제 Provider·법무 빈칸 확정은 포함하지 않는다(미확인).", ""]
+    out += ["", "## 이 문서가 말해 주지 않는 것", "", "- 위 플래그 표는 CI 환경의 값이다. 운영(Production) 환경 변수는 읽지 않았으므로 운영 값은 미확인이다.", "- GitHub의 실제 run 번호·실서버·실제 Provider·법무 빈칸 확정은 포함하지 않는다(미확인).", ""]
     return redact("\n".join(out), env)
 
 

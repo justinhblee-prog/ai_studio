@@ -14,6 +14,9 @@ FRONT_LOG = "# pass 4\n# fail 0\n# skipped 0\n# pass 8\n# fail 0\n# skipped 0\n"
 def write_logs(tmp_path):
     (tmp_path / "pytest.txt").write_text(PYTEST_LOG)
     (tmp_path / "frontend.txt").write_text(FRONT_LOG)
+    (tmp_path / "live.txt").write_text("..
+78 passed, 1 warning in 34.81s
+")
     (tmp_path / "e2e_generation.txt").write_text("PASS x\nSUMMARY 9/9 generation steps passed\n")
     (tmp_path / "e2e_roles.txt").write_text("SUMMARY 5/6 role scenarios passed\n")
     (tmp_path / "e2e_broken.txt").write_text("crashed before any summary\n")
@@ -25,6 +28,8 @@ def test_with_logs_the_numbers_are_copied_exactly(tmp_path):
     assert "`abc123`" in text
     assert "실행 1: passed 903, failed 0, skipped 0" in text and "실행 2: passed 78" in text
     assert "합계: passed 981" in text
+    assert "live.txt, 위 합계와 별개): passed 78, failed 0, skipped 0" in text
+    assert "운영 환경의 값이 아님" in text
     assert "node 시험 파일 2개: pass 12, fail 0, skipped 0" in text
     assert "| e2e_generation.txt | 9/9 | generation steps | 통과 |" in text
     assert "| e2e_roles.txt | 5/6 | role scenarios | 실패 |" in text
@@ -33,7 +38,7 @@ def test_with_logs_the_numbers_are_copied_exactly(tmp_path):
 
 def test_without_logs_everything_is_unknown_never_a_pass(tmp_path):
     text = ev.render(tmp_path, "abc123", {})
-    assert text.count("미확인") >= 3
+    assert text.count("미확인") >= 4
     assert "| 통과 |" not in text and "합계: passed" not in text and "실행 1:" not in text and "node 시험 파일" not in text
     assert ev.render(None, "abc123", {}).count("미확인") >= 3
 
