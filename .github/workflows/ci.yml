@@ -47,12 +47,24 @@ jobs:
           "create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
           create schema auth; create function auth.uid() returns uuid language sql stable as 'select null::uuid';"
       - name: pytest (unit + live PostgreSQL repository tests)
-        run: python -m pytest -q --no-header -p no:cacheprovider
+        run: |
+          set -o pipefail
+          python -m pytest -q --no-header -p no:cacheprovider | tee pytest.txt
       - name: Live tests must not be silently skipped
         run: |
           set -o pipefail
           python -m pytest -q --no-header -p no:cacheprovider tests/test_postgres_live_repositories.py -rs | tee live.txt
           ! grep -qE "[0-9]+ (skipped|failed)" live.txt
+      - name: Keep the pytest logs for the release evidence page (R-031)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-backend
+          path: |
+            ai_creator_studio_backend_starter/pytest.txt
+            ai_creator_studio_backend_starter/live.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
   frontend:
     runs-on: ubuntu-24.04
@@ -72,8 +84,19 @@ jobs:
           python-version: "3.13"
       - run: npm ci
       - run: npx tsc --noEmit
-      - run: npm run test:source
+      - name: Source and unit tests
+        run: |
+          set -o pipefail
+          npm run test:source | tee frontend.txt
       - run: npm run build
+      - name: Keep the frontend log for the release evidence page (R-031)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-frontend
+          path: ai_creator_studio_3d_viewer/frontend.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
   e2e:
     # Browser E2E: local SQLite backend (PROVIDER_MODE=mock, no external provider) + the release web build.
@@ -164,3 +187,34 @@ jobs:
           set -o pipefail
           node e2e/account_flow.mjs | tee e2e_account.txt
           grep -q "SUMMARY 4/4 account flow steps passed" e2e_account.txt
+      - name: Keep the e2e logs for the release evidence page (R-031)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-e2e
+          path: ai_creator_studio_3d_viewer/e2e*.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  evidence:
+    # R-031: one Markdown page with the commit, the counts from the three jobs and the launch flags. Reads logs only.
+    needs: [backend, frontend, e2e]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: evidence-*
+          path: evidence_logs
+          merge-multiple: true
+      - name: Build the evidence page
+        run: |
+          python ai_creator_studio_backend_starter/scripts/release_evidence.py --logs-dir evidence_logs --commit "$GITHUB_SHA" --out release_evidence.md
+          cat release_evidence.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence
+          path: release_evidence.md
+          retention-days: 30
