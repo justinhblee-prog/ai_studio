@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GenerationJob } from './app/generationStart.mjs';
 import {
-  EMPTY_LIST_MESSAGE, NO_RESULT_MESSAGE, TEST_MARK, failureMessage, listGenerationJobs, loadJobResultBlob, statusGroup, statusLabel,
+  EMPTY_LIST_MESSAGE, IMAGE_BROKEN_MESSAGE, NO_RESULT_MESSAGE, TEST_MARK, createJobPoller, failureMessage, isActive, listGenerationJobs, loadJobResultBlob, statusGroup, statusLabel,
 } from './app/jobResults.mjs';
 
 type Props = { apiBaseUrl: string; accessToken: string; workspaceId: string };
@@ -11,22 +11,40 @@ export default function JobResultsWorkspace({ apiBaseUrl, accessToken, workspace
   const [jobs, setJobs] = useState<GenerationJob[] | null>(null);
   const [selected, setSelected] = useState<GenerationJob | null>(null);
   const [imageUrl, setImageUrl] = useState('');
-  const [imageState, setImageState] = useState<'none' | 'loading' | 'ready' | 'missing'>('none');
+  const [imageState, setImageState] = useState<'none' | 'loading' | 'ready' | 'missing' | 'broken'>('none');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const applyJobs = useCallback((items: GenerationJob[]) => {
+    setJobs(items);
+    setSelected(current => (current ? items.find(item => item.job_id === current.job_id) ?? null : null));
+  }, []);
+
   const refresh = useCallback(async () => {
     setBusy(true); setError('');
-    try {
-      const items = await listGenerationJobs(apiBaseUrl, accessToken, workspaceId);
-      setJobs(items);
-      setSelected(current => (current ? items.find(item => item.job_id === current.job_id) ?? null : null));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '작업 목록을 불러오지 못했습니다.');
-    } finally { setBusy(false); }
-  }, [apiBaseUrl, accessToken, workspaceId]);
+    try { applyJobs(await listGenerationJobs(apiBaseUrl, accessToken, workspaceId)); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : '작업 목록을 불러오지 못했습니다.'); }
+    finally { setBusy(false); }
+  }, [apiBaseUrl, accessToken, workspaceId, applyJobs]);
 
   useEffect(() => { setJobs(null); setSelected(null); refresh(); }, [refresh]);
+
+  // R-028: refresh by itself only while a job is waiting/running; the manual button stays.
+  const anyActive = useMemo(() => (jobs ?? []).some(job => isActive(job.status)), [jobs]);
+  const anyActiveRef = useRef(false);
+  anyActiveRef.current = anyActive;
+  useEffect(() => {
+    if (!anyActive) return undefined;
+    const poller = createJobPoller({
+      refresh: async () => { applyJobs(await listGenerationJobs(apiBaseUrl, accessToken, workspaceId)); },
+      hasActive: () => anyActiveRef.current,
+      isHidden: () => document.hidden,
+    });
+    poller.start();
+    const onVisible = () => { if (!document.hidden && !poller.running && anyActiveRef.current) poller.start(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { document.removeEventListener('visibilitychange', onVisible); poller.stop(); };
+  }, [anyActive, apiBaseUrl, accessToken, workspaceId, applyJobs]);
 
   useEffect(() => {
     let revoked = false; let created = '';
@@ -39,7 +57,8 @@ export default function JobResultsWorkspace({ apiBaseUrl, accessToken, workspace
       created = URL.createObjectURL(blob); setImageUrl(created); setImageState('ready');
     }).catch((reason: unknown) => { if (!revoked) { setImageState('missing'); setError(reason instanceof Error ? reason.message : '결과 이미지를 불러오지 못했습니다.'); } });
     return () => { revoked = true; if (created) URL.revokeObjectURL(created); };
-  }, [apiBaseUrl, accessToken, selected]);
+  // keyed on the primitives: an auto refresh replaces the object but must not re-download an unchanged image
+  }, [apiBaseUrl, accessToken, selected?.job_id, selected?.status, selected?.output_url]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const group = selected ? statusGroup(selected.status) : 'unknown';
   return <section className="module" aria-label="생성 작업 결과">
@@ -61,7 +80,8 @@ export default function JobResultsWorkspace({ apiBaseUrl, accessToken, workspace
       {(group === 'waiting' || group === 'running') && <div>작업이 처리되는 중입니다. 잠시 후 새로고침해 주세요.</div>}
       {group === 'done' && imageState === 'loading' && <div>결과 이미지를 불러오는 중…</div>}
       {group === 'done' && imageState === 'missing' && <div>{NO_RESULT_MESSAGE}</div>}
-      {group === 'done' && imageState === 'ready' && <figure><img src={imageUrl} alt="생성 결과 이미지 (시험 생성)" style={{ maxWidth: '100%' }}/><figcaption>{TEST_MARK} · AI 생성 이미지 표시 대상</figcaption></figure>}
+      {group === 'done' && imageState === 'broken' && <div role="alert">{IMAGE_BROKEN_MESSAGE}</div>}
+      {group === 'done' && imageState === 'ready' && <figure><img src={imageUrl} alt="생성 결과 이미지 (시험 생성)" style={{ maxWidth: '100%' }} onError={() => setImageState('broken')}/><figcaption>{TEST_MARK} · AI 생성 이미지 표시 대상</figcaption></figure>}
     </div>}
   </section>;
 }

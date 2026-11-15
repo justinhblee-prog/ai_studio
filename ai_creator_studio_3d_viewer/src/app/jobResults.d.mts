@@ -10,3 +10,8 @@ export function failureMessage(errorCode: string | null | undefined): string;
 export function listGenerationJobs(api: string, token: string, workspaceId: string, options?: { limit?: number; offset?: number }): Promise<GenerationJob[]>;
 export function listJobOutputs(api: string, token: string, jobId: string): Promise<{ id: string }[]>;
 export function loadJobResultBlob(api: string, token: string, job: GenerationJob): Promise<Blob | null>;
+export const IMAGE_BROKEN_MESSAGE: string;
+export const POLL_BASE_MS: number;
+export const POLL_MAX_MS: number;
+export function nextPollDelay(failures: number): number;
+export function createJobPoller(options: { refresh: () => Promise<unknown>; hasActive: () => boolean; isHidden?: () => boolean; setTimer?: (fn: () => void, ms: number) => unknown; clearTimer?: (handle: unknown) => void }): { start(): void; stop(): void; readonly running: boolean };

@@ -1,7 +1,7 @@
 // R-026 in the browser: the try-on generation start screen (mock provider only, no external call).
 // Real: web bundle (built with VITE_ASSET_PUBLIC_BASE_URL), backend (PROVIDER_MODE=mock), SQLite. Mocked: Supabase Auth.
 import assert from 'node:assert/strict';
-import { startStack, chromium, mockSupabase, loginThroughUi, gotoPage, makePng, makeRunner, apiCall, USERS } from './harness.mjs';
+import { startStack, chromium, mockSupabase, loginThroughUi, gotoPage, makePng, makeRunner, apiCall, seedFinishedJobOutput, USERS } from './harness.mjs';
 
 const stack = await startStack({ extraEnv: { ASSET_REQUIRE_RIGHTS_CONFIRMATION: 'true' } });
 const browser = await chromium.launch();
@@ -84,6 +84,44 @@ try {
     if (/상태: 완료/.test(await detail.innerText())) {
       await detail.getByText(/표시할 결과 이미지가 없습니다|AI 생성 이미지 표시 대상/).first().waitFor({ timeout: 10000 });
     }
+  });
+
+  const resultsScreen = () => page.locator('section[aria-label="생성 작업 결과"]');
+  const rowFor = (id) => resultsScreen().locator('ul[aria-label="작업 목록"] li', { hasText: id }).getByRole('button');
+
+  await run('R-028: a finished job with a stored output is drawn as a real <img> with the "시험 생성" mark', async () => {
+    const list = await jobs(); const items = Array.isArray(list) ? list : list.items;
+    state.jobIds = items.map(j => j.job_id);
+    state.doneId = state.jobIds[0]; state.activeId = state.jobIds[1];
+    assert.ok(['queued', 'running', 'post_processing'].includes(items.find(j => j.job_id === state.activeId).status), 'the second job must still be in progress for the auto refresh test');
+    seedFinishedJobOutput(stack, state.doneId);   // the mock provider never produces an image; the real provider path is not exercised
+    await page.reload(); await page.locator('.workspace-select').waitFor({ timeout: 20000 });
+    await gotoPage(page, '생성 작업 결과');
+    await rowFor(state.doneId).click();
+    const detail = resultsScreen().locator('[aria-label="작업 상세"]');
+    await detail.locator('img').waitFor({ timeout: 15000 });
+    assert.ok(await detail.locator('img').evaluate(img => img.complete && img.naturalWidth > 0), 'the image really decoded');
+    assert.match(await detail.innerText(), /시험 생성/);
+    assert.equal(await detail.locator('img').getAttribute('alt'), '생성 결과 이미지 (시험 생성)');
+  });
+
+  await run('R-028: when the image bytes are broken a Korean notice is shown instead of a broken picture', async () => {
+    await page.route('**/v1/generation-jobs/*/output', route => route.fulfill({ status: 200, contentType: 'image/png', body: 'not really a png' }));
+    await rowFor(state.activeId).click();
+    await rowFor(state.doneId).click();
+    await resultsScreen().locator('[aria-label="작업 상세"] [role=alert]').getByText(/표시하지 못했습니다/).waitFor({ timeout: 15000 });
+    assert.equal(await resultsScreen().locator('[aria-label="작업 상세"] img').count(), 0);
+    await page.unroute('**/v1/generation-jobs/*/output');
+  });
+
+  await run('R-028: an in-progress job is refreshed by itself, and the refreshing stops once nothing is in progress', async () => {
+    seedFinishedJobOutput(stack, state.activeId);
+    await rowFor(state.activeId).click();
+    await resultsScreen().locator('[aria-label="작업 상세"]').getByText(/상태: 완료/).waitFor({ timeout: 25000 });  // no click on the refresh button
+    let listRequests = 0;
+    page.on('request', request => { if (/\/v1\/generation-jobs\?workspace_id=/.test(request.url())) listRequests += 1; });
+    await page.waitForTimeout(23000);
+    assert.equal(listRequests, 0, 'no list request while nothing is waiting or running');
   });
 
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} generation steps passed`);
