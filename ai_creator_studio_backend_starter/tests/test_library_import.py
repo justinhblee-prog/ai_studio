@@ -232,3 +232,15 @@ def test_retire_hides_an_item_for_users_and_unknown_ids_are_refused(env, made, c
     assert (env / "library" / "sample-top-01.v1.png").is_file(), "taking an item down never deletes its file"
     assert tool.main(["--retire", "no-such-item", "--apply"]) == 1
     assert "(no such item)" in capsys.readouterr().out
+
+
+def test_in_production_a_model_without_the_likeness_check_is_refused(env, made, capsys, monkeypatch):
+    path = edit_manifest(made, lambda c, r: (c, [dict(r[0], likeness_check="", is_placeholder="no")]))
+    assert run(made, "--production", "--apply", manifest=path) == 1
+    assert "likeness_check is not 'yes'" in capsys.readouterr().out and listing() == []
+    monkeypatch.setenv("ACS_ENVIRONMENT", "production")
+    assert run(made, "--apply", manifest=path) == 1 and listing() == []
+    monkeypatch.delenv("ACS_ENVIRONMENT")
+    assert run(made, "--apply", manifest=path) == 0, "outside production it stays a warning"
+    ok = edit_manifest(made, lambda c, r: (c, [dict(r[0], likeness_check="yes", is_placeholder="no")]), "ok.csv")
+    assert run(made, "--production", "--apply", manifest=ok) == 0
