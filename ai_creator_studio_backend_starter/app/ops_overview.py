@@ -159,3 +159,38 @@ async def ops_downloads(limit: int = Query(default=50, ge=1, le=200), user_id: s
                                             "ORDER BY created_at DESC, download_id DESC LIMIT ?", (limit,)).fetchall()]
     finally:
         db.close()
+
+
+GRACE_DAYS = 7  # the deletion grace period (scripts/purge_requests.py --grace-days default)
+
+
+class DeletionRow(BaseModel):
+    request_id: str
+    scope: str
+    workspace_id: str | None
+    user_id: str
+    status: str
+    requested_at: str
+    due_at: str
+    grace_expired: bool
+
+
+@router.get("/deletion-requests", response_model=list[DeletionRow], operation_id="listOpsDeletionRequests")
+async def ops_deletion_requests(status: str = Query(default="pending", pattern="^(pending|cancelled|completed)$"),
+                                limit: int = Query(default=100, ge=1, le=500), user_id: str = Depends(current_user)):
+    """Deletion requests with their grace deadline, so the operator sees what is waiting and what is due. Nothing is deleted here: the purge
+    itself stays the documented manual procedure (scripts/purge_requests.py with an explicit confirmation). The free-text reason is not shown."""
+    _require_operator(user_id)
+    from datetime import datetime, timedelta, timezone
+    from app.legal import _initialize
+    from app.assets import store
+    _initialize()
+    now = datetime.now(timezone.utc)
+    with store._connect() as db:
+        rows = db.execute("SELECT request_id, scope, workspace_id, user_id, status, requested_at FROM deletion_requests WHERE status=? "
+                          "ORDER BY requested_at LIMIT ?", (status, limit)).fetchall()
+    out = []
+    for r in rows:
+        due = datetime.fromisoformat(r["requested_at"]) + timedelta(days=GRACE_DAYS)
+        out.append({**dict(r), "due_at": due.isoformat(), "grace_expired": due <= now})
+    return out

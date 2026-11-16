@@ -153,3 +153,24 @@ def test_downloads_list_is_operator_only_newest_first(env):
     rows = client.get("/internal/ops/downloads", headers=auth("o")).json()
     assert [r["download_id"] for r in rows] == ["dl_2", "dl_1", "dl_0"] and rows[0]["size_bytes"] == 102
     assert len(client.get("/internal/ops/downloads", headers=auth("o"), params={"limit": 2}).json()) == 2
+
+
+def test_deletion_requests_list_shows_the_grace_deadline_and_never_the_reason(env):
+    import app.config as config
+    from datetime import datetime, timedelta, timezone
+    client.get("/v1/me/legal-status", headers=auth("a"))   # creates the legal / deletion tables
+    now = datetime.now(timezone.utc)
+    db = sqlite3.connect(config.ASSET_DATABASE_PATH)
+    for rid, who, status, days in (("del_old", "user-a", "pending", 10), ("del_new", "user-b", "pending", 2), ("del_done", "user-c", "completed", 20)):
+        db.execute("INSERT INTO deletion_requests(request_id,user_id,scope,workspace_id,status,reason,requested_at) VALUES(?,?,?,?,?,?,?)",
+                   (rid, who, "workspace_content", "co-paid", status, "private reason text", (now - timedelta(days=days)).isoformat()))
+    db.commit()
+    assert client.get("/internal/ops/deletion-requests").status_code == 401
+    assert client.get("/internal/ops/deletion-requests", headers=auth("a")).status_code == 403
+    rows = client.get("/internal/ops/deletion-requests", headers=auth("o")).json()
+    assert [(r["request_id"], r["grace_expired"]) for r in rows] == [("del_old", True), ("del_new", False)], "pending only, oldest first"
+    assert rows[0]["due_at"][:10] == (now - timedelta(days=3)).isoformat()[:10]
+    assert "private reason text" not in str(rows) and "reason" not in rows[0]
+    done = client.get("/internal/ops/deletion-requests", headers=auth("o"), params={"status": "completed"}).json()
+    assert [r["request_id"] for r in done] == ["del_done"]
+    assert client.get("/internal/ops/deletion-requests", headers=auth("o"), params={"status": "x"}).status_code == 422
