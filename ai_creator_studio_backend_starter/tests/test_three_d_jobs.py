@@ -82,6 +82,7 @@ def test_the_daily_limit_and_the_generate_budget(env, monkeypatch):
     monkeypatch.setattr(config, "THREED_DAILY_LIMIT", 20)
     monkeypatch.setattr(config, "RATE_LIMITS_ENABLED", True)
     monkeypatch.setattr(config, "RATE_GENERATE_USER_PER_MINUTE", 1)
+    assert make(pic["item_id"]).status_code == 201
     assert make(pic["item_id"]).status_code == 429, "3D jobs share the generate budget"
 
 

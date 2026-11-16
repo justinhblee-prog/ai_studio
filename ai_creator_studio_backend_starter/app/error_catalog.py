@@ -129,7 +129,7 @@ CODES: dict[str, tuple[str, str]] = {
     "MODEL_REAL_PERSON_BLOCKED": ("실존 인물을 닮게 만드는 요청은 받을 수 없습니다. 표현을 바꿔 다시 적어 주세요.", "Requests to look like a real person are not accepted. Please rephrase."),
     "MEMBER_OWNER_PROTECTED": ("소유자의 역할은 여기서 바꾸거나 없앨 수 없습니다.", "The owner's role cannot be changed or removed here."),
     "MEMBER_ROLE_FORBIDDEN": ("이 멤버에 대해서는 그 작업을 할 수 없습니다. 관리자 지정·해제는 소유자만 할 수 있습니다.", "You cannot do that for this member. Only the owner can make or unmake an admin."),
-    "THREED_PROVIDER_NOT_CONNECTED": ("외부 AI 서비스로 3D를 만드는 기능은 아직 연결되지 않았습니다.", "3D generation by an external AI service is not connected yet."),
+    "THREED_PROVIDER_NOT_CONNECTED": ("외부 AI 서비스로 3D를 만드는 기능은 아직 연결되지 않았습니다.", "Making 3D models with an external AI service is not connected yet."),
     "THREED_INPUT_NOT_FOUND": ("선택한 그림 항목을 찾을 수 없습니다.", "The selected picture item was not found."),
     "THREED_INPUT_KIND": ("3D로 바꿀 수 있는 것은 그림 항목뿐입니다(너무 큰 그림도 안 됩니다).", "Only picture items can be turned into 3D (and not very large ones)."),
     "THREED_INPUT_GONE": ("선택한 그림의 파일이 더는 없습니다.", "The selected picture's file no longer exists."),
