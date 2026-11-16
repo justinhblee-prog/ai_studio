@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { STEP_DEFS, newStep, validateSteps, moveStep, summarizeRecords, runPhotoSteps, MAX_STEPS, stepsFromPreset, validatePresetName, savePreset, planBulk, uploadMany, PLANNED_STEPS, MAX_BULK_FILES } from './photoStepsClient.mjs';
+import { STEP_DEFS, newStep, validateSteps, moveStep, summarizeRecords, runPhotoSteps, MAX_STEPS, stepsFromPreset, validatePresetName, savePreset, planBulk, uploadMany, PLANNED_STEPS, MAX_BULK_FILES, clampPosition, afterClip } from './photoStepsClient.mjs';
 
 test('a new step carries the defaults of its definition; an unknown one is refused', () => {
   assert.deepEqual(newStep('auto_crop'), { op: 'auto_crop', tolerance: 24, margin_pct: 5 });
@@ -102,4 +102,9 @@ test('the new local steps have defaults and bounds that match the server', () =>
   assert.match(validateSteps([{ ...newStep('drop_shadow'), blur: 101 }]), /1번 단계: 번짐/);
   assert.match(validateSteps([{ ...newStep('drop_shadow'), offset_y: 201 }]), /세로 이동/);
   assert.match(validateSteps([{ ...newStep('gradient_background'), top_color: 'x' }]), /위쪽 색/);
+});
+
+test('the slider position is clamped and turned into a clip that reveals the result from the left', () => {
+  assert.equal(clampPosition(-5), 0); assert.equal(clampPosition(140), 100); assert.equal(clampPosition('30'), 30); assert.equal(clampPosition('x'), 50); assert.equal(clampPosition(33.6), 34);
+  assert.equal(afterClip(30), 'inset(0 70% 0 0)'); assert.equal(afterClip(0), 'inset(0 100% 0 0)'); assert.equal(afterClip(100), 'inset(0 0% 0 0)'); assert.equal(afterClip(undefined), 'inset(0 50% 0 0)');
 });

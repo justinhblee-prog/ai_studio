@@ -120,3 +120,7 @@ export const PLANNED_STEPS = Object.freeze([
   '배경 제거(투명 PNG)', '반사', '형태·로고 보존 확인',
   '주름·먼지·잡티 정리(외부 AI)', '업스케일', '장면 배경 교체(외부 AI)', '색상 변형', '일괄 처리 큐',
 ]);
+
+// Before/after slider: the "after" picture is shown from the left edge up to `position` percent (0..100); the rest shows the original.
+export const clampPosition = (value) => { const n = Number(value); return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : 50; };
+export const afterClip = (position) => `inset(0 ${100 - clampPosition(position)}% 0 0)`;

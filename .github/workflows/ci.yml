@@ -182,7 +182,7 @@ jobs:
         run: |
           set -o pipefail
           node e2e/photo_steps_flow.mjs | tee e2e_photo_steps.txt
-          grep -q "SUMMARY 8/8 photo-steps steps passed" e2e_photo_steps.txt
+          grep -q "SUMMARY 9/9 photo-steps steps passed" e2e_photo_steps.txt
       - name: 3D Studio, viewing (R-038)
         if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
