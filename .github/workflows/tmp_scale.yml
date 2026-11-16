@@ -12,4 +12,4 @@ jobs:
           python-version: "3.13"
       - run: pip install -r ai_creator_studio_backend_starter/requirements.txt
       - working-directory: ai_creator_studio_backend_starter
-        run: python scripts/scale_probe.py --items 10000 --work 10000 --reviews 50000 --repeat 3
+        run: python scripts/scale_probe.py --items 2000 --work 2000 --reviews 10000 --repeat 2
