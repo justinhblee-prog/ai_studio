@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from app import config
-from scripts import backup_restore, restore_drill
+from scripts import restore_drill
 
 
 @pytest.fixture
@@ -40,7 +40,8 @@ def test_the_source_is_only_read(demo):
 
 def test_a_damaged_backup_stops_the_drill_before_any_restore(demo, monkeypatch):
     tmp, db_path, assets = demo
-    real = backup_restore.backup
+    br = restore_drill.backup_restore          # the module the drill itself uses (it is imported by file name, not as scripts.backup_restore)
+    real = br.backup
 
     def damaging(*a, **k):
         out = real(*a, **k)
@@ -48,8 +49,8 @@ def test_a_damaged_backup_stops_the_drill_before_any_restore(demo, monkeypatch):
         victim.write_bytes(victim.read_bytes() + b"x")            # a bit of rot in the backup
         return out
 
-    monkeypatch.setattr(backup_restore, "backup", damaging)
-    with pytest.raises(backup_restore.BackupVerificationError):
+    monkeypatch.setattr(br, "backup", damaging)
+    with pytest.raises(br.BackupVerificationError):
         restore_drill.drill(db_path, assets, tmp / "work")
     assert not (tmp / "work" / "restored").exists(), "nothing was restored from a damaged backup"
 
