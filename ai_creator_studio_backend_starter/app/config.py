@@ -58,6 +58,9 @@ PREVIEW_ALLOWED_ORIGINS = tuple(o.rstrip("/") for o in APP_CORS_ORIGINS)
 WORKSPACE_LIBRARY_MAX_ITEMS = int(os.getenv("WORKSPACE_LIBRARY_MAX_ITEMS", "500"))
 WORKSPACE_LIBRARY_MAX_3D = int(os.getenv("WORKSPACE_LIBRARY_MAX_3D", "50"))
 WORKSPACE_LIBRARY_MAX_3D_BYTES = int(os.getenv("WORKSPACE_LIBRARY_MAX_3D_BYTES", str(50 * 1024 * 1024)))
+# R-046: try-on inputs picked from "my library" are turned into SHORT-LIVED signed https addresses only when the job is dispatched.
+PUBLIC_API_BASE_URL = os.getenv("PUBLIC_API_BASE_URL", "").strip().rstrip("/")   # e.g. https://api.example.com (needed for a real provider)
+TRYON_INPUT_URL_TTL_SECONDS = int(os.getenv("TRYON_INPUT_URL_TTL_SECONDS", "600"))
 LIBRARY_PREVIEW_MAX_EDGE = int(os.getenv("LIBRARY_PREVIEW_MAX_EDGE", "1200"))  # library images are shown downscaled, never at original size
 # Package downloads per workspace per calendar month (UTC). 0 = no limit: the value is a product decision that has not been made yet.
 DOWNLOAD_MONTHLY_LIMIT = int(os.getenv("DOWNLOAD_MONTHLY_LIMIT", "0"))

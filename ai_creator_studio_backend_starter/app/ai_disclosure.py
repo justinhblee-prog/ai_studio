@@ -28,7 +28,13 @@ def input_source_of_job(job: dict[str, Any]) -> str:
     payload = job.get("payload") or {}
     urls = [payload.get("model_image_url"), payload.get("garment_image_url")]
     ids = [m.group(1) for u in urls if isinstance(u, str) for m in [ASSET_IN_URL.search(u)] if m]
-    if not ids or len(ids) < sum(1 for u in urls if u):
+    try:   # R-046: sides picked from "my library" are traced through their item
+        from app import tryon_inputs
+        ids += tryon_inputs.asset_ids_of(payload)
+        picked = sum(1 for k in ("model_item_id", "garment_item_id") if payload.get(k))
+    except Exception:  # noqa: BLE001
+        return "unknown"
+    if not ids or len(ids) < sum(1 for u in urls if u) + picked:
         return "unknown"
     try:
         from app.assets import store

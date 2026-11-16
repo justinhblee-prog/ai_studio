@@ -258,10 +258,15 @@ async def create_job(body: CreateTryOnJob, idempotency_key: str | None = Header(
             return public_job(existing_job)
 
     provider = get_provider()
+    from app import tryon_inputs
+    try:   # R-046: library items are resolved now only to refuse a bad pick at once; the stored payload keeps just the item ids
+        checked = tryon_inputs.resolve_payload(payload, for_provider=False, user_id=user_id)
+    except tryon_inputs.TryOnInputError as exc:
+        raise HTTPException(status_code=exc.status, detail={"code": exc.code, "message": str(exc)}) from exc
     try:
         validator = getattr(provider, "validate_request", None)
         if callable(validator):
-            validator(payload)
+            validator(checked)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail={"code": "VALIDATION_ERROR", "message": str(exc)}) from exc
     if provider.name != "mock" and config.EXTERNAL_NOTICE_REQUIRED:
@@ -438,6 +443,9 @@ async def _decide_job_output_review(job_id: str, output_id: str, body: OutputRev
     if result is None:
         raise HTTPException(status_code=404, detail="Generated Output not found")
     result.pop("workspace_id", None)
+    if decision == "approved":   # R-046: only an APPROVED result is delivered into "my library" (as a render item, origin ai)
+        from app.workspace_library import file_generated_output
+        file_generated_output(job["workspace_id"], (result.get("output") or {}).get("asset_id"), user_id, f"결과 {job_id[-6:]}")
     return result
 
 
