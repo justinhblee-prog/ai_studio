@@ -10,6 +10,7 @@ import GenerationStartWorkspace from '../GenerationStartWorkspace';
 import JobResultsWorkspace from '../JobResultsWorkspace';
 import LibraryWorkspace from '../LibraryWorkspace';
 import UsageWorkspace from '../UsageWorkspace';
+import CharacterWorkspace from '../CharacterWorkspace';
 import { installImageGuard } from './imageGuard.mjs';
 import { installUnauthorizedWatcher } from './sessionGuard.mjs';
 import SessionExpiredDialog from './SessionExpiredDialog';
@@ -47,7 +48,7 @@ type AuthUser = { id: string; email?: string };
 const nav = [
   ['overview', '대시보드', '⌂'], ['projects', '프로젝트 관리', '▦'], ['assets', '에셋 라이브러리', '◇'],
   ['viewer', '3D 스튜디오', '◈'], ['products', '상품 카탈로그', '▤'], ['assign', '프로젝트·상품 연결', '⇄'],
-  ['photo', '포토 스튜디오', '▧'], ['library', '라이브러리', '▥'], ['generate', '가상 착장 시험 생성', '✦'], ['jobs', '생성 작업 결과', '☰'], ['usage', '사용량', '▤'], ['lookbook', '룩북 스튜디오', '▣'], ['review', '결과물 검수', '✓'],
+  ['photo', '포토 스튜디오', '▧'], ['library', '라이브러리', '▥'], ['generate', '가상 착장 시험 생성', '✦'], ['jobs', '생성 작업 결과', '☰'], ['character', '캐릭터', '☺'], ['usage', '사용량', '▤'], ['lookbook', '룩북 스튜디오', '▣'], ['review', '결과물 검수', '✓'],
 ] as const;
 
 function AuthGate({
@@ -307,6 +308,7 @@ function App() {
         {page === 'assign' && <ProjectProductAssignmentWorkspace {...common}/ >}
         {page === 'photo' && <PhotoDraftWorkspace {...common}/ >}
         {page === 'library' && <LibraryWorkspace {...common}/>}
+        {page === 'character' && <CharacterWorkspace {...common}/>}
         {page === 'usage' && <UsageWorkspace {...common}/>}
         {page === 'jobs' && <JobResultsWorkspace {...common}/>}
         {page === 'generate' && <GenerationStartWorkspace {...common} publicBase={import.meta.env.VITE_ASSET_PUBLIC_BASE_URL || ''}/ >}
