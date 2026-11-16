@@ -3448,6 +3448,54 @@
         "title": "PhotoRunResponse",
         "type": "object"
       },
+      "PhotoStepsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "asset_id",
+          "steps"
+        ],
+        "title": "PhotoStepsRequest",
+        "type": "object"
+      },
+      "PhotoStepsResponse": {
+        "properties": {
+          "asset": {
+            "$ref": "#/components/schemas/AssetRecordResponse"
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "asset",
+          "steps"
+        ],
+        "title": "PhotoStepsResponse",
+        "type": "object"
+      },
       "ProductInput": {
         "additionalProperties": false,
         "properties": {
@@ -13079,6 +13127,74 @@
         "summary": "Add Member",
         "tags": [
           "workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/photo-steps": {
+      "post": {
+        "operationId": "runPhotoSteps",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoStepsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoStepsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Photo Steps",
+        "tags": [
+          "photo-steps"
         ]
       }
     },
