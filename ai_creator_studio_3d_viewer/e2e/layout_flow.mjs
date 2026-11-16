@@ -23,6 +23,9 @@ try {
       const wide = [];
       for (const screen of SCREENS) {
         await gotoPage(page, screen);
+        await page.waitForLoadState('networkidle').catch(() => {});
+        await page.evaluate(() => document.fonts?.ready);
+        await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
         await page.waitForTimeout(250);
         const m = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
         if (m.scroll > m.inner + 1) wide.push(`${screen}: ${m.scroll}px > ${m.inner}px`);
