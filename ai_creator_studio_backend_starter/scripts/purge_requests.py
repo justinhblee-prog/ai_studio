@@ -41,7 +41,7 @@ ANON_COLUMNS = ("actor_id", "owner_id", "created_by")
 ANON_BY_TABLE = {"upload_rights_confirmations": ("user_id",), "content_reports": ("reporter_id", "resolved_by"),
                  # R-063 / R-064 / R-065: columns that name a person but are not called actor_id / owner_id / created_by
                  "asset_reviews": ("requested_by", "handled_by"), "workspace_settings": ("updated_by",), "market_reports": ("reporter_id",),
-                 "market_listings": ("rights_confirmed_by",), "data_exports": ("requested_by",), "assist_usage": ("user_id",), "rate_limit_blocked": ("user_id",)}
+                 "market_listings": ("rights_confirmed_by",), "data_exports": ("requested_by",), "assist_usage": ("user_id",), "rate_limit_blocked": ("user_id",), "workspace_member_events": ("member_id",)}
 # Tables tied to a workspace through a column that is not a declared foreign key (R-064: reports on a listing live and die with the listing's workspace).
 EXTRA_FKS = {"market_reports": [("market_listings", "listing_id", "listing_id")]}
 SHELL_TABLES = {"workspaces", "workspace_members"}
