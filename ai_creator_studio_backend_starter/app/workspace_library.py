@@ -28,7 +28,7 @@ router = APIRouter(prefix="/v1/workspaces/{workspace_id}/library", tags=["worksp
 Kind = Literal["model", "garment", "prop", "bg", "pose", "3d", "render"]
 KINDS = ("model", "garment", "prop", "bg", "pose", "3d", "render")
 AI_EVENTS = {"asset.generated_output_imported"}
-WORK_EVENTS = {"asset.photo_processed", "asset.photo_steps"}
+WORK_EVENTS = {"asset.photo_processed", "asset.photo_steps", "asset.model_candidate"}
 MAX_TAGS, MAX_TAG_LEN, MAX_NAME = 10, 30, 120
 DDL = """CREATE TABLE IF NOT EXISTS workspace_library_items (
     item_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, asset_id TEXT NOT NULL, kind TEXT NOT NULL, origin TEXT NOT NULL,
@@ -268,9 +268,8 @@ async def remove_item(workspace_id: str, item_id: str, delete_asset: bool = Quer
     return None
 
 
-def file_generated_output(workspace_id: str, asset_id: str | None, user_id: str, name: str) -> str:
-    """R-046: file an APPROVED generated output under 'render' in the workspace library. Never raises (the approval must not fail because
-    of the library): returns 'filed', 'exists', 'full' or 'skipped'. The origin is read from the asset's provenance like everywhere else."""
+def file_item(workspace_id: str, asset_id: str | None, user_id: str, kind: str, name: str) -> str:
+    """File an existing asset under ``kind`` without ever raising: 'filed', 'exists', 'full' or 'skipped'. Origin comes from the provenance."""
     if not asset_id:
         return "skipped"
     try:
@@ -279,10 +278,15 @@ def file_generated_output(workspace_id: str, asset_id: str | None, user_id: str,
             if db.execute("SELECT 1 FROM workspace_library_items WHERE workspace_id=? AND asset_id=?", (workspace_id, asset_id)).fetchone():
                 return "exists"
             try:
-                _check_caps(db, workspace_id, "render")
+                _check_caps(db, workspace_id, kind)
             except HTTPException:
                 return "full"
-            _insert(db, workspace_id, user_id, asset_id, "render", name[:MAX_NAME], [])
+            _insert(db, workspace_id, user_id, asset_id, kind, _clean_name(name, "item"), [])
         return "filed"
     except Exception:  # noqa: BLE001
         return "skipped"
+
+
+def file_generated_output(workspace_id: str, asset_id: str | None, user_id: str, name: str) -> str:
+    """R-046: file an APPROVED generated output under 'render' (never raises, so an approval cannot fail because of the library)."""
+    return file_item(workspace_id, asset_id, user_id, "render", name)
