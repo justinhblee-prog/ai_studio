@@ -78,11 +78,12 @@ def test_the_window_slides_and_the_retry_time_is_real(on, monkeypatch):
     with sqlite3.connect(config.ASSET_DATABASE_PATH) as c:
         c.execute("UPDATE rate_limit_hits SET at=at-61")
     assert up(shade=4).status_code == 201, "after the window the user may go on"
-    with sqlite3.connect(config.ASSET_DATABASE_PATH) as c:
-        c.execute("UPDATE rate_limit_hits SET at=at-30 WHERE hit_id=(SELECT MIN(hit_id) FROM rate_limit_hits)")
-    up(shade=5)
+    assert up(shade=5).status_code == 201
+    import time
+    with sqlite3.connect(config.ASSET_DATABASE_PATH) as c:      # age the older of the two hits that are still in the window by 30 seconds
+        c.execute("UPDATE rate_limit_hits SET at=at-30 WHERE hit_id=(SELECT hit_id FROM rate_limit_hits WHERE at>? ORDER BY at LIMIT 1)", (time.time() - 60,))
     d2 = assert_429(up(shade=6), "RATE_LIMITED")
-    assert 1 <= d2["retry_after_seconds"] <= 31, "the wait is until the OLDEST hit leaves the window"
+    assert 1 <= d2["retry_after_seconds"] <= 31, "the wait is until the OLDEST hit in the window leaves it"
 
 
 def test_a_zero_limit_and_the_master_switch_turn_the_rule_off(on, monkeypatch):
