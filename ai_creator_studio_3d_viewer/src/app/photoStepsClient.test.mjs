@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { STEP_DEFS, newStep, validateSteps, moveStep, summarizeRecords, runPhotoSteps, MAX_STEPS } from './photoStepsClient.mjs';
+import { STEP_DEFS, newStep, validateSteps, moveStep, summarizeRecords, runPhotoSteps, MAX_STEPS, stepsFromPreset, validatePresetName, savePreset } from './photoStepsClient.mjs';
 
 test('a new step carries the defaults of its definition; an unknown one is refused', () => {
   assert.deepEqual(newStep('auto_crop'), { op: 'auto_crop', tolerance: 24, margin_pct: 5 });
@@ -36,4 +36,26 @@ test('running posts the asset id and the steps to the workspace endpoint', async
   globalThis.fetch = async (url, init) => { seen = { url: String(url).replace('http://127.0.0.1:9', ''), body: JSON.parse(init.body) }; return new Response('{}', { status: 201 }); };
   await runPhotoSteps('http://127.0.0.1:9', 't', 'ws 1', 'a1', [newStep('auto_crop')]);
   assert.deepEqual(seen, { url: '/v1/workspaces/ws%201/photo-steps', body: { asset_id: 'a1', steps: [{ op: 'auto_crop', tolerance: 24, margin_pct: 5 }] } });
+});
+
+test('applying a preset copies its steps; the saved preset is never changed by later edits', () => {
+  const preset = { preset_id: 'p', name: 'A', steps: [newStep('auto_crop')] };
+  const copy = stepsFromPreset(preset);
+  copy[0].margin_pct = 30;
+  assert.equal(preset.steps[0].margin_pct, 5);
+  assert.deepEqual(stepsFromPreset(null), []);
+});
+
+test('preset names: required, at most 60, unique', () => {
+  assert.equal(validatePresetName('봄 시즌', [{ name: '기본' }]), '');
+  assert.match(validatePresetName('  '), /입력/);
+  assert.match(validatePresetName('x'.repeat(61)), /60자/);
+  assert.match(validatePresetName(' 기본 ', [{ name: '기본' }]), /이미 있습니다/);
+});
+
+test('saving a preset posts the trimmed name and the steps', async () => {
+  let seen;
+  globalThis.fetch = async (url, init) => { seen = { url: String(url).replace('http://127.0.0.1:9', ''), body: JSON.parse(init.body) }; return new Response('{}', { status: 201 }); };
+  await savePreset('http://127.0.0.1:9', 't', 'ws', '  기본 ', [newStep('auto_crop')]);
+  assert.deepEqual(seen, { url: '/v1/workspaces/ws/photo-presets', body: { name: '기본', steps: [{ op: 'auto_crop', tolerance: 24, margin_pct: 5 }] } });
 });

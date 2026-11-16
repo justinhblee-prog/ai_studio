@@ -56,7 +56,35 @@ try {
     await page.waitForFunction(() => { const i = document.querySelector('img[alt="편집 결과 미리보기"]'); return i && i.naturalWidth === 100; }, null, { timeout: 10000 });
   });
 
-  await run('a viewer-less failure is shown in Korean: the same run against a deleted source reports an error and stores nothing', async () => {
+  await run('before/after: the original (60 wide) and the result (100 wide) are shown side by side', async () => {
+    const compare = panel().getByRole('group', { name: '전후 비교' });
+    await page.waitForFunction(() => { const i = document.querySelector('img[alt="편집 전 원본"]'); return i && i.naturalWidth === 60; }, null, { timeout: 10000 });
+    assert.ok(await compare.getByText('전(원본)').isVisible() && await compare.getByText('후(결과)').isVisible());
+  });
+
+  await run('a preset can be saved from the current steps, applied later, and deleted; names are unique', async () => {
+    const items = panel().locator('ol[aria-label="적용할 단계"] > li');
+    const save = panel().getByRole('button', { name: '현재 단계를 프리셋으로 저장' });
+    assert.equal(await save.isDisabled(), true, 'no name yet');
+    await panel().getByLabel('프리셋 이름').fill('브랜드 기본');
+    await save.click();
+    await panel().getByText('"브랜드 기본" 프리셋을 저장했습니다.').waitFor({ timeout: 10000 });
+    const saved = (await apiCall(stack, USERS.owner.token, `/v1/workspaces/${state.workspace}/photo-presets`)).body.items;
+    assert.equal(saved.length, 1); assert.equal(saved[0].steps[0].op, 'fit_canvas'); assert.equal(saved[0].steps[0].width, 100);
+    await panel().getByLabel('프리셋 이름').fill('브랜드 기본');
+    assert.equal(await save.isDisabled(), true, 'same name is refused on the screen');
+    await panel().getByRole('button', { name: '1번 단계 삭제' }).click();
+    assert.equal(await items.count(), 0);
+    await panel().getByLabel('저장된 프리셋').selectOption({ label: '브랜드 기본' });
+    assert.equal(await items.count(), 1);
+    assert.equal(await items.first().getByLabel('가로(px)').inputValue(), '100');
+    await panel().getByRole('button', { name: '브랜드 기본 프리셋 삭제' }).click();
+    await page.waitForFunction(() => !document.querySelector('ul[aria-label="프리셋 목록"]'), null, { timeout: 10000 });
+    assert.equal((await apiCall(stack, USERS.owner.token, `/v1/workspaces/${state.workspace}/photo-presets`)).body.items.length, 0);
+    await panel().getByRole('button', { name: /캔버스 맞춤/ }).click();   // leave one step for the next scenario
+  });
+
+  await run('the same run against a deleted source reports an error in Korean and stores nothing', async () => {
     const [shoe] = (await images()).filter(a => a.original_filename === 'shoe.png');
     assert.equal((await apiCall(stack, USERS.owner.token, `/v1/assets/${shoe.asset_id}`, { method: 'DELETE' })).status, 204);
     const before = (await images()).length;

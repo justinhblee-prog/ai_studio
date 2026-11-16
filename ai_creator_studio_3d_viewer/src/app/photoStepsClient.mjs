@@ -46,3 +46,20 @@ export const summarizeRecords = (records) => (records ?? []).map((r) => `${STEP_
 
 export const runPhotoSteps = (api, token, workspaceId, assetId, steps) =>
   apiRequest(api, `/v1/workspaces/${encodeURIComponent(workspaceId)}/photo-steps`, { token, method: 'POST', body: { asset_id: assetId, steps } });
+
+// Brand presets (R-044 A item 19): named step lists saved per workspace.
+const presetBase = (workspaceId) => `/v1/workspaces/${encodeURIComponent(workspaceId)}/photo-presets`;
+export const listPresets = (api, token, workspaceId) => apiRequest(api, presetBase(workspaceId), { token });
+export const savePreset = (api, token, workspaceId, name, steps) => apiRequest(api, presetBase(workspaceId), { token, method: 'POST', body: { name: String(name).trim(), steps } });
+export const deletePreset = (api, token, workspaceId, presetId) => apiRequest(api, `${presetBase(workspaceId)}/${encodeURIComponent(presetId)}`, { token, method: 'DELETE' });
+
+// Applying a preset replaces the list with copies (editing the list afterwards never changes the saved preset).
+export const stepsFromPreset = (preset) => (preset?.steps ?? []).map((step) => ({ ...step }));
+
+export function validatePresetName(name, existing = []) {
+  const n = String(name ?? '').trim();
+  if (!n) return '프리셋 이름을 입력해 주세요.';
+  if (n.length > 60) return '프리셋 이름은 60자까지입니다.';
+  if (existing.some((p) => p.name === n)) return '같은 이름의 프리셋이 이미 있습니다.';
+  return '';
+}
