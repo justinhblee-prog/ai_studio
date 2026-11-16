@@ -915,11 +915,31 @@
             "type": "string"
           },
           "garment_image_url": {
-            "format": "uri",
-            "maxLength": 2083,
-            "minLength": 1,
-            "title": "Garment Image Url",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Garment Image Url"
+          },
+          "garment_item_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 4,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Garment Item Id"
           },
           "mode": {
             "default": "balanced",
@@ -932,11 +952,31 @@
             "type": "string"
           },
           "model_image_url": {
-            "format": "uri",
-            "maxLength": 2083,
-            "minLength": 1,
-            "title": "Model Image Url",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Image Url"
+          },
+          "model_item_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 4,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Item Id"
           },
           "output_format": {
             "default": "png",
@@ -978,9 +1018,7 @@
           }
         },
         "required": [
-          "workspace_id",
-          "model_image_url",
-          "garment_image_url"
+          "workspace_id"
         ],
         "title": "CreateTryOnJob",
         "type": "object"
