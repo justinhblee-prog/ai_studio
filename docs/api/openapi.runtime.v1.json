@@ -1999,6 +1999,75 @@
         "title": "FeaturesResponse",
         "type": "object"
       },
+      "FromJobIn": {
+        "additionalProperties": false,
+        "properties": {
+          "attrs": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attrs"
+          },
+          "job_id": {
+            "maxLength": 80,
+            "minLength": 4,
+            "title": "Job Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "output_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 4,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Id"
+          },
+          "source_asset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Source Asset Ids",
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "FromJobIn",
+        "type": "object"
+      },
       "GeneratedOutputItemResponse": {
         "additionalProperties": true,
         "properties": {
@@ -16169,6 +16238,75 @@
           }
         },
         "summary": "Facets",
+        "tags": [
+          "workspace-library"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/library/from-job": {
+      "post": {
+        "description": "R-060: file a FINISHED job's result under ``render``. Idempotent: the same result is filed once (a repeat returns the existing item with 200).\nThe server records ``service``, ``style``, ``region`` and ``source_asset_ids`` (the inputs it knows about plus the caller's extra ones, which must be\nlive assets of THIS workspace); the caller may add other attributes (e.g. ``sku``). Generation-job results must be approved first (R-046).",
+        "operationId": "fileWorkspaceLibraryFromJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FromJobIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryItemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "From Job",
         "tags": [
           "workspace-library"
         ]
