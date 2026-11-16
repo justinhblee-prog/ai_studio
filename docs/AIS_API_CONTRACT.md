@@ -130,3 +130,12 @@
  "thumbs": {"480": "/v1/assets/ast_5c1e7f0a9b2d4c6e8f1a3b5d7c9e0f12/thumb/480?expires=1763290000&signature=ab12", "960": "/v1/assets/ast_5c1e7f0a9b2d4c6e8f1a3b5d7c9e0f12/thumb/960?expires=1763290000&signature=cd34"}}
 ```
 - `origin`: `ai`(AI가 만든 결과) · `upload`(올린 파일) · `work`(작업 결과). `thumbs`는 이미지만, 서명이 없으면 `null`. `thumbnail_asset_id`는 3D 항목이 올린 미리보기 그림의 자산 ID(없으면 `null`).
+
+### `GET /v1/workspaces/{id}/reviews/{review_id}` — 자산 검수 한 건 (요청·승인·변경 요청·반려·재요청·철회 응답도 같은 모양)
+<!-- contract: getAssetReview 200 -->
+```json
+{"review_id": "rev_0a1b2c3d4e5f60718293a4b5c6d7e8f9", "workspace_id": "ws-demo", "asset_id": "ast_5c1e7f0a9b2d4c6e8f1a3b5d7c9e0f12", "status": "approved",
+ "requested_by": "user-d", "requested_at": "2026-11-16T09:00:00+00:00", "handled_by": "user-e", "handled_at": "2026-11-16T09:30:00+00:00", "comment": "좋습니다",
+ "updated_at": "2026-11-16T09:30:00+00:00", "version": 2}
+```
+- `status`: `requested | approved | changes_requested | rejected | withdrawn`. 처리 전(`requested`)에는 `handled_by`·`handled_at`이 `null`.

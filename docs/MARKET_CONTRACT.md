@@ -40,3 +40,22 @@
 
 ## 아직 없는 것(결정 대기)
 구매·결제·정산·환불·수수료·통화, 유료 항목의 `payload` 전달, 운영자의 항목 숨기기/복원(R-052), 신고 처리 기한·알림 문구(법무), 이용 허락 범위의 **표준 선택지**(현재는 판매자가 적는 짧은 글 — 법적 문구는 법무 빈칸이라 채우지 않음), 평점·후기, 구매자 라이브러리로 가져오기.
+
+## 응답 예시 (시험이 OpenAPI와 대조함)
+### `GET /v1/market/listings/{id}` (등록·수정·공개 응답도 같은 모양)
+<!-- contract: getMarketListing 200 -->
+```json
+{"listing_id": "mkt_7c1e0a9b2d4f4e6c8a1b3d5f7e9c0a12", "kind": "preset", "title": "봄 프리셋", "description": "밝고 깨끗한", "tags": ["spring", "clean"], "price": 0, "free": true,
+ "cover_asset_id": null, "license_scope": "personal use", "is_ai_generated": false, "visibility": "public", "status": "active",
+ "seller": {"handle": "sel_3f9a1c5e7b2d4a60", "display_name": "하늘 스튜디오"}, "created_at": "2026-11-16T09:00:00+00:00", "updated_at": "2026-11-16T09:10:00+00:00",
+ "published_at": "2026-11-16T09:10:00+00:00", "version": 2, "payload": {"br": 10, "shadow": true}, "mine": false, "workspace_id": null}
+```
+### `GET /v1/market/listings` (검색 — `payload`는 항상 `null`)
+<!-- contract: searchMarketListings 200 -->
+```json
+{"items": [{"listing_id": "mkt_7c1e0a9b2d4f4e6c8a1b3d5f7e9c0a12", "kind": "preset", "title": "봄 프리셋", "description": "", "tags": [], "price": 5000, "free": false,
+            "cover_asset_id": null, "license_scope": "commercial", "is_ai_generated": true, "visibility": "public", "status": "active",
+            "seller": {"handle": "sel_3f9a1c5e7b2d4a60", "display_name": null}, "created_at": "2026-11-16T09:00:00+00:00", "updated_at": "2026-11-16T09:00:00+00:00",
+            "published_at": "2026-11-16T09:10:00+00:00", "version": 2, "payload": null, "mine": false, "workspace_id": null}],
+ "total": 1}
+```
