@@ -36,8 +36,14 @@ DDL = """CREATE TABLE IF NOT EXISTS workspace_library_items (
     UNIQUE(workspace_id, asset_id))"""
 
 
+THUMB_DDL = """CREATE TABLE IF NOT EXISTS workspace_library_thumbnails (
+    item_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, asset_id TEXT NOT NULL, created_at TEXT NOT NULL)"""
+THUMB_MAX_BYTES, THUMB_MAX_EDGE = 2 * 1024 * 1024, 1024
+
+
 def _init(db) -> None:
     db.execute(DDL)
+    db.execute(THUMB_DDL)
     db.execute("CREATE INDEX IF NOT EXISTS idx_wli_ws ON workspace_library_items(workspace_id, kind, created_at)")
 
 
@@ -60,6 +66,7 @@ class LibraryItemOut(BaseModel):
     original_filename: str
     media_type: str
     size_bytes: int
+    thumbnail_asset_id: str | None = None
 
 
 class LibraryListOut(BaseModel):
@@ -110,15 +117,16 @@ def _origin_of(db, asset_id: str) -> str:
     return "upload"
 
 
-_SELECT = """SELECT i.*, a.original_filename, a.media_type, a.size_bytes, a.owner_id AS asset_owner
-    FROM workspace_library_items i JOIN assets a ON a.asset_id=i.asset_id AND a.workspace_id=i.workspace_id AND a.deleted_at IS NULL"""
+_SELECT = """SELECT i.*, a.original_filename, a.media_type, a.size_bytes, a.owner_id AS asset_owner, t.asset_id AS thumbnail_asset_id
+    FROM workspace_library_items i JOIN assets a ON a.asset_id=i.asset_id AND a.workspace_id=i.workspace_id AND a.deleted_at IS NULL
+    LEFT JOIN workspace_library_thumbnails t ON t.item_id=i.item_id"""
 
 
 def _out(row) -> dict[str, Any]:
     return {"item_id": row["item_id"], "workspace_id": row["workspace_id"], "asset_id": row["asset_id"], "kind": row["kind"], "origin": row["origin"],
             "is_ai_generated": row["origin"] == "ai", "name": row["name"], "tags": json.loads(row["tags_json"]), "created_by": row["created_by"],
             "created_at": row["created_at"], "updated_at": row["updated_at"], "original_filename": row["original_filename"],
-            "media_type": row["media_type"], "size_bytes": row["size_bytes"]}
+            "media_type": row["media_type"], "size_bytes": row["size_bytes"], "thumbnail_asset_id": row["thumbnail_asset_id"]}
 
 
 def _check_caps(db, workspace_id: str, kind: str) -> None:
@@ -262,9 +270,11 @@ async def remove_item(workspace_id: str, item_id: str, delete_asset: bool = Quer
                 raise HTTPException(status_code=404, detail="Asset not found")
         except ValueError as exc:
             raise HTTPException(status_code=409, detail={"code": "ASSET_IN_USE", "message": str(exc)}) from exc
+    thumb = _drop_thumbnail_row(item_id)
     with store._connect() as db:
         _init(db)
         db.execute("DELETE FROM workspace_library_items WHERE item_id=?", (item_id,))
+    _delete_thumbnail_asset(thumb, workspace_id, user_id)
     return None
 
 
@@ -290,3 +300,133 @@ def file_item(workspace_id: str, asset_id: str | None, user_id: str, kind: str, 
 def file_generated_output(workspace_id: str, asset_id: str | None, user_id: str, name: str) -> str:
     """R-046: file an APPROVED generated output under 'render' (never raises, so an approval cannot fail because of the library)."""
     return file_item(workspace_id, asset_id, user_id, "render", name)
+
+
+def _drop_thumbnail_row(item_id: str) -> str | None:
+    with store._connect() as db:
+        _init(db)
+        row = db.execute("SELECT asset_id FROM workspace_library_thumbnails WHERE item_id=?", (item_id,)).fetchone()
+        db.execute("DELETE FROM workspace_library_thumbnails WHERE item_id=?", (item_id,))
+    return row["asset_id"] if row else None
+
+
+def _delete_thumbnail_asset(asset_id: str | None, workspace_id: str, user_id: str) -> None:
+    if asset_id:
+        try:
+            store.delete_asset(asset_id, workspace_id, user_id)
+        except Exception:  # noqa: BLE001 - a thumbnail that cannot be removed simply stays as an ordinary asset
+            pass
+
+
+@router.put("/{item_id}/thumbnail", response_model=LibraryItemOut, operation_id="putWorkspaceLibraryThumbnail")
+async def put_thumbnail(workspace_id: str, item_id: str, file: UploadFile = File(...), user_id: str = Depends(current_user)):
+    """R-049: the picture shown for a 3D item. The server has no GPU renderer, so the browser's 3D viewer renders it and uploads the result
+    (a small PNG/JPEG/WebP, at most 1024 px and 2 MB). Replacing it removes the previous one. Only 3D items have a thumbnail (other kinds ARE images)."""
+    require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    with store._connect() as db:
+        _init(db)
+        row = db.execute(_SELECT + " WHERE i.item_id=? AND i.workspace_id=?", (item_id, workspace_id)).fetchone()
+    if row is None or not _visible(row, user_id):
+        raise HTTPException(status_code=404, detail="Library item not found")
+    if row["kind"] != "3d":
+        raise HTTPException(status_code=422, detail={"code": "LIBRARY_THUMBNAIL_KIND", "message": "only 3D items have a thumbnail"})
+    content = await file.read(THUMB_MAX_BYTES + 1)
+    await file.close()
+    if len(content) > THUMB_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Thumbnail exceeds the size limit")
+    filename = Path(file.filename or "thumbnail.png").name
+    try:
+        validated = validate_image_upload(filename, content, max_bytes=THUMB_MAX_BYTES, max_dimension=THUMB_MAX_EDGE)
+    except AssetValidationError as exc:
+        raise HTTPException(status_code=422, detail={"code": exc.code, "message": str(exc)}) from exc
+    saved = store.save_asset(owner_id=user_id, workspace_id=workspace_id, filename=filename, content=content, validated=validated,
+                             provenance_event="asset.thumbnail",
+                             provenance_extra={"item_id": item_id, "source_asset_id": row["asset_id"], "mode": "client_render", "is_ai_generated": False})
+    old = _drop_thumbnail_row(item_id)
+    with store._connect() as db:
+        _init(db)
+        db.execute("INSERT INTO workspace_library_thumbnails(item_id, workspace_id, asset_id, created_at) VALUES (?,?,?,?)", (item_id, workspace_id, saved["asset_id"], _now()))
+        out = _out(db.execute(_SELECT + " WHERE i.item_id=?", (item_id,)).fetchone())
+    _delete_thumbnail_asset(old, workspace_id, user_id)
+    return out
+
+
+class ModelInfoOut(BaseModel):
+    item_id: str
+    format: str
+    gltf_version: str | None
+    generator: str | None
+    scenes: int
+    nodes: int
+    meshes: int
+    primitives: int
+    triangles: int | None
+    materials: int
+    textures: int
+    images: int
+    animations: int
+    skins: int
+    cameras: int
+    extensions_used: list[str]
+    size_bytes: int
+
+
+def gltf_document(content: bytes) -> tuple[str, dict[str, Any]]:
+    """The JSON of a .glb (first chunk) or .gltf. Only the document is read; no buffer, image or script is decoded or executed."""
+    import struct
+    if content[:4] == b"glTF":
+        if len(content) < 20:
+            raise ValueError("truncated glb")
+        length, kind = struct.unpack_from("<II", content, 12)
+        if kind != 0x4E4F534A or 20 + length > len(content):
+            raise ValueError("the first glb chunk is not JSON")
+        return "glb", json.loads(content[20:20 + length].decode("utf-8"))
+    return "gltf", json.loads(content.decode("utf-8"))
+
+
+def gltf_stats(doc: dict[str, Any]) -> dict[str, Any]:
+    def n(key: str) -> int:
+        value = doc.get(key)
+        return len(value) if isinstance(value, list) else 0
+    accessors = doc.get("accessors") if isinstance(doc.get("accessors"), list) else []
+    primitives, triangles, counted = 0, 0, True
+    for mesh in doc.get("meshes") or []:
+        for prim in (mesh.get("primitives") or []) if isinstance(mesh, dict) else []:
+            primitives += 1
+            mode = prim.get("mode", 4) if isinstance(prim, dict) else 4
+            index = prim.get("indices") if isinstance(prim, dict) else None
+            position = (prim.get("attributes") or {}).get("POSITION") if isinstance(prim, dict) else None
+            source = index if isinstance(index, int) else position
+            if mode != 4 or not isinstance(source, int) or not (0 <= source < len(accessors)) or not isinstance(accessors[source].get("count"), int):
+                counted = False   # strips/fans or missing counts: do not guess
+                continue
+            triangles += accessors[source]["count"] // 3
+    asset = doc.get("asset") if isinstance(doc.get("asset"), dict) else {}
+    used = doc.get("extensionsUsed") if isinstance(doc.get("extensionsUsed"), list) else []
+    return {"gltf_version": asset.get("version") if isinstance(asset.get("version"), str) else None,
+            "generator": str(asset.get("generator"))[:120] if asset.get("generator") else None,
+            "scenes": n("scenes"), "nodes": n("nodes"), "meshes": n("meshes"), "primitives": primitives,
+            "triangles": triangles if counted else None, "materials": n("materials"), "textures": n("textures"), "images": n("images"),
+            "animations": n("animations"), "skins": n("skins"), "cameras": n("cameras"),
+            "extensions_used": [str(x)[:60] for x in used[:30] if isinstance(x, str)]}
+
+
+@router.get("/{item_id}/model-info", response_model=ModelInfoOut, operation_id="getWorkspaceLibraryModelInfo")
+async def model_info(workspace_id: str, item_id: str, user_id: str = Depends(current_user)):
+    """R-049: counts read from the 3D file's own JSON (meshes, triangles, materials, textures, animations ...) for the library and the viewer."""
+    require_role(workspace_id, user_id, {"owner", "admin", "editor", "viewer"})
+    with store._connect() as db:
+        _init(db)
+        row = db.execute(_SELECT + " WHERE i.item_id=? AND i.workspace_id=?", (item_id, workspace_id)).fetchone()
+    if row is None or not _visible(row, user_id):
+        raise HTTPException(status_code=404, detail="Library item not found")
+    if row["kind"] != "3d":
+        raise HTTPException(status_code=422, detail={"code": "LIBRARY_INFO_KIND", "message": "only 3D items have model information"})
+    path = store.storage_path(row["asset_id"])
+    if path is None:
+        raise HTTPException(status_code=409, detail="The 3D file is missing")
+    try:
+        fmt, doc = gltf_document(path.read_bytes())
+    except (ValueError, OSError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=422, detail={"code": "MODEL_UNREADABLE", "message": "The 3D file could not be read."}) from exc
+    return {"item_id": item_id, "format": fmt, "size_bytes": row["size_bytes"], **gltf_stats(doc)}

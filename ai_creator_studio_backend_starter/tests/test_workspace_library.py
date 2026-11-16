@@ -200,3 +200,88 @@ def test_a_held_asset_is_hidden_from_members_but_not_from_its_owner(env):
     assert lib(who="c").json()["total"] == 0, "the viewer no longer sees the held item"
     assert client.get(f"/v1/workspaces/wa/library/{item['item_id']}", headers=auth("c")).status_code == 404
     assert lib(who="a").json()["total"] == 1, "its owner still does"
+
+
+# ---- R-049: thumbnail of a 3D item (rendered by the browser) and the model information read from the file's own JSON ----
+def png_size(w, h, color=(5, 6, 7)):
+    buf = BytesIO(); Image.new("RGB", (w, h), color).save(buf, format="PNG"); return buf.getvalue()
+
+
+def put_thumb(item_id, content=None, who="a", ws="wa", name="thumb.png"):
+    return client.put(f"/v1/workspaces/{ws}/library/{item_id}/thumbnail", headers=auth(who), files={"file": (name, content or png_size(64, 64), "image/png")})
+
+
+def make_3d(extra=None, name="의자"):
+    r = upload(kind="3d", name=name, file=("chair.glb", glb(extra), "model/gltf-binary"))
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_a_3d_item_gets_a_browser_rendered_thumbnail_and_replacing_it_removes_the_old_one(env):
+    item = make_3d()
+    assert item["thumbnail_asset_id"] is None
+    first = put_thumb(item["item_id"])
+    assert first.status_code == 200, first.text
+    t1 = first.json()["thumbnail_asset_id"]
+    assert t1 and client.get(f"/v1/assets/{t1}", headers=auth("a")).json()["media_type"] == "image/png"
+    prov = client.get(f"/v1/assets/{t1}/provenance", headers=auth("a")).json()
+    events = [p["event_type"] for p in (prov["items"] if isinstance(prov, dict) else prov)]
+    assert "asset.thumbnail" in events
+    second = put_thumb(item["item_id"], png_size(80, 40, (9, 9, 9)))
+    t2 = second.json()["thumbnail_asset_id"]
+    assert t2 and t2 != t1
+    assert client.get(f"/v1/assets/{t1}", headers=auth("a")).status_code == 404, "the replaced thumbnail is gone"
+    assert lib().json()["items"][0]["thumbnail_asset_id"] == t2, "the list shows it"
+    assert client.get(f"/v1/workspaces/wa/library/{item['item_id']}", headers=auth("a")).json()["thumbnail_asset_id"] == t2
+    assert len(client.get("/v1/assets?workspace_id=wa&kind=image", headers=auth("a")).json()["items"]) == 2, "fixture image + one thumbnail"
+
+
+def test_thumbnail_rules(env):
+    item = make_3d()
+    image_item = upload(kind="model").json()
+    assert put_thumb(image_item["item_id"]).status_code == 422, "only 3D items have one"
+    assert put_thumb(item["item_id"], png_size(1025, 10)).status_code == 422, "at most 1024 px"
+    assert put_thumb(item["item_id"], b"not an image").status_code == 422
+    assert put_thumb(item["item_id"], b"x" * (2 * 1024 * 1024 + 1)).status_code == 413
+    assert put_thumb("wli_missing").status_code == 404
+    assert put_thumb(item["item_id"], who="c").status_code == 403, "a viewer cannot"
+    assert put_thumb(item["item_id"], ws="wb", who="b").status_code == 404, "another workspace"
+    assert client.put(f"/v1/workspaces/wa/library/{item['item_id']}/thumbnail", files={"file": ("t.png", png_size(8, 8), "image/png")}).status_code == 401
+    assert len(client.get("/v1/assets?workspace_id=wa&kind=image", headers=auth("a")).json()["items"]) == 2, "fixture + the image item; the refused thumbnails stored nothing"
+
+
+def test_removing_the_item_removes_its_thumbnail(env):
+    item = make_3d()
+    t = put_thumb(item["item_id"]).json()["thumbnail_asset_id"]
+    assert client.delete(f"/v1/workspaces/wa/library/{item['item_id']}", headers=auth("a")).status_code == 204
+    assert client.get(f"/v1/assets/{t}", headers=auth("a")).status_code == 404
+
+
+def test_model_info_comes_from_the_files_own_json(env):
+    item = make_3d({"scenes": [{}], "nodes": [{}, {}, {}], "materials": [{}, {}], "extensionsUsed": ["KHR_materials_unlit"]})
+    r = client.get(f"/v1/workspaces/wa/library/{item['item_id']}/model-info", headers=auth("c"))
+    assert r.status_code == 200, r.text
+    info = r.json()
+    assert (info["format"], info["gltf_version"], info["scenes"], info["nodes"], info["materials"], info["meshes"], info["animations"]) == ("glb", "2.0", 1, 3, 2, 0, 0)
+    assert info["extensions_used"] == ["KHR_materials_unlit"] and info["triangles"] == 0 and info["size_bytes"] == item["size_bytes"]
+    assert client.get(f"/v1/workspaces/wa/library/{upload().json()['item_id']}/model-info", headers=auth("a")).status_code == 422, "not a 3D item"
+    assert client.get(f"/v1/workspaces/wb/library/{item['item_id']}/model-info", headers=auth("b")).status_code == 404
+    assert client.get(f"/v1/workspaces/wa/library/{item['item_id']}/model-info").status_code == 401
+
+
+def test_gltf_stats_counts_triangles_and_does_not_guess_when_it_cannot():
+    from app.workspace_library import gltf_document, gltf_stats
+    doc = {"asset": {"version": "2.0", "generator": "x" * 300}, "accessors": [{"count": 8}, {"count": 36}, {"count": 4}],
+           "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1}, {"attributes": {"POSITION": 0}}]}],
+           "animations": [{}], "skins": [{}], "cameras": [{}], "textures": [{}], "images": [{}]}
+    s = gltf_stats(doc)
+    assert s["meshes"] == 1 and s["primitives"] == 2 and s["triangles"] == 36 // 3 + 8 // 3 and len(s["generator"]) == 120
+    assert (s["animations"], s["skins"], s["cameras"], s["textures"], s["images"]) == (1, 1, 1, 1, 1)
+    strip = {"accessors": [{"count": 9}], "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "mode": 5}]}]}
+    assert gltf_stats(strip)["triangles"] is None, "a triangle strip is not counted as if it were a list"
+    assert gltf_stats({"meshes": [{"primitives": [{"attributes": {"POSITION": 7}}]}], "accessors": []})["triangles"] is None
+    assert gltf_stats({"asset": "bad", "nodes": "bad", "extensionsUsed": [1, "ok"]})["nodes"] == 0
+    assert gltf_document(b'{"asset": {"version": "2.0"}}')[0] == "gltf"
+    for bad in (b"glTF" + b"\0" * 4, b"\xff\xfe", b"[1, 2"):
+        with pytest.raises((ValueError, UnicodeDecodeError)):
+            gltf_document(bad)
