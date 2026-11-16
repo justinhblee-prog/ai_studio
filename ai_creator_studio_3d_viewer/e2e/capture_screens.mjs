@@ -40,7 +40,7 @@ try {
   const j = (token, path, init = {}) => apiCall(stack, token, path, { ...init, headers: { 'Content-Type': 'application/json', ...(init.headers || {}) } });
   const WS = 'sample-team';
   assert.equal((await j(USERS.a.token, '/v1/workspaces', { method: 'POST', body: JSON.stringify({ workspace_id: WS }) })).status, 201);
-  assert.equal((await j(USERS.a.token, `/v1/workspaces/${WS}/members`, { method: 'POST', body: JSON.stringify({ user_id: USERS.b.id, role: 'editor' }) })).status, 201);
+  assert.equal((await j(USERS.a.token, `/v1/workspaces/${WS}/members`, { method: 'POST', body: JSON.stringify({ user_id: USERS.b.id, role: 'admin' }) })).status, 201);
   const newJob = async () => { const r = await j(USERS.a.token, '/v1/generation-jobs', { method: 'POST', body: JSON.stringify({ workspace_id: WS, model_image_url: 'https://example.com/m.jpg', garment_image_url: 'https://example.com/g.jpg' }) }); assert.equal(r.status, 202); return r.body.job_id; };
   const jobs = [await newJob(), await newJob(), await newJob(), await newJob()];
   seedFinishedJobOutput(stack, jobs[0]); seedFinishedJobOutput(stack, jobs[1]);
