@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 
 from app import config, takedown
@@ -271,6 +271,94 @@ async def attach(workspace_id: str, body: AttachIn, user_id: str = Depends(curre
             raise HTTPException(status_code=409, detail={"code": "LIBRARY_ALREADY_FILED", "message": "this asset is already in the library"})
         _check_caps(db, workspace_id, body.kind)
         return _insert(db, workspace_id, user_id, body.asset_id, body.kind, name, tags, attrs)
+
+
+class FromJobIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    job_id: str = Field(min_length=4, max_length=80)
+    output_id: str | None = Field(default=None, min_length=4, max_length=80)     # a try-on job with several outputs: which one (default: the newest)
+    name: str | None = Field(default=None, max_length=MAX_NAME)
+    tags: list[str] = Field(default_factory=list, max_length=MAX_TAGS)
+    attrs: dict[str, Any] | None = None
+    source_asset_ids: list[str] = Field(default_factory=list, max_length=10)     # extra inputs the caller wants recorded (same workspace only)
+
+
+def _job_result(workspace_id: str, user_id: str, job_id: str, output_id: str | None) -> tuple[str, str, dict[str, Any], list[str]]:
+    """(service, result asset id, defaults for the attributes, input asset ids) of a FINISHED job of this workspace. Raises 404/409."""
+    from app.dependencies import get_job_repository
+    with store._connect() as db:
+        _init(db)
+        has = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='video_jobs'").fetchone()
+        video = db.execute("SELECT * FROM video_jobs WHERE job_id=? AND workspace_id=?", (job_id, workspace_id)).fetchone() if has else None
+    if video is not None:
+        if video["status"] != "succeeded" or not video["output_asset_id"]:
+            raise HTTPException(status_code=409, detail={"code": "JOB_NOT_FINISHED", "message": "the video job has not succeeded"})
+        qc = json.loads(video["qc_json"]) if video["qc_json"] else None
+        if qc is not None and not qc.get("passed", True):
+            raise HTTPException(status_code=409, detail={"code": "JOB_QC_FAILED", "message": "the video failed its quality check"})
+        inputs = []
+        for item_id in json.loads(video["input_item_ids_json"]):
+            with store._connect() as db:
+                row = db.execute("SELECT asset_id FROM workspace_library_items WHERE item_id=? AND workspace_id=?", (item_id, workspace_id)).fetchone()
+            if row:
+                inputs.append(row["asset_id"])
+        return "video", video["output_asset_id"], {}, inputs
+    job = get_job_repository().get(job_id)
+    if not job or job["workspace_id"] != workspace_id:          # another workspace's job is indistinguishable from a missing one
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.get("status") != "succeeded":
+        raise HTTPException(status_code=409, detail={"code": "JOB_NOT_FINISHED", "message": "the job has not succeeded"})
+    outputs = get_job_repository().list_outputs(job_id)["data"]
+    if output_id is not None:
+        outputs = [o for o in outputs if o["id"] == output_id]
+    if not outputs:
+        raise HTTPException(status_code=404, detail="Output not found")
+    out = outputs[0]
+    if out.get("asset_link_status") != "linked" or not out.get("asset_id"):
+        raise HTTPException(status_code=409, detail={"code": "OUTPUT_NOT_LINKED", "message": "the result is not stored as an asset yet"})
+    from app.repositories.output_review import build_output_review_repository
+    review = build_output_review_repository().get_review(job_id, out["id"])
+    if not review or review["status"] != "approved":      # R-046: a generated result is delivered only after it is approved
+        raise HTTPException(status_code=409, detail={"code": "OUTPUT_NOT_APPROVED", "message": "approve the result before filing it in the library"})
+    payload = job.get("payload") or {}
+    from app import tryon_inputs
+    defaults = {k: payload[k] for k in ("style", "region") if payload.get(k)}
+    return "tryon", out["asset_id"], defaults, tryon_inputs.asset_ids_of(payload)
+
+
+@router.post("/from-job", status_code=201, response_model=LibraryItemOut, operation_id="fileWorkspaceLibraryFromJob")
+async def from_job(workspace_id: str, body: FromJobIn, response: Response, user_id: str = Depends(current_user)):
+    """R-060: file a FINISHED job's result under ``render``. Idempotent: the same result is filed once (a repeat returns the existing item with 200).
+    The server records ``service``, ``style``, ``region`` and ``source_asset_ids`` (the inputs it knows about plus the caller's extra ones, which must be
+    live assets of THIS workspace); the caller may add other attributes (e.g. ``sku``). Generation-job results must be approved first (R-046)."""
+    require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    service, asset_id, defaults, inputs = _job_result(workspace_id, user_id, body.job_id, body.output_id)
+    asset = store.get_asset(asset_id, workspace_id)
+    if asset is None or not takedown.visible_to(asset_id, user_id):
+        raise HTTPException(status_code=409, detail={"code": "OUTPUT_UNAVAILABLE", "message": "the result asset is gone"})
+    for src in body.source_asset_ids:
+        if not isinstance(src, str) or store.get_asset(src, workspace_id) is None or not takedown.visible_to(src, user_id):
+            raise HTTPException(status_code=422, detail={"code": "SOURCE_ASSET_INVALID", "message": "source_asset_ids must be live assets of this workspace"})
+    name, tags = _clean_name(body.name, "결과 " + body.job_id[-6:]), _clean_tags(body.tags)
+    attrs = _clean_attrs(body.attrs)
+    sources = list(dict.fromkeys([a for a in inputs if a != asset_id] + [a for a in body.source_asset_ids if a != asset_id]))[:10]
+    attrs.update({"service": service, **defaults})
+    if sources:
+        attrs["source_asset_ids"] = sources
+    attrs = _clean_attrs(attrs)
+    with store._connect() as db:
+        _init(db)
+        existing = db.execute(_SELECT + " WHERE i.workspace_id=? AND i.asset_id=?", (workspace_id, asset_id)).fetchone()
+        if existing is not None:      # already filed (e.g. by the approval): keep it, only add the server-known attributes it lacks
+            have = json.loads(existing["attrs_json"] or "{}")
+            merged = {**attrs, **have}
+            if merged != have:
+                db.execute("UPDATE workspace_library_items SET attrs_json=?, updated_at=? WHERE item_id=?", (json.dumps(merged, ensure_ascii=False), _now(), existing["item_id"]))
+                existing = db.execute(_SELECT + " WHERE i.item_id=?", (existing["item_id"],)).fetchone()
+            response.status_code = 200
+            return _out(existing)
+        _check_caps(db, workspace_id, "render")
+        return _insert(db, workspace_id, user_id, asset_id, "render", name, tags, attrs)
 
 
 @router.post("", status_code=201, response_model=LibraryItemOut, operation_id="uploadWorkspaceLibraryItem")
