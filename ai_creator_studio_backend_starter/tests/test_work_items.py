@@ -92,7 +92,7 @@ def test_roles_and_isolation(team):
     assert client.get(f"{BASE}/{item['item_id']}", headers=auth("b")).status_code in (403, 404)
     assert client.get(f"/v1/workspaces/wb/work-items/{item['item_id']}", headers=auth("b")).status_code == 404, "another workspace does not see it even by id"
     assert patch(item["item_id"], "e", title="admin edit").status_code == 200, "an admin may; any editor may edit any item (library semantics)"
-    other = made("a", title="owner's")
+    other = made(who="a", title="owner's")
     assert patch(other["item_id"], "d", title="editor edit").status_code == 200
 
 

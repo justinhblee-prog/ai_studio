@@ -215,7 +215,7 @@ async def list_items(workspace_id: str, kind: str | None = Query(default=None, m
     if q and q.strip():
         sql += " AND title LIKE ? ESCAPE '\\'"; args.append("%" + q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%")
     if asset_id:
-        sql += " AND asset_ids_json LIKE ?"; args.append('%"' + asset_id.replace("%", "").replace("_", "") + '"%')
+        sql += " AND asset_ids_json LIKE ? ESCAPE '\'"; args.append('%"' + asset_id.replace("\\", "\\\\").replace("%", "\%").replace("_", "\_") + '"%')
     with store._connect() as db:
         store.initialize()
         _init(db)
