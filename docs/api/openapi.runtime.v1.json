@@ -46,6 +46,101 @@
         "title": "AcceptedDocument",
         "type": "object"
       },
+      "Acquisition": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "default": "other",
+            "enum": [
+              "search",
+              "social",
+              "ads",
+              "email",
+              "referral",
+              "direct",
+              "event",
+              "partner",
+              "other"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "first_visit_at": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Visit At"
+          },
+          "landing_page": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Landing Page"
+          },
+          "referrer_host": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referrer Host"
+          },
+          "utm_campaign": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utm Campaign"
+          },
+          "utm_medium": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utm Medium"
+          },
+          "utm_source": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utm Source"
+          }
+        },
+        "title": "Acquisition",
+        "type": "object"
+      },
       "ActionOut": {
         "properties": {
           "action": {
@@ -950,6 +1045,82 @@
         "title": "ConsentInput",
         "type": "object"
       },
+      "ContractIn": {
+        "additionalProperties": false,
+        "properties": {
+          "churn_reason": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churn Reason"
+          },
+          "clear_contract_end": {
+            "default": false,
+            "title": "Clear Contract End",
+            "type": "boolean"
+          },
+          "contract_end": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract End"
+          },
+          "contract_start": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Start"
+          },
+          "contract_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "trial",
+                  "active",
+                  "ended"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Status"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          }
+        },
+        "title": "ContractIn",
+        "type": "object"
+      },
       "Controls": {
         "properties": {
           "global_monthly_limit": {
@@ -1120,6 +1291,162 @@
           "workspace_id"
         ],
         "title": "CreateWorkspaceBody",
+        "type": "object"
+      },
+      "CustomerRow": {
+        "properties": {
+          "acquisition": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquisition"
+          },
+          "churn_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churn Reason"
+          },
+          "churned_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churned At"
+          },
+          "company": {
+            "title": "Company",
+            "type": "string"
+          },
+          "contract_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract End"
+          },
+          "contract_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Start"
+          },
+          "contract_status": {
+            "enum": [
+              "trial",
+              "active",
+              "expiring",
+              "ended"
+            ],
+            "title": "Contract Status",
+            "type": "string"
+          },
+          "email_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Domain"
+          },
+          "first_job_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Job At"
+          },
+          "joined_at": {
+            "title": "Joined At",
+            "type": "string"
+          },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "survey": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Survey"
+          },
+          "users": {
+            "title": "Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "company",
+          "email_domain",
+          "plan",
+          "joined_at",
+          "contract_start",
+          "contract_end",
+          "contract_status",
+          "churned_at",
+          "churn_reason",
+          "acquisition",
+          "survey",
+          "users",
+          "first_job_at",
+          "last_active_at"
+        ],
+        "title": "CustomerRow",
         "type": "object"
       },
       "DeletionRequestInput": {
@@ -1974,6 +2301,49 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HistoryRow": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "at": {
+            "title": "At",
+            "type": "string"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "new_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Value"
+          },
+          "old_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Value"
+          }
+        },
+        "required": [
+          "at",
+          "actor_id",
+          "field",
+          "old_value",
+          "new_value"
+        ],
+        "title": "HistoryRow",
         "type": "object"
       },
       "Identity": {
@@ -4637,6 +5007,72 @@
         "title": "ProductVariantResponse",
         "type": "object"
       },
+      "ProfileIn": {
+        "additionalProperties": false,
+        "properties": {
+          "acquisition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Acquisition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "survey": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Survey"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "ProfileIn",
+        "type": "object"
+      },
+      "ProfileOut": {
+        "properties": {
+          "acquisition": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquisition"
+          },
+          "survey": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Survey"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "acquisition",
+          "survey"
+        ],
+        "title": "ProfileOut",
+        "type": "object"
+      },
       "ProjectCreate": {
         "additionalProperties": false,
         "properties": {
@@ -5213,6 +5649,49 @@
           "max_references"
         ],
         "title": "SelectOut",
+        "type": "object"
+      },
+      "Survey": {
+        "additionalProperties": false,
+        "properties": {
+          "found": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "team_size": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Size"
+          }
+        },
+        "title": "Survey",
         "type": "object"
       },
       "UsageRow": {
@@ -5930,6 +6409,225 @@
         "summary": "Get Operational Alerts"
       }
     },
+    "/internal/ops/customers": {
+      "get": {
+        "description": "`from` / `to` select companies by their joining time (UTC, `to` excluded). `email_domain` is always null: e-mail addresses live with the identity provider.",
+        "operationId": "listOpsCustomers",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerRow"
+                  },
+                  "title": "Response Listopscustomers",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Customers",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/internal/ops/customers/{workspace_id}/contract": {
+      "put": {
+        "description": "Operator: set plan / contract dates / status. Setting status ``ended`` records ``churned_at`` (now) and the reason; going back to trial/active clears it.\nEvery changed field is written to the append-only history with the operator's id.",
+        "operationId": "putOpsCustomerContract",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerRow"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Contract",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/internal/ops/customers/{workspace_id}/history": {
+      "get": {
+        "operationId": "getOpsCustomerHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryRow"
+                  },
+                  "title": "Response Getopscustomerhistory",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Customer History",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
     "/internal/ops/deletion-requests": {
       "get": {
         "description": "Deletion requests with their grace deadline, so the operator sees what is waiting and what is due. Nothing is deleted here: the purge\nitself stays the documented manual procedure (scripts/purge_requests.py with an explicit confirmation). The free-text reason is not shown.",
@@ -6181,6 +6879,67 @@
           }
         },
         "summary": "Deep Health Diagnostics"
+      }
+    },
+    "/internal/ops/marketing": {
+      "get": {
+        "operationId": "getOpsMarketing",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "default": "m",
+              "enum": [
+                "m",
+                "y"
+              ],
+              "title": "Period",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Marketing",
+        "tags": [
+          "customers"
+        ]
       }
     },
     "/internal/ops/metrics": {
@@ -14177,6 +14936,75 @@
         "summary": "Create Workspace Endpoint",
         "tags": [
           "workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/acquisition": {
+      "post": {
+        "description": "Owner only. The acquisition record is written ONCE (a second call keeps the first: first touch is the fact); the survey can be updated.",
+        "operationId": "recordWorkspaceAcquisition",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Acquisition",
+        "tags": [
+          "customers"
         ]
       }
     },
