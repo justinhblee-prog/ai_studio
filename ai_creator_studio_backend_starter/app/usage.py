@@ -37,15 +37,8 @@ def month_range(month: str | None) -> tuple[str, str, str]:
 
 def usage_for(workspace_id: str, user_id: str, role: str, month: str | None) -> dict:
     label, start, nxt = month_range(month)
-    from app import job_repository
-    job_repository.initialize()
-    conn = job_repository._connect()
-    try:
-        rows = conn.execute("""SELECT owner_id, provider, status, COUNT(*) AS n FROM generation_jobs
-            WHERE workspace_id=? AND created_at>=? AND created_at<? GROUP BY owner_id, provider, status""",
-                            (workspace_id, start, nxt)).fetchall()
-    finally:
-        conn.close()
+    from app.dependencies import get_job_repository
+    rows = get_job_repository().usage_rows(workspace_id, start, nxt)
     see_all = role in {"owner", "admin"}
     members: dict[str, dict] = {}
     total = failed = counted = 0

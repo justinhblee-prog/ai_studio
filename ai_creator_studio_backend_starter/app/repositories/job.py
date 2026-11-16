@@ -187,6 +187,16 @@ class SQLiteJobRepository:
             ).fetchall()
         return [self._decode_job(row) for row in rows]
 
+    def usage_rows(self, workspace_id, start, end):
+        """Per owner / provider / status job counts of one workspace in [start, end) (R-042)."""
+        storage, path, _ = self._context()
+        self.initialize()
+        with storage.transaction(path) as conn:
+            return [dict(r) for r in conn.execute(
+                "SELECT owner_id, provider, status, COUNT(*) AS n FROM generation_jobs "
+                "WHERE workspace_id=? AND created_at>=? AND created_at<? GROUP BY owner_id, provider, status",
+                (workspace_id, start, end)).fetchall()]
+
     def get_idempotent(self, workspace_id, key):
         if self._impl is not None: return self._impl.get_idempotent_job(workspace_id, key)
         storage, path, _ = self._context()
