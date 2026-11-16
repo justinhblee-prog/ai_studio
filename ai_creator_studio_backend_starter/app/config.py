@@ -67,6 +67,8 @@ ASSIST_PER_MINUTE = int(os.getenv("ASSIST_PER_MINUTE", "30"))            # per u
 ASSIST_LLM_DAILY_LIMIT = int(os.getenv("ASSIST_LLM_DAILY_LIMIT", "200"))  # per workspace, only external (llm) interpretations
 VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT", "20"))   # R-050: video jobs per workspace per 24h (proposal; also bounds mock storage)
 MARKET_REPORT_DAILY_LIMIT = int(os.getenv("MARKET_REPORT_DAILY_LIMIT", "10"))   # R-064: reports one person may file per day
+# R-061 (reply 41): the GPS position is removed from pictures when they are downloaded (the stored original is never changed).
+STRIP_GPS_ON_DOWNLOAD = env_flag_default_on(os.getenv("STRIP_GPS_ON_DOWNLOAD"))
 # R-062: the "AI-made" mark written into AI-made pictures that are downloaded. The wording is a setting: the final legal wording is pending.
 AI_MARKING_ENABLED = env_flag_default_on(os.getenv("AI_MARKING_ENABLED"))
 AI_MARK_TEXT_GENERATED = os.getenv("AI_MARK_TEXT_GENERATED", "AI-generated image")

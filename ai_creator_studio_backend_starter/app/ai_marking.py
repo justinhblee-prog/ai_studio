@@ -25,6 +25,7 @@ from xml.sax.saxutils import escape
 from fastapi.responses import Response
 
 from app import config
+from app.privacy_strip import strip_gps
 from app.private_file_response import PrivateFileError, open_private_file_response
 
 DST = "http://cv.iptc.org/newscodes/digitalsourcetype/"
@@ -194,7 +195,7 @@ def kind_for_job(job: dict[str, Any]) -> str | None:
 def serve(path: str | Path, *, media_type: str, kind: str | None, filename: str | None = None, expected_size: int | None = None,
           expected_sha256: str | None = None, inline: bool = True):
     """The same response as ``open_private_file_response`` (same integrity checks and headers) but with the mark inserted when ``kind`` is set."""
-    if kind is None or not media_type.startswith("image/"):
+    if not media_type.startswith("image/"):
         return open_private_file_response(path, media_type=media_type, filename=filename, expected_size=expected_size, expected_sha256=expected_sha256, inline=inline)
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
@@ -218,9 +219,14 @@ def serve(path: str | Path, *, media_type: str, kind: str | None, filename: str 
     if len(data) > MAX_BYTES:
         headers["X-AI-Marked"] = "skipped-too-large"
         return Response(content=data, media_type=media_type, headers=headers)
-    try:
-        marked, state = mark(data, media_type, kind), kind
-    except ValueError:
-        marked, state = data, "failed"            # a malformed picture is served as it is (and says so)
-    headers["X-AI-Marked"] = state
-    return Response(content=marked, media_type=media_type, headers=headers)
+    if config.STRIP_GPS_ON_DOWNLOAD:            # reply 41: the position leaves nowhere; the stored original is not touched
+        data, removed = strip_gps(data, media_type)
+        if removed:
+            headers["X-GPS-Stripped"] = "1"
+    if kind is not None:
+        try:
+            data, state = mark(data, media_type, kind), kind
+        except ValueError:
+            state = "failed"                    # a malformed picture is served as it is (and says so)
+        headers["X-AI-Marked"] = state
+    return Response(content=data, media_type=media_type, headers=headers)
