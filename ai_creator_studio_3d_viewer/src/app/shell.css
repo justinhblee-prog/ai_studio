@@ -38,3 +38,7 @@ img, canvas { -webkit-user-drag: none; user-select: none; -webkit-touch-callout:
 
 /* The menu has grown past one screen height on laptops: let the sidebar scroll instead of cutting the last entries off */
 @media (min-width: 701px) { .sidebar { overflow-y: auto; } .nav { flex: 0 0 auto; } }
+
+/* A select is as wide as its longest option, so one very long file name made whole screens scroll sideways (seen at 360 and 901 px): never wider than its container. */
+.module select, .module input, .module textarea, .acs-photo-draft select, .acs-photo-draft input, .acs-photo-draft textarea { max-width: 100%; min-width: 0; }
+.acs-photo-draft-grid > * { min-width: 0; }
