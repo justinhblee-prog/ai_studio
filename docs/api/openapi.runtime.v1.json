@@ -7209,7 +7209,7 @@
           },
           "duration_seconds": {
             "default": 6,
-            "maximum": 8.0,
+            "maximum": 15.0,
             "minimum": 3.0,
             "title": "Duration Seconds",
             "type": "integer"
@@ -21646,6 +21646,140 @@
           }
         },
         "summary": "Get Video Job",
+        "tags": [
+          "video-jobs"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/video-jobs/{job_id}/cancel": {
+      "post": {
+        "description": "The built-in mock makes a video inside the request, so a job is never waiting or running: it is always finished (succeeded or failed) and there is nothing to cancel.\nThe answer says so (409); a real provider's queued job will become cancellable when one is connected.",
+        "operationId": "cancelVideoJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Video Job",
+        "tags": [
+          "video-jobs"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/video-jobs/{job_id}/retry": {
+      "post": {
+        "description": "Runs a FAILED job again with the same pictures and settings as a NEW job (the failed one stays as a record). Counts toward the same limits as any new video.",
+        "operationId": "retryVideoJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Video Job",
         "tags": [
           "video-jobs"
         ]
