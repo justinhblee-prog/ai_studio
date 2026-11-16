@@ -2160,6 +2160,73 @@
         "title": "ExportOut",
         "type": "object"
       },
+      "FacetOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/FacetValueOut"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "values"
+        ],
+        "title": "FacetOut",
+        "type": "object"
+      },
+      "FacetValueOut": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "count"
+        ],
+        "title": "FacetValueOut",
+        "type": "object"
+      },
+      "FacetsOut": {
+        "properties": {
+          "facets": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOut"
+            },
+            "title": "Facets",
+            "type": "array"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          }
+        },
+        "required": [
+          "kind",
+          "facets"
+        ],
+        "title": "FacetsOut",
+        "type": "object"
+      },
       "FailedJob": {
         "properties": {
           "created_at": {
@@ -19102,7 +19169,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/FacetsOut"
+                }
               }
             },
             "description": "Successful Response"

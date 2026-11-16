@@ -89,6 +89,7 @@
 **표 갱신**: ①마켓(§6)은 **구현됨** → `docs/MARKET_CONTRACT.md`. ②검수는 **자산 단위 API 추가**(`/v1/workspaces/{id}/reviews*`, 상태 `requested|approved|changes_requested|rejected|withdrawn`; 홈페이지 `req/ok/chg/rej`와 대응, `draft`=기록 없음). ③운영자 읽기 경로는 `docs/OPS_READ_CONTRACT.md`(감사 로그 `GET /internal/ops/audit` 추가). ④라이브러리 항목은 `attrs`, `thumbs`(480/960 서명 주소)를 가짐, 작업 결과 저장 `POST …/library/from-job`. ⑤생성 요청은 `style`·`region`·`prompt_prefix`를 받음. ⑥AI가 만든 사진은 내려받을 때 파일 안에 AI 표시가 들어감. ⑦"내 작업" 범용 저장소(R-069)는 아직 없음.
 
 ### `GET /v1/features` (로그인한 사용자, 작업공간과 무관)
+<!-- contract: getFeatures 200 -->
 ```json
 {"features": {
   "tryon":     {"enabled": true,  "status": "available"},
@@ -103,6 +104,7 @@
 - ⚠ `market.enabled`는 **홈페이지 표시용 스위치일 뿐이고 `/v1/market/*`를 막지 않습니다**(서버 경로는 항상 열려 있음).
 
 ### `GET /v1/workspaces/{id}/library/facets?kind=garment` (보기 권한 이상)
+<!-- contract: listWorkspaceLibraryFacets 200 -->
 ```json
 {"kind": "garment",
  "facets": [
@@ -116,3 +118,15 @@
 - `facets`는 **키 이름 순**, `values`는 **값 순**(글자 정렬). **숫자 값은 글자로 돌려줌**(`95` → `"95"`), **목록 값은 원소마다 한 번씩 셈**(`colors: ["white","beige"]` → white 1, beige 1), 신고로 가려진 항목은 제외.
 - 필터로 쓸 때: `GET …/library?attr=category:top&attr=season:summer`(여러 개는 **모두 일치**, 값은 글자 비교·대소문자 구분).
 - 예시의 키 이름(`category`, `colors`…)은 **분류표가 확정되기 전의 예**이며 서버는 키를 강제하지 않음(R-058).
+
+### `GET /v1/workspaces/{id}/library/{item_id}` — 라이브러리 항목 한 개 (목록의 `items[]` 원소도 같은 모양)
+<!-- contract: getWorkspaceLibraryItem 200 -->
+```json
+{"item_id": "wli_0f3a9c1d2b7e4a5f8c6d1e2f3a4b5c6d", "workspace_id": "ws-demo", "asset_id": "ast_5c1e7f0a9b2d4c6e8f1a3b5d7c9e0f12",
+ "kind": "garment", "origin": "upload", "is_ai_generated": false, "name": "린넨 셔츠", "tags": ["여름", "린넨"],
+ "attrs": {"category": "top", "season": "summer", "size_no": 95, "colors": ["white", "beige"]},
+ "created_by": "user-a", "created_at": "2026-11-16T09:00:00+00:00", "updated_at": "2026-11-16T09:00:00+00:00",
+ "original_filename": "shirt.png", "media_type": "image/png", "size_bytes": 48213, "thumbnail_asset_id": null,
+ "thumbs": {"480": "/v1/assets/ast_5c1e7f0a9b2d4c6e8f1a3b5d7c9e0f12/thumb/480?expires=1763290000&signature=ab12", "960": "/v1/assets/ast_5c1e7f0a9b2d4c6e8f1a3b5d7c9e0f12/thumb/960?expires=1763290000&signature=cd34"}}
+```
+- `origin`: `ai`(AI가 만든 결과) · `upload`(올린 파일) · `work`(작업 결과). `thumbs`는 이미지만, 서명이 없으면 `null`. `thumbnail_asset_id`는 3D 항목이 올린 미리보기 그림의 자산 ID(없으면 `null`).
