@@ -11275,6 +11275,56 @@
         "summary": "List Models"
       }
     },
+    "/v1/error-catalog": {
+      "get": {
+        "description": "Every error ``code`` with its text in the chosen language. ``needs_decision=true`` entries (legal wording) have ``message: null``: show the generic text of the HTTP status instead.",
+        "operationId": "getErrorCatalog",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "default": "ko",
+              "enum": [
+                "ko",
+                "en"
+              ],
+              "title": "Lang",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Geterrorcatalog",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Error Catalog",
+        "tags": [
+          "error-catalog"
+        ]
+      }
+    },
     "/v1/exports/{export_id}": {
       "delete": {
         "operationId": "deleteExport",
