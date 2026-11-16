@@ -909,6 +909,61 @@
         "title": "DeletionRequestInput",
         "type": "object"
       },
+      "DeletionRow": {
+        "properties": {
+          "due_at": {
+            "title": "Due At",
+            "type": "string"
+          },
+          "grace_expired": {
+            "title": "Grace Expired",
+            "type": "boolean"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "requested_at": {
+            "title": "Requested At",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Id"
+          }
+        },
+        "required": [
+          "request_id",
+          "scope",
+          "workspace_id",
+          "user_id",
+          "status",
+          "requested_at",
+          "due_at",
+          "grace_expired"
+        ],
+        "title": "DeletionRow",
+        "type": "object"
+      },
       "DownloadRow": {
         "properties": {
           "actor_id": {
@@ -4499,6 +4554,83 @@
           }
         },
         "summary": "Get Operational Alerts"
+      }
+    },
+    "/internal/ops/deletion-requests": {
+      "get": {
+        "description": "Deletion requests with their grace deadline, so the operator sees what is waiting and what is due. Nothing is deleted here: the purge\nitself stays the documented manual procedure (scripts/purge_requests.py with an explicit confirmation). The free-text reason is not shown.",
+        "operationId": "listOpsDeletionRequests",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "pending",
+              "pattern": "^(pending|cancelled|completed)$",
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeletionRow"
+                  },
+                  "title": "Response Listopsdeletionrequests",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Deletion Requests",
+        "tags": [
+          "ops"
+        ]
       }
     },
     "/internal/ops/downloads": {
