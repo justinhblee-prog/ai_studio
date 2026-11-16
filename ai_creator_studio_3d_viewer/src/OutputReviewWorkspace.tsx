@@ -19,6 +19,7 @@ type GeneratedOutput = {
   asset_version_id?: string | null;
   provenance_record_id?: string | null;
   is_ai_generated?: boolean | null;
+  input_source?: string | null;
   provider?: string | null;
   model?: string | null;
 };
@@ -260,7 +261,7 @@ export default function OutputReviewWorkspace({ apiBaseUrl, accessToken, jobId, 
         const status = review?.status || 'loading';
         const terminal = status === 'approved' || status === 'rejected';
         const ready = status === 'pending_review' || status === 'changes_requested';
-        const disclosure = aiDisclosureLabel(review?.output.is_ai_generated ?? output.is_ai_generated, output.provider ?? review?.output.provider, output.model ?? review?.output.model);
+        const disclosure = aiDisclosureLabel(review?.output.is_ai_generated ?? output.is_ai_generated, output.provider ?? review?.output.provider, output.model ?? review?.output.model, output.input_source);
         return <article className="acs-output-review-item" key={output.id}>
           <div className="acs-output-review-heading"><strong>{output.id}</strong><span>{status}</span></div>
           <p className={`acs-ai-label acs-ai-label-${disclosure.kind}`} data-ai-disclosure={disclosure.kind}>{disclosure.text}</p>
