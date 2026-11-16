@@ -10,7 +10,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
 MAX_STEPS = 12
 MAX_SIDE = 8192
@@ -18,6 +18,10 @@ OPS = {
     "auto_crop": {"tolerance": (int, 0, 128, 24), "margin_pct": (int, 0, 40, 5)},
     "solid_background": {"color": (str, None, None, "#ffffff")},
     "fit_canvas": {"width": (int, 16, MAX_SIDE, 1200), "height": (int, 16, MAX_SIDE, 1200), "color": (str, None, None, "#ffffff")},
+    # R-044 B (local ones that need no model): gradient background, gray-world white balance, soft drop shadow.
+    "gradient_background": {"top_color": (str, None, None, "#ffffff"), "bottom_color": (str, None, None, "#e6e6e6")},
+    "white_balance": {"strength_pct": (int, 0, 100, 100)},
+    "drop_shadow": {"offset_x": (int, -200, 200, 0), "offset_y": (int, -200, 200, 12), "blur": (int, 0, 100, 16), "opacity_pct": (int, 0, 100, 40)},
 }
 
 
@@ -104,6 +108,57 @@ def fit_canvas(image: Image.Image, width: int, height: int, color: tuple[int, in
     return canvas.convert("RGB")
 
 
+def gradient_background(image: Image.Image, top: tuple[int, int, int], bottom: tuple[int, int, int]) -> Image.Image:
+    """Transparent parts become a top-to-bottom gradient; opaque pixels are untouched."""
+    rgba = image.convert("RGBA")
+    h = rgba.height
+    column = Image.new("RGB", (1, h))
+    column.putdata([tuple(round(top[c] + (bottom[c] - top[c]) * (y / max(1, h - 1))) for c in range(3)) for y in range(h)])
+    base = column.resize(rgba.size).convert("RGBA")
+    base.alpha_composite(rgba)
+    return base.convert("RGB")
+
+
+def white_balance(image: Image.Image, strength_pct: int) -> Image.Image:
+    """Gray-world correction: scale each channel so the picture's average becomes neutral gray; `strength_pct` blends with the original.
+    Fully transparent pixels are ignored when measuring and keep their alpha."""
+    rgba = image.convert("RGBA")
+    alpha = rgba.getchannel("A")
+    rgb = rgba.convert("RGB")
+    mask = alpha.point(lambda v: 255 if v > 0 else 0)
+    means = []
+    for channel in rgb.split():
+        hist = channel.histogram(mask)
+        total = sum(hist)
+        means.append(sum(i * n for i, n in enumerate(hist)) / total if total else 128.0)
+    gray = sum(means) / 3
+    gains = [min(4.0, max(0.25, gray / m)) if m > 0 else 1.0 for m in means]
+    blend = strength_pct / 100
+    gains = [1 + (g - 1) * blend for g in gains]
+    channels = [c.point(lambda v, g=g: min(255, round(v * g))) for c, g in zip(rgb.split(), gains)]
+    out = Image.merge("RGB", channels).convert("RGBA")
+    out.putalpha(alpha)
+    return out if image.mode == "RGBA" and alpha.getextrema()[0] < 255 else out.convert("RGB")
+
+
+def drop_shadow(image: Image.Image, offset_x: int, offset_y: int, blur: int, opacity_pct: int) -> Image.Image:
+    """Soft shadow of the object's silhouette under it. Needs transparency (the silhouette); the canvas grows so the shadow is not cut off.
+    Output is RGBA: put a background step after it."""
+    rgba = image.convert("RGBA")
+    if rgba.getchannel("A").getextrema()[0] == 255:
+        raise StepError("STEP_NEEDS_TRANSPARENCY", "drop_shadow needs an image with a transparent background")
+    pad = blur * 3 + max(abs(offset_x), abs(offset_y))
+    size = (rgba.width + 2 * pad, rgba.height + 2 * pad)
+    silhouette = Image.new("L", size, 0)
+    silhouette.paste(rgba.getchannel("A").point(lambda v: round(v * opacity_pct / 100)), (pad + offset_x, pad + offset_y))
+    if blur:
+        silhouette = silhouette.filter(ImageFilter.GaussianBlur(blur))
+    canvas = Image.new("RGBA", size, (0, 0, 0, 0))
+    canvas.putalpha(silhouette)
+    canvas.alpha_composite(rgba, (pad, pad))
+    return canvas
+
+
 def run_steps(image: Image.Image, steps: Any) -> tuple[Image.Image, list[dict[str, Any]]]:
     """Validate, then run. Returns the result and one record per step. The input image is not changed."""
     plan = validate_steps(steps)
@@ -116,6 +171,12 @@ def run_steps(image: Image.Image, steps: Any) -> tuple[Image.Image, list[dict[st
             current = _flatten(current, parse_color(step["color"]))
         elif step["op"] == "fit_canvas":
             current = fit_canvas(current, step["width"], step["height"], parse_color(step["color"]))
+        elif step["op"] == "gradient_background":
+            current = gradient_background(current, parse_color(step["top_color"]), parse_color(step["bottom_color"]))
+        elif step["op"] == "white_balance":
+            current = white_balance(current, step["strength_pct"])
+        elif step["op"] == "drop_shadow":
+            current = drop_shadow(current, step["offset_x"], step["offset_y"], step["blur"], step["opacity_pct"])
         records.append({**step, "mode": "local", "size_in": list(before), "size_out": list(current.size),
                         "duration_ms": round((time.perf_counter() - started) * 1000, 2)})
     return current, records

@@ -76,3 +76,70 @@ def test_defaults_are_filled_in_and_a_later_bad_step_blocks_the_earlier_good_one
     assert ps.validate_steps([{"op": "auto_crop"}]) == [{"op": "auto_crop", "tolerance": 24, "margin_pct": 5}]
     with pytest.raises(ps.StepError):
         ps.validate_steps([{"op": "auto_crop"}, {"op": "nope"}])
+
+
+def cut_out(color=(200, 40, 40)):
+    img = Image.new("RGBA", (60, 60), (0, 0, 0, 0))
+    img.paste(Image.new("RGBA", (30, 30), color + (255,)), (15, 15))
+    return img
+
+
+def test_gradient_background_fills_only_transparency_top_to_bottom():
+    out, _ = ps.run_steps(cut_out(), [{"op": "gradient_background", "top_color": "#000000", "bottom_color": "#ffffff"}])
+    assert out.mode == "RGB" and out.getpixel((30, 30)) == (200, 40, 40), "the object is untouched"
+    top, bottom = out.getpixel((2, 0)), out.getpixel((2, 59))
+    assert top == (0, 0, 0) and bottom == (255, 255, 255)
+    assert out.getpixel((2, 10))[0] < out.getpixel((2, 50))[0], "darker at the top, lighter at the bottom"
+
+
+def test_white_balance_neutralises_a_colour_cast_and_strength_blends():
+    cast = Image.new("RGB", (20, 20), (200, 150, 100))
+    full, _ = ps.run_steps(cast, [{"op": "white_balance", "strength_pct": 100}])
+    r, g, b = full.getpixel((5, 5))
+    assert max(r, g, b) - min(r, g, b) <= 2, f"gray-world makes a uniform cast neutral, got {(r, g, b)}"
+    none, _ = ps.run_steps(cast, [{"op": "white_balance", "strength_pct": 0}])
+    assert none.getpixel((5, 5)) == (200, 150, 100)
+    half, _ = ps.run_steps(cast, [{"op": "white_balance", "strength_pct": 50}])
+    assert max(half.getpixel((5, 5))) - min(half.getpixel((5, 5))) < 100 and max(half.getpixel((5, 5))) - min(half.getpixel((5, 5))) > 2
+    neutral = Image.new("RGB", (8, 8), (90, 90, 90))
+    assert ps.run_steps(neutral, [{"op": "white_balance"}])[0].getpixel((1, 1)) == (90, 90, 90), "already neutral: unchanged"
+
+
+def test_white_balance_ignores_transparent_pixels_and_keeps_alpha():
+    out, _ = ps.run_steps(cut_out((200, 150, 100)), [{"op": "white_balance"}])
+    assert out.mode == "RGBA" and out.getchannel("A").getextrema() == (0, 255)
+    r, g, b, a = out.getpixel((30, 30))
+    assert a == 255 and max(r, g, b) - min(r, g, b) <= 2, "measured on the object only"
+
+
+def test_drop_shadow_grows_the_canvas_darkens_below_the_object_and_needs_transparency():
+    out, records = ps.run_steps(cut_out(), [{"op": "drop_shadow", "offset_x": 0, "offset_y": 10, "blur": 4, "opacity_pct": 60}])
+    pad = 4 * 3 + 10
+    assert out.size == (60 + 2 * pad, 60 + 2 * pad) and out.mode == "RGBA" and records[0]["size_out"] == list(out.size)
+    assert out.getpixel((pad + 30, pad + 30)) == (200, 40, 40, 255), "the object is on top"
+    below = out.getpixel((pad + 30, pad + 30 + 15 + 5))    # just under the object's bottom edge: shadow only
+    assert below[3] > 60 and below[:3] == (0, 0, 0)
+    assert out.getpixel((0, 0))[3] == 0, "far corner stays transparent"
+    with pytest.raises(ps.StepError) as err:
+        ps.run_steps(Image.new("RGB", (30, 30), (255, 255, 255)), [{"op": "drop_shadow"}])
+    assert err.value.code == "STEP_NEEDS_TRANSPARENCY"
+
+
+def test_a_shadow_then_a_background_is_the_product_pipeline_and_stays_local(monkeypatch):
+    def no_network(*a, **k):
+        raise AssertionError("no network")
+    monkeypatch.setattr(socket, "socket", no_network)
+    out, records = ps.run_steps(cut_out(), [{"op": "drop_shadow"}, {"op": "solid_background", "color": "#ffffff"}, {"op": "fit_canvas", "width": 100, "height": 100}])
+    assert out.size == (100, 100) and [r["op"] for r in records] == ["drop_shadow", "solid_background", "fit_canvas"] and all(r["mode"] == "local" for r in records)
+
+
+@pytest.mark.parametrize("step, code", [
+    ({"op": "gradient_background", "top_color": "red"}, "STEP_COLOR_INVALID"),
+    ({"op": "white_balance", "strength_pct": 101}, "STEP_PARAMETER_INVALID"),
+    ({"op": "drop_shadow", "blur": 101}, "STEP_PARAMETER_INVALID"), ({"op": "drop_shadow", "offset_x": 201}, "STEP_PARAMETER_INVALID"),
+    ({"op": "drop_shadow", "opacity_pct": -1}, "STEP_PARAMETER_INVALID"), ({"op": "white_balance", "x": 1}, "STEP_PARAMETER_UNKNOWN"),
+])
+def test_new_steps_are_validated_strictly(step, code):
+    with pytest.raises(ps.StepError) as err:
+        ps.validate_steps([step])
+    assert err.value.code == code
