@@ -198,7 +198,7 @@ def test_rollup_is_operator_only_and_checks_its_range(env):
     assert client.get("/internal/ops/rollup").status_code == 401
     assert client.get("/internal/ops/rollup", headers=auth("a")).status_code == 403
     ok = client.get("/internal/ops/rollup", headers=auth("o"))
-    assert ok.status_code == 200 and len(ok.json()["buckets"]) == 8, "default: the last 7 days plus today"
+    assert ok.status_code == 200 and len(ok.json()["buckets"]) == 7, "default: the last 7 days, today included"
     assert client.get("/internal/ops/rollup", headers=auth("o"), params={"granularity": "week"}).status_code == 422
     for bad in ({"start": "2026-11-17T00:00:00Z", "end": "2026-11-16T00:00:00Z"}, {"start": "nonsense"},
                 {"granularity": "hour", "start": "2026-01-01T00:00:00Z", "end": "2026-06-01T00:00:00Z"}):
