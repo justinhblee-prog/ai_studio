@@ -1310,10 +1310,21 @@ async def list_lookbook_output_exports(draft_id: str,
         raise_http(exc)
 
 
+def _lookbook_export_gate(draft_id: str, workspace_id: str, user_id: str) -> None:
+    """Reply 40: when the workspace requires an approved review for export, every asset in the lookbook's outputs must have one (409 REVIEW_NOT_APPROVED + ids)."""
+    from app import reviews
+    from app.assets.routes import require_role as _require_role
+    _require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    with _connect() as db:
+        ids = [r["asset_id"] for r in db.execute("SELECT asset_id FROM lookbook_output_assets WHERE draft_id=? AND workspace_id=? ORDER BY page_order", (draft_id, workspace_id)).fetchall()]
+    reviews.require_approved(workspace_id, ids)
+
+
 @router.post("/{draft_id}/outputs/package-export", response_model=LookbookPackageExportResponse)
 async def create_lookbook_output_package_route(draft_id: str,
                                                workspace_id: str = Query(min_length=2, max_length=64),
                                                user_id: str = Depends(current_user)):
+    _lookbook_export_gate(draft_id, workspace_id, user_id)
     try:
         return get_lookbook_draft_port().create_package(draft_id, workspace_id, user_id)
     except Exception as exc:  # noqa: BLE001 - mapped centrally, unknown errors re-raised
@@ -1333,6 +1344,7 @@ async def download_lookbook_output_package_route(export_id: str, expires: int, s
 async def export_lookbook_output_manifest(draft_id: str,
                                           workspace_id: str = Query(min_length=2, max_length=64),
                                           user_id: str = Depends(current_user)):
+    _lookbook_export_gate(draft_id, workspace_id, user_id)
     try:
         return get_lookbook_draft_port().output_manifest(draft_id, workspace_id, user_id)
     except Exception as exc:  # noqa: BLE001
