@@ -61,6 +61,10 @@ WORKSPACE_LIBRARY_MAX_3D_BYTES = int(os.getenv("WORKSPACE_LIBRARY_MAX_3D_BYTES",
 # R-046: try-on inputs picked from "my library" are turned into SHORT-LIVED signed https addresses only when the job is dispatched.
 PUBLIC_API_BASE_URL = os.getenv("PUBLIC_API_BASE_URL", "").strip().rstrip("/")   # e.g. https://api.example.com (needed for a real provider)
 TRYON_INPUT_URL_TTL_SECONDS = int(os.getenv("TRYON_INPUT_URL_TTL_SECONDS", "600"))
+# R-048 "ask in words": INTERPRETER_MODE=rules (default, local) | llm (needs a connected adapter; none exists yet, so it falls back to rules, flagged).
+ASSIST_INTERPRETER_MODE = os.getenv("ASSIST_INTERPRETER_MODE", "rules").strip().lower()
+ASSIST_PER_MINUTE = int(os.getenv("ASSIST_PER_MINUTE", "30"))            # per user, every interpreter
+ASSIST_LLM_DAILY_LIMIT = int(os.getenv("ASSIST_LLM_DAILY_LIMIT", "200"))  # per workspace, only external (llm) interpretations
 LIBRARY_PREVIEW_MAX_EDGE = int(os.getenv("LIBRARY_PREVIEW_MAX_EDGE", "1200"))  # library images are shown downscaled, never at original size
 # Package downloads per workspace per calendar month (UTC). 0 = no limit: the value is a product decision that has not been made yet.
 DOWNLOAD_MONTHLY_LIMIT = int(os.getenv("DOWNLOAD_MONTHLY_LIMIT", "0"))
