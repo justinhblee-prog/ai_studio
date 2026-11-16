@@ -68,8 +68,8 @@ try {
   const lib = page.locator('section[aria-label="라이브러리"]');
   await lib.locator('ul[aria-label="라이브러리 항목"] li').first().waitFor({ timeout: 15000 });
   await lib.getByLabel('머리').selectOption('wavy');
-  await page.waitForFunction(() => document.querySelectorAll('ul[aria-label="라이브러리 항목"] li').length >= 1, null, { timeout: 10000 });
-  await page.waitForFunction(() => { const i = document.querySelector('ul[aria-label="라이브러리 항목"] li img'); return !!i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('ul[aria-label="라이브러리 항목"] li').length >= 1, null, { timeout: 30000 });
+  await page.waitForFunction(() => { const i = document.querySelector('ul[aria-label="라이브러리 항목"] li img'); return !!i && i.complete && i.naturalWidth > 0; }, null, { timeout: 30000 });
   await shot('screen-02-library.png');
 
   // 3 before/after slider on the photo screen
@@ -83,7 +83,7 @@ try {
   await panel.getByRole('button', { name: /화이트 밸런스/ }).click();
   await panel.getByRole('button', { name: /실행해서/ }).click();
   await panel.getByRole('group', { name: '전후 슬라이더' }).waitFor({ timeout: 20000 });
-  await page.waitForFunction(() => [...document.querySelectorAll('img[alt^="슬라이더"]')].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 10000 });
+  await page.waitForFunction(() => [...document.querySelectorAll('img[alt^="슬라이더"]')].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 30000 });
   await panel.getByRole('slider', { name: '전후 비교 슬라이더' }).fill('50');
   await page.evaluate(() => {   // bring the slider to the top area of whatever scrolls
     const el = document.querySelector('[aria-label="전후 슬라이더"]'); el.scrollIntoView({ block: 'start' });
