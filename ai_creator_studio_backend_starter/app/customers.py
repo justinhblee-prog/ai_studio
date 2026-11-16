@@ -29,7 +29,7 @@ HOST_RE = re.compile(r"^(?=.{1,100}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z
 TOKEN_RE = re.compile(r"^[A-Za-z0-9._~+\- ]{0,60}$")        # utm values and survey texts: no '@', no slashes, no '='
 LANDING_RE = re.compile(r"^/[A-Za-z0-9._~\-/]{0,119}$")
 SIZE_RE = re.compile(r"^[A-Za-z0-9._~+\-]{1,20}$")
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
+DATE_RE = re.compile(r"^\d{4}(-\d{2}(-\d{2})?)?")      # a year, a month or a day (ranges and first_seen)
 
 
 def _init(db) -> None:

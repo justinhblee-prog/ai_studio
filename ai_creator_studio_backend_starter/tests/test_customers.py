@@ -44,10 +44,14 @@ def row_of(ws="co-paid"):
 
 
 def test_collection_is_off_by_default_and_nothing_is_stored_then(env, monkeypatch):
-    import importlib
+    import subprocess
+    import sys
+    from pathlib import Path
+    clean = {k: v for k, v in __import__("os").environ.items() if k != "CUSTOMER_STATS_COLLECTION"}
+    out = subprocess.run([sys.executable, "-c", "import app.config as c; print(c.CUSTOMER_STATS_COLLECTION)"], cwd=Path(__file__).resolve().parents[1], env=clean,
+                         capture_output=True, text=True, check=True).stdout.strip()
+    assert out == "False", "the real default is off"
     import app.config as config
-    monkeypatch.delenv("CUSTOMER_STATS_COLLECTION", raising=False)
-    assert importlib.reload(config).CUSTOMER_STATS_COLLECTION is False
     monkeypatch.setattr(config, "CUSTOMER_STATS_COLLECTION", False)
     r = record(acq=ACQ, survey=SURVEY)
     assert r.status_code == 409 and r.json()["detail"]["code"] == "COLLECTION_DISABLED"
@@ -224,5 +228,6 @@ def test_retention_cohorts_count_those_not_churned_n_months_after_joining(env):
     last = cohorts[last_m]["retention"]
     assert [x["month"] for x in last] == [0, 1] and last[0]["retained"] == 1 and last[1]["retained"] == 0 and last[1]["rate"] == 0.0, "cancelled one month after joining"
     old = cohorts[older]["retention"]
-    assert len(old) == 3 and all(x["retained"] == 1 and x["rate"] == 1.0 for x in old)
+    age = (int(this_m[:4]) - int(older[:4])) * 12 + int(this_m[5:7]) - int(older[5:7])
+    assert len(old) == age + 1 and all(x["retained"] == 1 and x["rate"] == 1.0 for x in old)
     assert "retention" in body["coverage"] and any("inactiv" in s for s in body["coverage"]["retention"]["not_measured"])
