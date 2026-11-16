@@ -25,11 +25,12 @@ SELF_SCOPED = {("get", "/v1/workspaces"), ("get", "/v1/me/legal-status"), ("get"
                ("get", "/v1/me/consents"), ("get", "/v1/auth/me"),
                ("get", "/v1/me/takedowns"),   # L-08: lists only the caller's own held assets
                ("get", "/v1/library/items"),
+               ("get", "/v1/market/listings"), ("get", "/v1/market/mine"), ("get", "/v1/market/profile"), ("put", "/v1/market/profile"),   # R-064: the market is user-scoped, not workspace-scoped
                ("get", "/v1/features")}  # pilot service switches: global, no workspace data  # R-032: platform-owned default library, readable by every signed-in user (holds no workspace data)
 
 
 # Operations that any signed-in user may call and whose answer does not depend on the object (so it reveals nothing).
-ANSWERS_ALIKE = {("post", "/v1/content-reports")}
+ANSWERS_ALIKE = {("post", "/v1/content-reports"), ("post", "/v1/market/listings/{listing_id}/reports")}
 
 
 # Minimal valid bodies generated from the OpenAPI schema so authorization, not validation, decides.
@@ -157,7 +158,7 @@ def test_every_operation_rejects_anonymous_and_non_members(seeded):
 SELF_WRITES = {("post", "/v1/workspaces"), ("post", "/v1/assets/{asset_id}/preview-url"),
                ("post", "/v1/assets/{asset_id}/versions/{version_id}/preview-url"),
                # L-08: any signed-in user may file a report; the answer is the same for every asset id, so it reveals nothing
-               ("post", "/v1/content-reports")}
+               ("post", "/v1/content-reports"), ("post", "/v1/market/listings/{listing_id}/reports"), ("put", "/v1/market/profile")}
 
 
 def test_viewer_role_cannot_modify_anything_in_the_workspace(seeded):
