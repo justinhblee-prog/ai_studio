@@ -163,14 +163,19 @@ def _rate_limited(user_id: str) -> bool:
     return False
 
 
-def _log(db, workspace_id: str, user_id: str, interpreter: str, understood: bool, n_actions: int, text_len: int) -> None:
+def _ensure(db) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS assist_usage (workspace_id TEXT NOT NULL, user_id TEXT NOT NULL, interpreter TEXT NOT NULL,
         understood INTEGER NOT NULL, n_actions INTEGER NOT NULL, text_len INTEGER NOT NULL, created_at TEXT NOT NULL)""")
+
+
+def _log(db, workspace_id: str, user_id: str, interpreter: str, understood: bool, n_actions: int, text_len: int) -> None:
+    _ensure(db)
     db.execute("INSERT INTO assist_usage VALUES (?,?,?,?,?,?,?)", (workspace_id, user_id, interpreter, int(understood), n_actions, text_len,
                                                                    datetime.now(timezone.utc).isoformat()))
 
 
 def _llm_used_today(db, workspace_id: str) -> int:
+    _ensure(db)
     since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     return db.execute("SELECT COUNT(*) AS n FROM assist_usage WHERE workspace_id=? AND interpreter='llm' AND created_at>=?", (workspace_id, since)).fetchone()["n"]
 
