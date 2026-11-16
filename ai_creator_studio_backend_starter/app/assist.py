@@ -184,7 +184,8 @@ def _llm_used_today(db, workspace_id: str) -> int:
 async def interpret(body: InterpretIn, user_id: str = Depends(current_user)):
     require_role(body.workspace_id, user_id, {"owner", "admin", "editor"})
     if _rate_limited(user_id):
-        raise HTTPException(status_code=429, headers={"Retry-After": "30"}, detail={"code": "ASSIST_RATE_LIMITED", "message": "too many requests; try again shortly"})
+        from app import rate_limit
+        raise rate_limit.too_many("ASSIST_RATE_LIMITED", "too many requests; try again shortly", 30, estimated=True)
     controls = [c.strip()[:MAX_NAME] for c in body.controls if isinstance(c, str) and c.strip()]
     text = body.text.strip()
     if not text:

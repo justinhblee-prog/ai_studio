@@ -67,6 +67,14 @@ ASSIST_PER_MINUTE = int(os.getenv("ASSIST_PER_MINUTE", "30"))            # per u
 ASSIST_LLM_DAILY_LIMIT = int(os.getenv("ASSIST_LLM_DAILY_LIMIT", "200"))  # per workspace, only external (llm) interpretations
 VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT", "20"))   # R-050: video jobs per workspace per 24h (proposal; also bounds mock storage)
 MARKET_REPORT_DAILY_LIMIT = int(os.getenv("MARKET_REPORT_DAILY_LIMIT", "10"))   # R-064: reports one person may file per day
+# R-067: request-rate limits (0 = that rule is off; RATE_LIMITS_ENABLED=0 turns every rule off). Conservative defaults.
+RATE_LIMITS_ENABLED = env_flag_default_on(os.getenv("RATE_LIMITS_ENABLED"))
+RATE_UPLOAD_USER_PER_MINUTE = int(os.getenv("RATE_UPLOAD_USER_PER_MINUTE", "30"))
+RATE_UPLOAD_WORKSPACE_PER_HOUR = int(os.getenv("RATE_UPLOAD_WORKSPACE_PER_HOUR", "300"))
+RATE_GENERATE_USER_PER_MINUTE = int(os.getenv("RATE_GENERATE_USER_PER_MINUTE", "10"))
+RATE_GENERATE_WORKSPACE_PER_HOUR = int(os.getenv("RATE_GENERATE_WORKSPACE_PER_HOUR", "120"))
+RATE_DOWNLOAD_USER_PER_MINUTE = int(os.getenv("RATE_DOWNLOAD_USER_PER_MINUTE", "60"))
+RATE_REPORT_USER_PER_MINUTE = int(os.getenv("RATE_REPORT_USER_PER_MINUTE", "5"))
 # R-065: data export ZIPs are kept this long, may be at most this big, and a workspace (or account) may make this many a day.
 EXPORT_TTL_HOURS = int(os.getenv("EXPORT_TTL_HOURS", "24"))
 EXPORT_MAX_BYTES = int(os.getenv("EXPORT_MAX_BYTES", str(200 * 1024 * 1024)))

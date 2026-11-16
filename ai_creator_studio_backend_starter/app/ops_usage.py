@@ -34,7 +34,7 @@ COVERAGE = {
     "assist": {"source": "assist_usage", "measured": ["count"], "estimated": [], "not_measured": ["duration_ms", "bytes"], "note": "no sentence text is stored"},
     "market": {"source": None, "measured": [], "estimated": [], "not_measured": ["count"], "note": "no marketplace exists yet"},
 }
-GLOBAL_NOT_MEASURED = ["blocked: jobs refused by a limit (HTTP 429) are not stored, so blocked is always 0 here",
+GLOBAL_NOT_MEASURED = ["blocked: only the refusals of the request-rate rules (R-067) are stored; jobs refused by the daily / monthly quotas and the cost cap (HTTP 429) are not, so they are missing from blocked",
                        "company/user names and e-mails: identity provider server key not available (ids only)",
                        "style / region: recorded only on try-on jobs (the one generation job the server has); every other service counts as 'unknown'",
                        "real provider invoices: cost_usd is unit price x count, never reconciled with a bill"]
@@ -81,6 +81,9 @@ def collect_events(start: str, end: str) -> tuple[list[dict[str, Any]], list[str
         store.initialize()
         def rows(sql, args):
             return db.execute(sql + f" LIMIT {ROW_CAP}", args).fetchall()
+        if _has(db, "rate_limit_blocked"):      # R-067: requests the rate rules refused (the only 'blocked' that is stored)
+            for r in rows("SELECT at, workspace_id, user_id, scope FROM rate_limit_blocked WHERE at>=? AND at<? ORDER BY at DESC", (start, end)):
+                add(r["scope"], r["at"], r["workspace_id"] or "unknown", r["user_id"], "local", "blocked")
         if _has(db, "photo_processing_runs"):
             got = rows("SELECT created_at, updated_at, workspace_id, created_by, status FROM photo_processing_runs WHERE created_at>=? AND created_at<? ORDER BY created_at DESC", (start, end))
             truncated += ["photo"] if len(got) >= ROW_CAP else []
@@ -132,7 +135,7 @@ def build_usage(granularity: str, by: str, start: datetime | None, end: datetime
             g["bytes"] += e["bytes"]
     rows = sorted(groups.values(), key=lambda g: (g["bucket"], g["key"]))
     totals = {"events": len(events), "success": sum(g["success"] for g in rows), "failed": sum(g["failed"] for g in rows), "pending": sum(g["pending"] for g in rows),
-              "estimated_cost_usd": round(sum(g["estimated_cost_usd"] for g in rows), 6), "bytes": sum(g["bytes"] for g in rows)}
+              "blocked": sum(g["blocked"] for g in rows), "estimated_cost_usd": round(sum(g["estimated_cost_usd"] for g in rows), 6), "bytes": sum(g["bytes"] for g in rows)}
     with store._connect() as db:
         stored = db.execute("SELECT COALESCE(SUM(size_bytes),0) AS n FROM assets WHERE deleted_at IS NULL").fetchone()["n"]
     return {"granularity": granularity, "by": by, "from": _iso(begin), "to": _iso(stop), "rows": rows, "totals": totals, "truncated_services": truncated,

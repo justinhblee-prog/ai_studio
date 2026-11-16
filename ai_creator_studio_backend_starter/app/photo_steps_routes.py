@@ -34,6 +34,8 @@ class PhotoStepsResponse(BaseModel):
 @router.post("", status_code=201, response_model=PhotoStepsResponse, operation_id="runPhotoSteps")
 async def run_photo_steps(workspace_id: str, body: PhotoStepsRequest, user_id: str = Depends(current_user)):
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    from app import rate_limit    # R-067
+    rate_limit.check("generate", user_id, workspace_id)
     source = store.get_asset(body.asset_id, workspace_id)
     if source is None or source.get("asset_kind") != "image":
         raise HTTPException(status_code=404, detail="Image asset not found")

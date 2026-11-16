@@ -175,6 +175,8 @@ def _verified_version_path(asset_id: str, workspace_id: str, version_id: str):
 @router.post("", status_code=201, response_model=AssetRecordResponse)
 async def upload_asset(workspace_id: str = Form(min_length=2, max_length=64), file: UploadFile = File(...), user_id: str = Depends(current_user)):
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    from app import rate_limit    # R-067
+    rate_limit.check("upload", user_id, workspace_id)
     filename = Path(file.filename or "asset").name
     content = await file.read(config.ASSET_MAX_UPLOAD_BYTES + 1)
     await file.close()
@@ -202,6 +204,8 @@ async def upload_image_asset(workspace_id: str = Form(min_length=2, max_length=6
     ``rights_confirmed=true`` is required unless ASSET_REQUIRE_RIGHTS_CONFIRMATION is explicitly switched off (L-04).
     """
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    from app import rate_limit    # R-067
+    rate_limit.check("upload", user_id, workspace_id)
     filename = Path(file.filename or "image").name
     content = await file.read(config.ASSET_MAX_UPLOAD_BYTES + 1)
     await file.close()
@@ -275,6 +279,8 @@ async def upload_asset_version(asset_id: str, file: UploadFile = File(...), user
         current_asset = get_asset_metadata_port().get(asset_id, user_id)
     except Exception as exc:
         raise_http(exc)
+    from app import rate_limit    # R-067
+    rate_limit.check("upload", user_id, workspace_id)
     filename = Path(file.filename or "asset").name
     content = await file.read(config.ASSET_MAX_UPLOAD_BYTES + 1)
     await file.close()
@@ -396,6 +402,8 @@ async def preview_asset_version_content(asset_id: str, version_id: str, user_id:
     if not workspace_id:
         raise HTTPException(status_code=404, detail="Asset not found")
     require_role(workspace_id, user_id, {"owner", "admin", "editor", "viewer"})
+    from app import rate_limit    # R-067
+    rate_limit.check("download", user_id, workspace_id)
     version, path = _verified_version_path(asset_id, workspace_id, version_id)
     try:
         from app import ai_marking    # R-062

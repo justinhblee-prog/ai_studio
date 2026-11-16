@@ -51,6 +51,8 @@ async def report_content(body: ReportInput, user_id: str = Depends(current_user)
     """File a report. The answer is the same whether or not the asset exists or the report changed anything, so the
     endpoint cannot be used to find out which asset ids exist."""
     initialize()
+    from app import rate_limit    # R-067
+    rate_limit.check("report", user_id, None)
     received = {"status": "received"}
     with _connect() as db:
         db.execute("BEGIN IMMEDIATE")
@@ -61,7 +63,10 @@ async def report_content(body: ReportInput, user_id: str = Depends(current_user)
         since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
         filed = db.execute("SELECT COUNT(*) AS n FROM content_reports WHERE reporter_id=? AND created_at>=?", (user_id, since)).fetchone()["n"]
         if filed >= config.CONTENT_REPORT_DAILY_LIMIT:
-            raise HTTPException(status_code=429, detail="Too many reports today")
+            from app import rate_limit
+            oldest = db.execute("SELECT MIN(created_at) AS t FROM content_reports WHERE reporter_id=? AND created_at>=?", (user_id, since)).fetchone()["t"]
+            wait, est = rate_limit.seconds_until_window_frees(oldest, 86400)
+            raise rate_limit.too_many("REPORT_DAILY_LIMIT", "Too many reports today", wait, estimated=est, limit=config.CONTENT_REPORT_DAILY_LIMIT)
         if db.execute("SELECT 1 FROM content_reports WHERE asset_id=? AND reporter_id=? AND status='open'", (body.asset_id, user_id)).fetchone():
             return received
         now = _now()

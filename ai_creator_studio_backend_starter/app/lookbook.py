@@ -11,7 +11,7 @@ import stat
 import time
 import uuid
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -1097,8 +1097,10 @@ def _check_download_allowed(row) -> None:
             used = db.execute("SELECT COUNT(*) AS n FROM download_audit WHERE workspace_id=? AND created_at>=?",
                               (row["workspace_id"], _month_start())).fetchone()["n"]
             if used >= limit:
-                raise HTTPException(status_code=429, detail={"code": "DOWNLOAD_MONTHLY_LIMIT", "limit": limit, "used": used,
-                                                             "message": "Monthly download limit reached for this workspace."})
+                from app import rate_limit
+                _now_dt = datetime.now(timezone.utc)
+                _next = (_now_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0) + timedelta(days=32)).replace(day=1)
+                raise rate_limit.too_many("DOWNLOAD_MONTHLY_LIMIT", "Monthly download limit reached for this workspace.", int((_next - _now_dt).total_seconds()), limit=limit, used=used)
     finally:
         db.close()
 
@@ -1334,6 +1336,8 @@ async def create_lookbook_output_package_route(draft_id: str,
 @router.get("/exports/{export_id}/download")
 async def download_lookbook_output_package_route(export_id: str, expires: int, signature: str,
                                                  user_id: str = Depends(current_user)):
+    from app import rate_limit    # R-067 (per user; the signed link carries no workspace here)
+    rate_limit.check("download", user_id, None)
     try:
         return get_lookbook_draft_port().download_package(export_id, expires, signature, user_id)
     except Exception as exc:  # noqa: BLE001 - mapped centrally, HTTPException passes through

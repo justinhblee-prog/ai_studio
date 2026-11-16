@@ -52,7 +52,8 @@ class LibraryImportRequest(BaseModel):
 def _raise(exc: library.LibraryError):
     detail: object = {"code": exc.code, "message": str(exc)}
     if isinstance(exc, library.LibraryLimitError):
-        detail = {"code": exc.code, "message": str(exc), "limit": exc.limit, "used": exc.used}
+        from app import rate_limit    # R-067: the same 429 answer everywhere
+        raise rate_limit.too_many(exc.code, str(exc), 3600, estimated=True, limit=exc.limit, used=exc.used) from exc
     raise HTTPException(status_code=exc.status, detail=detail) from exc
 
 

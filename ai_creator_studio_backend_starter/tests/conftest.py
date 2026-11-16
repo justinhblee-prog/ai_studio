@@ -26,3 +26,10 @@ def _no_external_notice_in_old_tests(monkeypatch):
     notice turn the requirement back on themselves."""
     import app.config as config
     monkeypatch.setattr(config, "EXTERNAL_NOTICE_REQUIRED", False)
+
+
+@pytest.fixture(autouse=True)
+def _rate_limits_off_in_old_tests(monkeypatch):
+    """The older tests upload and create jobs far faster than a person does; the rate-limit tests (R-067) turn the rules on themselves."""
+    import app.config as config
+    monkeypatch.setattr(config, "RATE_LIMITS_ENABLED", False)

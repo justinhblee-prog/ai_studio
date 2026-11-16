@@ -200,7 +200,9 @@ def test_import_is_rate_limited_per_workspace_with_the_numbers_in_the_429(env, m
         assert client.post("/v1/library/items/top-01/import", headers=auth("a"), json={"workspace_id": "wa"}).status_code == 201
     limited = client.post("/v1/library/items/top-01/import", headers=auth("a"), json={"workspace_id": "wa"})
     assert limited.status_code == 429
-    assert limited.json()["detail"] == {"code": "LIBRARY_IMPORT_LIMIT", "message": "Daily library import limit reached for this workspace.", "limit": 2, "used": 2}
+    d = limited.json()["detail"]   # R-067: the same 429 answer everywhere: the old keys plus retry_after_seconds / retry_at
+    assert {k: d[k] for k in ("code", "message", "limit", "used")} == {"code": "LIBRARY_IMPORT_LIMIT", "message": "Daily library import limit reached for this workspace.", "limit": 2, "used": 2}
+    assert d["retry_after_seconds"] >= 1 and d["retry_at"] and limited.headers["Retry-After"] == str(d["retry_after_seconds"])
     assert client.post("/v1/library/items/top-01/import", headers=auth("b"), json={"workspace_id": "wb"}).status_code == 201  # another workspace is unaffected
     assert len(client.get("/v1/assets?workspace_id=wa&kind=image", headers=auth("a")).json()["items"]) == 2
 
