@@ -207,6 +207,15 @@ class SQLiteJobRepository:
                 "SELECT workspace_id, provider, status, COUNT(*) AS n, COUNT(DISTINCT owner_id) AS users FROM generation_jobs "
                 "WHERE created_at>=? AND created_at<? GROUP BY workspace_id, provider, status", (start, end)).fetchall()]
 
+    def ops_execution_seconds(self, start, end):
+        """Run time in seconds of every finished execution that started in [start, end) (R-043: latency percentiles). Metadata only."""
+        storage, path, _ = self._context()
+        self.initialize()
+        with storage.transaction(path) as conn:
+            return [float(r[0]) for r in conn.execute(
+                "SELECT (julianday(finished_at) - julianday(started_at)) * 86400.0 FROM generation_executions "
+                "WHERE finished_at IS NOT NULL AND started_at>=? AND started_at<?", (start, end)).fetchall() if r[0] is not None and r[0] >= 0]
+
     def get_idempotent(self, workspace_id, key):
         if self._impl is not None: return self._impl.get_idempotent_job(workspace_id, key)
         storage, path, _ = self._context()
