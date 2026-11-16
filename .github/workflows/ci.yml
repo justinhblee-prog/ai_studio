@@ -162,6 +162,13 @@ jobs:
           set -o pipefail
           node e2e/library_flow.mjs | tee e2e_library.txt
           grep -q "SUMMARY 7/7 library steps passed" e2e_library.txt
+      - name: Photo steps panel (R-044 A-3)
+        if: matrix.group == 'a'
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          node e2e/photo_steps_flow.mjs | tee e2e_photo_steps.txt
+          grep -q "SUMMARY 4/4 photo-steps steps passed" e2e_photo_steps.txt
       - name: 3D Studio, viewing (R-038)
         if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
