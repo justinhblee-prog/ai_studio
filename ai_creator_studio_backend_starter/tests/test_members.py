@@ -41,7 +41,7 @@ def test_the_owner_changes_any_non_owner_and_the_history_records_it(team):
     assert roles()["user-g"] == "admin" and roles()["user-e"] == "editor"
     same = client.patch(f"{M}/user-g", headers=auth("a"), json={"role": "admin"})
     assert same.status_code == 200
-    ev = client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()
+    ev = [e for e in client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json() if e["event"] == "role_changed"]
     assert [(e["member_id"], e["from_role"], e["to_role"], e["actor_id"]) for e in ev] == [("user-c", "viewer", "editor", "user-a"), ("user-d", "editor", "viewer", "user-a"),
                                                                                          ("user-e", "admin", "editor", "user-a"), ("user-g", "editor", "admin", "user-a")], "an unchanged role adds nothing"
     assert client.get("/v1/workspaces/wa/members-history", headers=auth("c")).status_code == 403
@@ -89,7 +89,7 @@ def test_removing_and_leaving(team):
     assert client.get("/v1/workspaces/wa/library", headers=auth("d")).status_code in (403, 404), "a member who left has no access"
     assert client.delete(f"{M}/user-g", headers=auth("a")).status_code == 404, "already gone"
     assert client.delete(f"{M}/user-c", headers=auth("c")).status_code == 204
-    ev = client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()
+    ev = [e for e in client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json() if e["event"] in ("removed", "left")]
     assert [(e["member_id"], e["event"], e["actor_id"]) for e in ev] == [("user-g", "removed", "user-e"), ("user-f", "removed", "user-a"), ("user-d", "left", "user-d"), ("user-c", "left", "user-c")]
     assert set(roles()) == {"user-a", "user-e"}
 
@@ -108,3 +108,15 @@ def test_me_gives_the_id_and_the_workspaces_with_roles_and_nothing_personal(team
     assert client.get("/v1/me", headers=auth("b")).json()["workspaces"] == [{"workspace_id": "wb", "role": "owner"}]
     assert client.get("/v1/me").status_code == 401
     assert client.get("/v1/auth/me", headers=auth("d")).json() == {"user_id": "user-d"}, "the old route is unchanged"
+
+
+def test_adding_a_member_is_in_the_history_too_and_a_refused_add_is_not(team):
+    ev = client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()
+    assert [(e["event"], e["member_id"], e["to_role"], e["actor_id"]) for e in ev][1:5] == [("added", "user-d", "editor", "user-a"), ("added", "user-e", "admin", "user-a"),
+                                                                                         ("added", "user-f", "admin", "user-a"), ("added", "user-g", "editor", "user-a")]
+    assert ev[0]["member_id"] == "user-c" and ev[0]["to_role"] == "viewer", "the workspace fixture added the viewer first"
+    assert all(e["from_role"] is None for e in ev)
+    n = len(ev)
+    assert client.post(M, headers=auth("d"), json={"user_id": "user-x", "role": "viewer"}).status_code == 403, "an editor cannot add"
+    assert client.post(M, headers=auth("a"), json={"user_id": "user-d", "role": "viewer"}).status_code in (409, 422), "already a member"
+    assert len(client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()) == n, "nothing was added, so nothing is recorded"

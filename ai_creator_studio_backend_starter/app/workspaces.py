@@ -40,6 +40,9 @@ async def workspaces(user_id: str = Depends(current_user)):
 @router.post("/{workspace_id}/members", status_code=201)
 async def add_member(workspace_id: str, body: AddMemberBody, user_id: str = Depends(current_user)):
     try:
-        return get_workspace_port().add_member(workspace_id, user_id, body.user_id, body.role)
+        added = get_workspace_port().add_member(workspace_id, user_id, body.user_id, body.role)
+        from app.members import record_added      # the history of who joined, who added them and as what
+        record_added(workspace_id, user_id, body.user_id, body.role)
+        return added
     except Exception as exc:
         raise_http(exc)
