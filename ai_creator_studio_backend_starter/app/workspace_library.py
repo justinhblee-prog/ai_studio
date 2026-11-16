@@ -30,6 +30,7 @@ KINDS = ("model", "garment", "prop", "bg", "pose", "3d", "render")
 AI_EVENTS = {"asset.generated_output_imported"}
 WORK_EVENTS = {"asset.photo_processed", "asset.photo_steps", "asset.model_candidate", "asset.video_output"}
 MAX_TAGS, MAX_TAG_LEN, MAX_NAME = 10, 30, 120
+MAX_ATTRS = 20     # R-058: free key/value attributes per item (same value rule as the model drafts: text <= 60 characters or a whole number 0-9999)
 DDL = """CREATE TABLE IF NOT EXISTS workspace_library_items (
     item_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, asset_id TEXT NOT NULL, kind TEXT NOT NULL, origin TEXT NOT NULL,
     name TEXT NOT NULL, tags_json TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
@@ -43,6 +44,8 @@ THUMB_MAX_BYTES, THUMB_MAX_EDGE = 2 * 1024 * 1024, 1024
 
 def _init(db) -> None:
     db.execute(DDL)
+    if not any(r["name"] == "attrs_json" for r in db.execute("PRAGMA table_info(workspace_library_items)").fetchall()):
+        db.execute("ALTER TABLE workspace_library_items ADD COLUMN attrs_json TEXT NOT NULL DEFAULT '{}'")
     db.execute(THUMB_DDL)
     db.execute("CREATE INDEX IF NOT EXISTS idx_wli_ws ON workspace_library_items(workspace_id, kind, created_at)")
 
@@ -60,6 +63,7 @@ class LibraryItemOut(BaseModel):
     is_ai_generated: bool
     name: str
     tags: list[str]
+    attrs: dict[str, Any] = Field(default_factory=dict)
     created_by: str
     created_at: str
     updated_at: str
@@ -80,12 +84,14 @@ class AttachIn(BaseModel):
     kind: Kind
     name: str | None = Field(default=None, max_length=MAX_NAME)
     tags: list[str] = Field(default_factory=list, max_length=MAX_TAGS)
+    attrs: dict[str, Any] | None = None
 
 
 class PatchIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str | None = Field(default=None, max_length=MAX_NAME)
     tags: list[str] | None = Field(default=None, max_length=MAX_TAGS)
+    attrs: dict[str, Any] | None = None     # replaces the whole attribute set; {} clears it
 
 
 def _clean_name(value: str | None, fallback: str) -> str:
@@ -93,6 +99,27 @@ def _clean_name(value: str | None, fallback: str) -> str:
     if not name:
         raise HTTPException(status_code=422, detail={"code": "LIBRARY_NAME_REQUIRED", "message": "name must not be blank"})
     return name[:MAX_NAME]
+
+
+def _clean_attrs(value: Any) -> dict[str, Any]:
+    """R-058: free keys and values (the catalogue belongs to the design window). Keys: lowercase letters, digits, underscore. Values: a text of at most 60
+    characters or a whole number 0-9999 (the R-055 rule), or a short list of them. Flat only; at most MAX_ATTRS keys. An empty object is allowed (clears)."""
+    from app.model_drafts import KEY_RE, MAX_LIST, _norm, _scalar_ok
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise HTTPException(status_code=422, detail={"code": "ATTRS_INVALID", "message": "attrs must be an object of keys and values"})
+    if len(value) > MAX_ATTRS:
+        raise HTTPException(status_code=422, detail={"code": "ATTRS_TOO_MANY", "message": f"at most {MAX_ATTRS} attributes"})
+    out: dict[str, Any] = {}
+    for key, v in value.items():
+        if not isinstance(key, str) or not KEY_RE.match(key):
+            raise HTTPException(status_code=422, detail={"code": "ATTR_KEY_INVALID", "message": "attribute keys are lowercase letters, digits and underscores"})
+        items = v if isinstance(v, list) else [v]
+        if not items or len(items) > MAX_LIST or any(not _scalar_ok(i) or (isinstance(i, str) and not i.strip()) for i in items):
+            raise HTTPException(status_code=422, detail={"code": "ATTR_VALUE_INVALID", "message": f"{key}: give a short text or a whole number 0-9999, or a short list of them"})
+        out[key] = [_norm(i) for i in v] if isinstance(v, list) else _norm(v)
+    return out
 
 
 def _clean_tags(values: list[str]) -> list[str]:
@@ -124,7 +151,7 @@ _SELECT = """SELECT i.*, a.original_filename, a.media_type, a.size_bytes, a.owne
 
 def _out(row) -> dict[str, Any]:
     return {"item_id": row["item_id"], "workspace_id": row["workspace_id"], "asset_id": row["asset_id"], "kind": row["kind"], "origin": row["origin"],
-            "is_ai_generated": row["origin"] == "ai", "name": row["name"], "tags": json.loads(row["tags_json"]), "created_by": row["created_by"],
+            "is_ai_generated": row["origin"] == "ai", "name": row["name"], "tags": json.loads(row["tags_json"]), "attrs": json.loads(row["attrs_json"] or "{}"), "created_by": row["created_by"],
             "created_at": row["created_at"], "updated_at": row["updated_at"], "original_filename": row["original_filename"],
             "media_type": row["media_type"], "size_bytes": row["size_bytes"], "thumbnail_asset_id": row["thumbnail_asset_id"]}
 
@@ -139,10 +166,10 @@ def _check_caps(db, workspace_id: str, kind: str) -> None:
             raise HTTPException(status_code=409, detail={"code": "LIBRARY_3D_FULL", "message": f"at most {config.WORKSPACE_LIBRARY_MAX_3D} 3D items per workspace"})
 
 
-def _insert(db, workspace_id: str, user_id: str, asset_id: str, kind: str, name: str, tags: list[str]) -> dict[str, Any]:
+def _insert(db, workspace_id: str, user_id: str, asset_id: str, kind: str, name: str, tags: list[str], attrs: dict[str, Any] | None = None) -> dict[str, Any]:
     item_id, now = "wli_" + uuid.uuid4().hex, _now()
-    db.execute("INSERT INTO workspace_library_items(item_id, workspace_id, asset_id, kind, origin, name, tags_json, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-               (item_id, workspace_id, asset_id, kind, _origin_of(db, asset_id), name, json.dumps(tags, ensure_ascii=False), user_id, now, now))
+    db.execute("INSERT INTO workspace_library_items(item_id, workspace_id, asset_id, kind, origin, name, tags_json, attrs_json, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+               (item_id, workspace_id, asset_id, kind, _origin_of(db, asset_id), name, json.dumps(tags, ensure_ascii=False), json.dumps(attrs or {}, ensure_ascii=False), user_id, now, now))
     return _out(db.execute(_SELECT + " WHERE i.item_id=?", (item_id,)).fetchone())
 
 
@@ -152,9 +179,11 @@ def _visible(row, user_id: str) -> bool:
 
 @router.get("", response_model=LibraryListOut, operation_id="listWorkspaceLibrary")
 async def list_items(workspace_id: str, kind: Kind | None = None, origin: Literal["ai", "upload", "work"] | None = None,
-                     q: str | None = Query(default=None, max_length=80), limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0),
+                     q: str | None = Query(default=None, max_length=80), attr: list[str] = Query(default_factory=list, max_length=10),
+                     limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0),
                      user_id: str = Depends(current_user)):
     require_role(workspace_id, user_id, {"owner", "admin", "editor", "viewer"})
+    wanted = _parse_attr_filters(attr)
     sql, args = _SELECT + " WHERE i.workspace_id=?", [workspace_id]
     if kind:
         sql += " AND i.kind=?"; args.append(kind)
@@ -166,8 +195,52 @@ async def list_items(workspace_id: str, kind: Kind | None = None, origin: Litera
     with store._connect() as db:
         store.initialize()
         _init(db)
-        rows = [r for r in db.execute(sql + " ORDER BY i.created_at DESC, i.item_id", args).fetchall() if _visible(r, user_id)]
+        rows = [r for r in db.execute(sql + " ORDER BY i.created_at DESC, i.item_id", args).fetchall() if _visible(r, user_id) and _attrs_match(r, wanted)]
     return {"items": [_out(r) for r in rows[offset:offset + limit]], "total": len(rows)}
+
+
+def _parse_attr_filters(values: list[str]) -> list[tuple[str, str]]:
+    """``attr=key:value`` (repeat for several; all must match). A list-valued attribute matches when it contains the value. Numbers compare as text."""
+    out = []
+    for raw in values:
+        key, sep, value = raw.partition(":")
+        if not sep or not key or not value.strip() or len(raw) > 100:
+            raise HTTPException(status_code=422, detail={"code": "ATTR_FILTER_INVALID", "message": "attr must look like key:value"})
+        out.append((key.strip(), value.strip()))
+    return out
+
+
+def _attrs_match(row, wanted: list[tuple[str, str]]) -> bool:
+    if not wanted:
+        return True
+    attrs = json.loads(row["attrs_json"] or "{}")
+    for key, value in wanted:
+        have = attrs.get(key)
+        have = have if isinstance(have, list) else [have]
+        if value not in [str(h) for h in have if h is not None]:
+            return False
+    return True
+
+
+@router.get("/facets", operation_id="listWorkspaceLibraryFacets")
+async def facets(workspace_id: str, kind: Kind | None = None, user_id: str = Depends(current_user)):
+    """For building filters: every attribute key in use (optionally within one kind) with its values and how many items carry each."""
+    require_role(workspace_id, user_id, {"owner", "admin", "editor", "viewer"})
+    sql, args = _SELECT + " WHERE i.workspace_id=?", [workspace_id]
+    if kind:
+        sql += " AND i.kind=?"; args.append(kind)
+    out: dict[str, dict[str, int]] = {}
+    with store._connect() as db:
+        store.initialize()
+        _init(db)
+        for r in db.execute(sql, args).fetchall():
+            if not _visible(r, user_id):
+                continue
+            for key, v in json.loads(r["attrs_json"] or "{}").items():
+                for item in (v if isinstance(v, list) else [v]):
+                    counts = out.setdefault(key, {})
+                    counts[str(item)] = counts.get(str(item), 0) + 1
+    return {"kind": kind, "facets": [{"key": k, "values": [{"value": val, "count": n} for val, n in sorted(c.items())]} for k, c in sorted(out.items())]}
 
 
 @router.get("/{item_id}", response_model=LibraryItemOut, operation_id="getWorkspaceLibraryItem")
@@ -191,20 +264,20 @@ async def attach(workspace_id: str, body: AttachIn, user_id: str = Depends(curre
         raise HTTPException(status_code=404, detail="Asset not found")
     if (body.kind == "3d") != (asset["asset_kind"] == "model"):
         raise HTTPException(status_code=422, detail={"code": "LIBRARY_KIND_MISMATCH", "message": "kind 3d needs a 3D model asset; every other kind needs an image"})
-    name, tags = _clean_name(body.name, Path(asset["original_filename"]).stem), _clean_tags(body.tags)
+    name, tags, attrs = _clean_name(body.name, Path(asset["original_filename"]).stem), _clean_tags(body.tags), _clean_attrs(body.attrs)
     with store._connect() as db:
         _init(db)
         if db.execute("SELECT 1 FROM workspace_library_items WHERE workspace_id=? AND asset_id=?", (workspace_id, body.asset_id)).fetchone():
             raise HTTPException(status_code=409, detail={"code": "LIBRARY_ALREADY_FILED", "message": "this asset is already in the library"})
         _check_caps(db, workspace_id, body.kind)
-        return _insert(db, workspace_id, user_id, body.asset_id, body.kind, name, tags)
+        return _insert(db, workspace_id, user_id, body.asset_id, body.kind, name, tags, attrs)
 
 
 @router.post("", status_code=201, response_model=LibraryItemOut, operation_id="uploadWorkspaceLibraryItem")
 async def upload(workspace_id: str, kind: Kind = Form(...), file: UploadFile = File(...), name: str | None = Form(default=None, max_length=MAX_NAME),
                  tags: str | None = Form(default=None, max_length=400), rights_confirmed: bool | None = Form(default=None),
                  depicts_person: bool | None = Form(default=None), likeness_consent: bool | None = Form(default=None),
-                 user_id: str = Depends(current_user)):
+                 attrs: str | None = Form(default=None, max_length=4000), user_id: str = Depends(current_user)):
     """Upload a file straight into the library: images carry the same rights/likeness declaration as every image upload (L-04, recorded in
     asset_provenance); a 3D item must be a .glb/.gltf (validated, external references refused)."""
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
@@ -214,7 +287,11 @@ async def upload(workspace_id: str, kind: Kind = Form(...), file: UploadFile = F
     await file.close()
     if len(content) > limit:
         raise HTTPException(status_code=413, detail="File exceeds the upload size limit")
-    clean_name, clean_tags = _clean_name(name, Path(filename).stem), _clean_tags([t for t in (tags or "").split(",")])
+    try:
+        parsed_attrs = json.loads(attrs) if attrs and attrs.strip() else None
+    except ValueError:
+        raise HTTPException(status_code=422, detail={"code": "ATTRS_INVALID", "message": "attrs must be a JSON object"})
+    clean_name, clean_tags, clean_attrs = _clean_name(name, Path(filename).stem), _clean_tags([t for t in (tags or "").split(",")]), _clean_attrs(parsed_attrs)
     try:
         if kind == "3d":
             validated, confirmation = validate_gltf_upload(filename, content, max_bytes=limit), None
@@ -234,14 +311,14 @@ async def upload(workspace_id: str, kind: Kind = Form(...), file: UploadFile = F
         _store_failure(exc, "Library item could not be stored")
     with store._connect() as db:
         _init(db)
-        return _insert(db, workspace_id, user_id, saved["asset_id"], kind, clean_name, clean_tags)
+        return _insert(db, workspace_id, user_id, saved["asset_id"], kind, clean_name, clean_tags, clean_attrs)
 
 
 @router.patch("/{item_id}", response_model=LibraryItemOut, operation_id="updateWorkspaceLibraryItem")
 async def update_item(workspace_id: str, item_id: str, body: PatchIn, user_id: str = Depends(current_user)):
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
-    if body.name is None and body.tags is None:
-        raise HTTPException(status_code=422, detail={"code": "LIBRARY_NOTHING_TO_CHANGE", "message": "send a name or tags"})
+    if body.name is None and body.tags is None and body.attrs is None:
+        raise HTTPException(status_code=422, detail={"code": "LIBRARY_NOTHING_TO_CHANGE", "message": "send a name, tags or attrs"})
     with store._connect() as db:
         _init(db)
         row = db.execute(_SELECT + " WHERE i.item_id=? AND i.workspace_id=?", (item_id, workspace_id)).fetchone()
@@ -249,7 +326,9 @@ async def update_item(workspace_id: str, item_id: str, body: PatchIn, user_id: s
             raise HTTPException(status_code=404, detail="Library item not found")
         name = _clean_name(body.name, row["name"]) if body.name is not None else row["name"]
         tags = _clean_tags(body.tags) if body.tags is not None else json.loads(row["tags_json"])
-        db.execute("UPDATE workspace_library_items SET name=?, tags_json=?, updated_at=? WHERE item_id=?", (name, json.dumps(tags, ensure_ascii=False), _now(), item_id))
+        attrs = _clean_attrs(body.attrs) if body.attrs is not None else json.loads(row["attrs_json"] or "{}")
+        db.execute("UPDATE workspace_library_items SET name=?, tags_json=?, attrs_json=?, updated_at=? WHERE item_id=?",
+                   (name, json.dumps(tags, ensure_ascii=False), json.dumps(attrs, ensure_ascii=False), _now(), item_id))
         return _out(db.execute(_SELECT + " WHERE i.item_id=?", (item_id,)).fetchone())
 
 
