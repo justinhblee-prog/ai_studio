@@ -108,3 +108,14 @@ def test_me_gives_the_id_and_the_workspaces_with_roles_and_nothing_personal(team
     assert client.get("/v1/me", headers=auth("b")).json()["workspaces"] == [{"workspace_id": "wb", "role": "owner"}]
     assert client.get("/v1/me").status_code == 401
     assert client.get("/v1/auth/me", headers=auth("d")).json() == {"user_id": "user-d"}, "the old route is unchanged"
+
+
+def test_adding_a_member_is_in_the_history_too_and_a_refused_add_is_not(team):
+    ev = client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()
+    assert [(e["event"], e["member_id"], e["to_role"], e["actor_id"]) for e in ev][:4] == [("added", "user-d", "editor", "user-a"), ("added", "user-e", "admin", "user-a"),
+                                                                                         ("added", "user-f", "admin", "user-a"), ("added", "user-g", "editor", "user-a")]
+    assert all(e["from_role"] is None for e in ev)
+    n = len(ev)
+    assert client.post(M, headers=auth("d"), json={"user_id": "user-x", "role": "viewer"}).status_code == 403, "an editor cannot add"
+    assert client.post(M, headers=auth("a"), json={"user_id": "user-d", "role": "viewer"}).status_code in (409, 422), "already a member"
+    assert len(client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()) == n, "nothing was added, so nothing is recorded"

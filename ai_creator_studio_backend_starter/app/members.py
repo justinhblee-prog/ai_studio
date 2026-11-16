@@ -33,6 +33,16 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def record_added(workspace_id: str, actor_id: str, member_id: str, role: str) -> None:
+    """Called after a member was added (workspaces.py). Never raises: the member is already added; a history failure must not undo it."""
+    try:
+        with store._connect() as db:
+            _init(db)
+            _event(db, workspace_id, actor_id, member_id, "added", None, role)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 class MemberOut(BaseModel):
     user_id: str
     role: Literal["owner", "admin", "editor", "viewer"]
