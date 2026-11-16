@@ -107,6 +107,8 @@
 | `MARKET_TAG_INVALID` | market | error | 태그 형식이 올바르지 않습니다. | A tag is not valid. |
 | `MARKET_TEXT_REQUIRED` | market | error | 필수 항목이 비어 있습니다. | A required field is empty. |
 | `MARKET_TEXT_TOO_LONG` | market | error | 입력한 글이 너무 깁니다. | The text is too long. |
+| `MEMBER_OWNER_PROTECTED` | general | error | 소유자의 역할은 여기서 바꾸거나 없앨 수 없습니다. | The owner's role cannot be changed or removed here. |
+| `MEMBER_ROLE_FORBIDDEN` | general | error | 이 멤버에 대해서는 그 작업을 할 수 없습니다. 관리자 지정·해제는 소유자만 할 수 있습니다. | You cannot do that for this member. Only the owner can make or unmake an admin. |
 | `MODEL_DRAFT_ALREADY_CHOSEN` | model | error | 이 시안은 이미 선택되었습니다. | A candidate was already chosen for this draft. |
 | `MODEL_DRAFT_LIMIT` | model | limit | 열려 있는 모델 시안이 너무 많습니다. 하나를 선택하거나 지워 주세요. | Too many open model drafts. Pick or remove one. |
 | `MODEL_NAME_REQUIRED` | model | error | 모델 이름을 입력해 주세요. | Please enter a model name. |
