@@ -38,9 +38,10 @@ def uploaded():
 
 
 def library_copy(source):
-    library.upsert_item({"item_id": f"lib-{source}", "category": "top", "name_ko": "x", "source": source, "tool_and_date": "t", "rights_confirmed": True},
+    slug = "lib-" + source.replace("_", "-")
+    library.upsert_item({"item_id": slug, "category": "top", "name_ko": "x", "source": source, "tool_and_date": "t", "rights_confirmed": True},
                         png((9, 9, 9)), "x.png")
-    r = client.post(f"/v1/library/items/lib-{source}/import", headers=auth(), json={"workspace_id": "wi"})
+    r = client.post(f"/v1/library/items/{slug}/import", headers=auth(), json={"workspace_id": "wi"})
     assert r.status_code == 201, r.text
     return r.json()["asset_id"]
 
