@@ -1,0 +1,35 @@
+name: tmp-flake
+on:
+  push:
+    branches: [r053-flake-investigation]
+jobs:
+  flake:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install -r ai_creator_studio_backend_starter/requirements.txt
+      - working-directory: ai_creator_studio_3d_viewer
+        run: |
+          npm ci
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - working-directory: ai_creator_studio_3d_viewer
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8765
+          VITE_ASSET_PUBLIC_BASE_URL: https://api.e2e.test
+          VITE_SUPABASE_URL: https://e2e-mock.supabase.test
+          VITE_SUPABASE_ANON_KEY: e2e-anon-not-a-secret
+        run: npm run build
+      - working-directory: ai_creator_studio_3d_viewer
+        run: |
+          fails=0
+          for i in $(seq 1 20); do
+            if node e2e/layout_flow.mjs > run_$i.txt 2>&1; then echo "run $i ok"; else echo "run $i FAILED"; fails=$((fails+1)); grep -E "^FAIL|horizontal overflow" run_$i.txt | head -4; fi
+          done
+          echo "SUMMARY layout runs failed: $fails / 20"
