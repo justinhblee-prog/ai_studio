@@ -88,7 +88,7 @@ def test_choosing_creates_the_brand_model_with_identity_references_and_a_library
     ident = ch["identity"]
     assert ident["name"] == "브랜드 모델 A" and ident["skin_tone"] == "3" and ident["hairstyle"] == "wavy" and ident["body_type"] == "regular" and ident["age_range"] == "30s"
     assert ident["design"] == {**V}, "nothing the designer chose is lost"
-    assert ch["asset_ids"][0] == pick["asset_id"] and set(ch["asset_ids"][1:]) == set(reference_ids)
+    assert set(ch["asset_ids"]) == {pick["asset_id"], *reference_ids}, "the chosen picture and the references, no others (the list order is not defined)"
     item = client.get(f"/v1/workspaces/wa/library/{body['library_item_id']}", headers=auth("a")).json()
     assert item["kind"] == "model" and item["asset_id"] == pick["asset_id"] and item["origin"] == "work" and item["name"] == "브랜드 모델 A"
     # the other five candidates are gone, the chosen one stays
