@@ -174,3 +174,32 @@ def test_deletion_requests_list_shows_the_grace_deadline_and_never_the_reason(en
     done = client.get("/internal/ops/deletion-requests", headers=auth("o"), params={"status": "completed"}).json()
     assert [r["request_id"] for r in done] == ["del_done"]
     assert client.get("/internal/ops/deletion-requests", headers=auth("o"), params={"status": "x"}).status_code == 422
+
+
+def test_rollup_has_every_bucket_with_correct_counts_and_estimated_cost(env):
+    import app.config as config
+    ids = [job("co-paid", "a", n) for n in range(5)]
+    db = sqlite3.connect(config.GENERATION_DATABASE_PATH)
+    stamps = ["2026-11-14T10:05:00+00:00", "2026-11-14T10:55:00+00:00", "2026-11-14T11:00:00+00:00", "2026-11-16T23:59:59+00:00", "2026-11-16T09:00:00+00:00"]
+    for job_id, stamp in zip(ids, stamps):
+        db.execute("UPDATE generation_jobs SET created_at=? WHERE job_id=?", (stamp, job_id))
+    db.execute("UPDATE generation_jobs SET status='failed' WHERE job_id=?", (ids[1],)); db.commit()
+    day = client.get("/internal/ops/rollup", headers=auth("o"), params={"granularity": "day", "start": "2026-11-13T00:00:00Z", "end": "2026-11-17T00:00:00Z"}).json()
+    assert [b["bucket"] for b in day["buckets"]] == ["2026-11-13", "2026-11-14", "2026-11-15", "2026-11-16"], "empty days are present"
+    assert [(b["jobs"], b["failed"], b["estimated_cost_usd"]) for b in day["buckets"]] == [(0, 0, 0.0), (2, 1, 0.15), (0, 0, 0.0), (2, 0, 0.15)]
+    hour = client.get("/internal/ops/rollup", headers=auth("o"), params={"granularity": "hour", "start": "2026-11-14T10:00:00Z", "end": "2026-11-14T12:00:00Z"}).json()
+    assert [(b["bucket"], b["jobs"], b["failed"]) for b in hour["buckets"]] == [("2026-11-14T10", 1, 1), ("2026-11-14T11", 1, 0)]
+    month = client.get("/internal/ops/rollup", headers=auth("o"), params={"granularity": "month", "start": "2026-10-01T00:00:00Z", "end": "2026-12-01T00:00:00Z"}).json()
+    assert [(b["bucket"], b["jobs"], b["failed"]) for b in month["buckets"]] == [("2026-10", 0, 0), ("2026-11", 4, 1)]
+    assert sum(b["jobs"] for b in day["buckets"]) == sum(b["jobs"] for b in month["buckets"]) == 4, "the granularities agree"
+
+
+def test_rollup_is_operator_only_and_checks_its_range(env):
+    assert client.get("/internal/ops/rollup").status_code == 401
+    assert client.get("/internal/ops/rollup", headers=auth("a")).status_code == 403
+    ok = client.get("/internal/ops/rollup", headers=auth("o"))
+    assert ok.status_code == 200 and len(ok.json()["buckets"]) == 8, "default: the last 7 days plus today"
+    assert client.get("/internal/ops/rollup", headers=auth("o"), params={"granularity": "week"}).status_code == 422
+    for bad in ({"start": "2026-11-17T00:00:00Z", "end": "2026-11-16T00:00:00Z"}, {"start": "nonsense"},
+                {"granularity": "hour", "start": "2026-01-01T00:00:00Z", "end": "2026-06-01T00:00:00Z"}):
+        assert client.get("/internal/ops/rollup", headers=auth("o"), params=bad).status_code == 422, bad
