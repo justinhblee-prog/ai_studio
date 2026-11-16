@@ -27,9 +27,12 @@ function drawPng(width, height, pixel) {   // pixel(x, y) -> [r, g, b]
 const sample = drawPng(640, 440, (x, y) => {
   const inBody = x > 200 && x < 470 && y > 170 && y < 380 && !((x < 215 || x > 455) && (y < 185 || y > 365));
   const inHandle = Math.abs(Math.hypot(x - 335, y - 175) - 70) < 7 && y < 175;
-  if (inBody) return [Math.round(40 + (y - 170) * 0.3), Math.round(80 + (x - 200) * 0.2), Math.round(150 + (y - 170) * 0.2)];
-  if (inHandle) return [30, 55, 110];
-  return [236, 238, 240];
+  // the whole photo has a warm colour cast (as under yellow room light): white balance visibly neutralises it, and the size does not change,
+  // so the before/after slider lines up exactly
+  const warm = ([r, g, b]) => [Math.min(255, Math.round(r * 1.18)), Math.round(g * 1.02), Math.round(b * 0.72)];
+  if (inBody) return warm([Math.round(40 + (y - 170) * 0.3), Math.round(80 + (x - 200) * 0.2), Math.round(150 + (y - 170) * 0.2)]);
+  if (inHandle) return warm([30, 55, 110]);
+  return warm([236, 238, 240]);
 });
 
 const stack = await startStack({ apiPort: 8768, webPort: 4768 });
@@ -77,16 +80,16 @@ try {
   await gotoPage(page, '포토 스튜디오');
   const panel = page.locator('section[aria-label="사진 단계 편집"]');
   await panel.getByLabel('편집할 이미지').selectOption({ label: 'sample-bag.png' });
-  await panel.getByRole('button', { name: /자동 크롭/ }).click();
-  await panel.getByRole('button', { name: /캔버스 맞춤/ }).click();
-  const second = panel.locator('ol[aria-label="적용할 단계"] > li').nth(1);
-  await second.getByLabel('가로(px)').fill('640'); await second.getByLabel('세로(px)').fill('440');
+  await panel.getByRole('button', { name: /화이트 밸런스/ }).click();
   await panel.getByRole('button', { name: /실행해서/ }).click();
   await panel.getByRole('group', { name: '전후 슬라이더' }).waitFor({ timeout: 20000 });
   await page.waitForFunction(() => [...document.querySelectorAll('img[alt^="슬라이더"]')].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 10000 });
   await panel.getByRole('slider', { name: '전후 비교 슬라이더' }).fill('50');
-  await panel.getByRole('group', { name: '전후 슬라이더' }).scrollIntoViewIfNeeded();
-  await page.evaluate(() => { const el = document.querySelector('[aria-label="전후 슬라이더"]'); el?.scrollIntoView({ block: 'center' }); });
+  await page.evaluate(() => {   // bring the slider to the top area of whatever scrolls
+    const el = document.querySelector('[aria-label="전후 슬라이더"]'); el.scrollIntoView({ block: 'start' });
+    let p = el.parentElement; while (p && p.scrollHeight <= p.clientHeight) p = p.parentElement;
+    if (p) p.scrollTop -= 200; else window.scrollBy(0, -200);
+  });
   await shot('screen-03-compare.png');
 
   // 4 approval history with two approvers
@@ -99,6 +102,9 @@ try {
   await page.getByRole('button', { name: /설정/ }).click();
   await gotoPage(page, '결과물 검수');
   await page.locator('article.acs-output-review-item ol.acs-output-review-history li').nth(1).waitFor({ timeout: 15000 });
+  await page.evaluate(() => {   // bring the approval history into the middle of the screen
+    const el = document.querySelector('ol.acs-output-review-history'); el.scrollIntoView({ block: 'center' });
+  });
   await shot('screen-04-approval.png');
 } catch (error) { console.error(error); failed = true; }
 finally { await browser.close(); await stack.stop(); }
