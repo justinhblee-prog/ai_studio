@@ -15,7 +15,7 @@ from app.main import app
 
 client = TestClient(app)
 PUBLIC = {("get", "/health"), ("get", "/v1/engines/capabilities"), ("get", "/v1/engines/models"),
-          ("get", "/v1/legal/documents"), ("get", "/v1/assets/{asset_id}/preview"), ("get", "/v1/assets/{asset_id}/thumb/{size}"),
+          ("get", "/v1/legal/documents"), ("get", "/v1/error-catalog"), ("get", "/v1/assets/{asset_id}/preview"), ("get", "/v1/assets/{asset_id}/thumb/{size}"),
           ("get", "/v1/assets/{asset_id}/versions/{version_id}/preview"),
           ("get", "/v1/library/items/{item_id}/versions/{version}/preview")}  # R-032: signed, short-lived library preview link
 
