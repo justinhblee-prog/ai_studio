@@ -448,7 +448,7 @@ async def remove_item(workspace_id: str, item_id: str, delete_asset: bool = Quer
     return None
 
 
-def file_item(workspace_id: str, asset_id: str | None, user_id: str, kind: str, name: str) -> str:
+def file_item(workspace_id: str, asset_id: str | None, user_id: str, kind: str, name: str, attrs: dict[str, Any] | None = None) -> str:
     """File an existing asset under ``kind`` without ever raising: 'filed', 'exists', 'full' or 'skipped'. Origin comes from the provenance."""
     if not asset_id:
         return "skipped"
@@ -461,15 +461,29 @@ def file_item(workspace_id: str, asset_id: str | None, user_id: str, kind: str, 
                 _check_caps(db, workspace_id, kind)
             except HTTPException:
                 return "full"
-            _insert(db, workspace_id, user_id, asset_id, kind, _clean_name(name, "item"), [])
+            _insert(db, workspace_id, user_id, asset_id, kind, _clean_name(name, "item"), [], attrs or {})
         return "filed"
     except Exception:  # noqa: BLE001
         return "skipped"
 
 
-def file_generated_output(workspace_id: str, asset_id: str | None, user_id: str, name: str) -> str:
+def attrs_for_tryon_job(job: dict[str, Any], result_asset_id: str | None) -> dict[str, Any]:
+    """R-059 follow-up: what the server knows about a try-on result: service, style, region and the input assets (never raises)."""
+    try:
+        from app import tryon_inputs
+        payload = job.get("payload") or {}
+        attrs: dict[str, Any] = {"service": "tryon", **{k: payload[k] for k in ("style", "region") if payload.get(k)}}
+        sources = [a for a in dict.fromkeys(tryon_inputs.asset_ids_of(payload)) if a != result_asset_id][:10]
+        if sources:
+            attrs["source_asset_ids"] = sources
+        return _clean_attrs(attrs)
+    except Exception:  # noqa: BLE001
+        return {"service": "tryon"}
+
+
+def file_generated_output(workspace_id: str, asset_id: str | None, user_id: str, name: str, attrs: dict[str, Any] | None = None) -> str:
     """R-046: file an APPROVED generated output under 'render' (never raises, so an approval cannot fail because of the library)."""
-    return file_item(workspace_id, asset_id, user_id, "render", name)
+    return file_item(workspace_id, asset_id, user_id, "render", name, attrs)
 
 
 def _drop_thumbnail_row(item_id: str) -> str | None:

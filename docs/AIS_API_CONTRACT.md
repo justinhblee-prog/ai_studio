@@ -83,3 +83,36 @@
 **홈페이지가 쓰는데 서버에 없음**: 가입·로그인·인증 메일(Supabase에 위임, 홈페이지 코드 흐름과 다름), 초대 코드, `approver` 역할, 캐릭터 장면 생성, 이미지→3D 생성, 이미지 설명(`describe`), 실영상 생성, 마켓(R-064), 결제(`market-buy`), API 키 발급, 웹훅, 운영자 로그인·2단계 인증·역할, 사이트 설정 서버 저장, 내 작업 범용 저장소, 마지막 백업 시각.
 **서버에 있는데 홈페이지가 모름**: 약관 동의 게이트·개인정보 동의·계정 삭제 요청, 콘텐츠 신고, 외부 공급자 고지, `features`, 라이브러리 쓰기·facets·썸네일·3D 정보, 공용 라이브러리 가져오기, 자산 버전·관계·출처, 검수 API(출력·사진 실행·룩북), 프로젝트·상품 개체, 모델 시안(`model-drafts`), 사진 단계·프리셋, 영상 작업, 운영 지표·알림·신고 대기열.
 **양쪽 모양이 달라 어댑터가 필요한 것**: 생성(동기 약속 vs 서버 비동기 작업), 라이브러리 항목 모양과 미리보기 주소, 작업 기록, 사용량 로그, 내려받기, 역할 이름, 세션(이름·이메일 없음).
+
+
+## 10. 갱신 (R-059~R-066 반영, 위 표의 일부를 대체) + 응답 예시
+**표 갱신**: ①마켓(§6)은 **구현됨** → `docs/MARKET_CONTRACT.md`. ②검수는 **자산 단위 API 추가**(`/v1/workspaces/{id}/reviews*`, 상태 `requested|approved|changes_requested|rejected|withdrawn`; 홈페이지 `req/ok/chg/rej`와 대응, `draft`=기록 없음). ③운영자 읽기 경로는 `docs/OPS_READ_CONTRACT.md`(감사 로그 `GET /internal/ops/audit` 추가). ④라이브러리 항목은 `attrs`, `thumbs`(480/960 서명 주소)를 가짐, 작업 결과 저장 `POST …/library/from-job`. ⑤생성 요청은 `style`·`region`·`prompt_prefix`를 받음. ⑥AI가 만든 사진은 내려받을 때 파일 안에 AI 표시가 들어감. ⑦"내 작업" 범용 저장소(R-069)는 아직 없음.
+
+### `GET /v1/features` (로그인한 사용자, 작업공간과 무관)
+```json
+{"features": {
+  "tryon":     {"enabled": true,  "status": "available"},
+  "character": {"enabled": true,  "status": "available"},
+  "three_d":   {"enabled": false, "status": "pilot_preview"},
+  "video":     {"enabled": false, "status": "pilot_preview"},
+  "market":    {"enabled": false, "status": "pilot_preview"}
+}}
+```
+- 이름은 항상 이 5개(`tryon, character, three_d, video, market`). `enabled=false`면 `status="pilot_preview"`("미리보기로만 보임, 운영자가 켤 수 있음"), `true`면 `"available"`. **값은 서버 환경 설정(`FEATURE_<이름>`)이며 기본은 모두 꺼짐** — 실제 켜짐 여부는 배포 설정에 따름(예시의 true/false는 모양을 보여 주는 값).
+- 빈 값 규칙: 목록이 비는 일 없음. 인증 없으면 401.
+- ⚠ `market.enabled`는 **홈페이지 표시용 스위치일 뿐이고 `/v1/market/*`를 막지 않습니다**(서버 경로는 항상 열려 있음).
+
+### `GET /v1/workspaces/{id}/library/facets?kind=garment` (보기 권한 이상)
+```json
+{"kind": "garment",
+ "facets": [
+  {"key": "category", "values": [{"value": "pants", "count": 1}, {"value": "top", "count": 2}]},
+  {"key": "colors",   "values": [{"value": "beige", "count": 1}, {"value": "white", "count": 1}]},
+  {"key": "season",   "values": [{"value": "summer", "count": 1}, {"value": "winter", "count": 1}]},
+  {"key": "size_no",  "values": [{"value": "95", "count": 1}]}
+ ]}
+```
+- `kind`을 생략하면 `"kind": null`로 **모든 종류**를 합산. 항목이 없거나 속성이 없으면 `{"kind": ..., "facets": []}`.
+- `facets`는 **키 이름 순**, `values`는 **값 순**(글자 정렬). **숫자 값은 글자로 돌려줌**(`95` → `"95"`), **목록 값은 원소마다 한 번씩 셈**(`colors: ["white","beige"]` → white 1, beige 1), 신고로 가려진 항목은 제외.
+- 필터로 쓸 때: `GET …/library?attr=category:top&attr=season:summer`(여러 개는 **모두 일치**, 값은 글자 비교·대소문자 구분).
+- 예시의 키 이름(`category`, `colors`…)은 **분류표가 확정되기 전의 예**이며 서버는 키를 강제하지 않음(R-058).

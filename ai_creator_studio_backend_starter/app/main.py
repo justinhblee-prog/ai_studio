@@ -466,8 +466,9 @@ async def _decide_job_output_review(job_id: str, output_id: str, body: OutputRev
         raise HTTPException(status_code=404, detail="Generated Output not found")
     result.pop("workspace_id", None)
     if decision == "approved":   # R-046: only an APPROVED result is delivered into "my library" (as a render item, origin ai)
-        from app.workspace_library import file_generated_output
-        file_generated_output(job["workspace_id"], (result.get("output") or {}).get("asset_id"), user_id, f"결과 {job_id[-6:]}")
+        from app.workspace_library import attrs_for_tryon_job, file_generated_output
+        approved_asset = (result.get("output") or {}).get("asset_id")
+        file_generated_output(job["workspace_id"], approved_asset, user_id, f"결과 {job_id[-6:]}", attrs_for_tryon_job(job, approved_asset))
     return result
 
 
