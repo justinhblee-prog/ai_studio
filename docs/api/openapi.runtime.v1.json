@@ -1702,6 +1702,38 @@
         "title": "LibraryPreviewUrlResponse",
         "type": "object"
       },
+      "LimitInfo": {
+        "properties": {
+          "counted_against_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counted Against Limit"
+          },
+          "monthly_jobs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Jobs"
+          }
+        },
+        "required": [
+          "monthly_jobs",
+          "counted_against_limit"
+        ],
+        "title": "LimitInfo",
+        "type": "object"
+      },
       "LookbookAssemblyReviewInput": {
         "additionalProperties": false,
         "properties": {
@@ -2414,6 +2446,37 @@
           "exported_at"
         ],
         "title": "ManifestExportResponse",
+        "type": "object"
+      },
+      "MemberUsage": {
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "jobs": {
+            "title": "Jobs",
+            "type": "integer"
+          },
+          "services": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Services",
+            "type": "object"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "jobs",
+          "failed",
+          "services"
+        ],
+        "title": "MemberUsage",
         "type": "object"
       },
       "NoticeRequest": {
@@ -3766,6 +3829,66 @@
           }
         },
         "title": "ReviewDecisionInput",
+        "type": "object"
+      },
+      "UsageResponse": {
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "jobs": {
+            "title": "Jobs",
+            "type": "integer"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LimitInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberUsage"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "services": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Services",
+            "type": "object"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "month",
+          "scope",
+          "jobs",
+          "failed",
+          "services",
+          "limit",
+          "members"
+        ],
+        "title": "UsageResponse",
         "type": "object"
       },
       "ValidationError": {
@@ -12181,6 +12304,81 @@
         "summary": "Add Member",
         "tags": [
           "workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/usage": {
+      "get": {
+        "operationId": "getWorkspaceUsage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 7,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Workspace Usage",
+        "tags": [
+          "usage"
         ]
       }
     }
