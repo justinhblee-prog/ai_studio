@@ -40,6 +40,19 @@ _RECORDS = (
         "DOCUMENTED", "PENDING_CONTRACT_TEST", True, True, False, True, "NOT_DOCUMENTED", False,
         ("https://docs.fashn.ai/api-overview/api-fundamentals",),
         "Official API docs reviewed; live/sandbox contract, rights and usage evidence pending."),
+    # Lane 5: photo -> 3D candidates from the public research of R-075 (2026-11-17). RESEARCH_ONLY: nothing here is integrated, called, signed up for or priced reliably.
+    CapabilityRecord("mock3d", "mock-image-to-3d", "IMAGE_TO_3D", "image-to-3d.v1", "glb.v1",
+        "CONTRACT_TESTED", "ACTIVE", False, False, False, False, "NONE", False,
+        ("repository:tests/test_image_to_3d_slot.py",), "Flow-only adapter: returns a tiny valid .glb that records the source picture hash; no reconstruction."),
+    CapabilityRecord("meshy", "image-to-3d", "IMAGE_TO_3D", "image-to-3d.v1", "glb.v1",
+        "RESEARCH_ONLY", "NOT_INTEGRATED", True, True, False, False, "NOT_DOCUMENTED", False,
+        ("https://docs.meshy.ai/api/pricing",), "Public pricing page only; credits per call (sources disagree on USD); API contract, rights and data handling NOT reviewed."),
+    CapabilityRecord("tripo", "image-to-3d", "IMAGE_TO_3D", "image-to-3d.v1", "glb.v1",
+        "RESEARCH_ONLY", "NOT_INTEGRATED", True, True, False, False, "NOT_DOCUMENTED", False,
+        ("https://www.3daistudio.com/blog/best-3d-model-generation-apis-2026",), "Third-party comparison only; per-call price sources disagree (USD 0.20-2.00); NOT reviewed."),
+    CapabilityRecord("stability", "sf3d", "IMAGE_TO_3D", "image-to-3d.v1", "glb.v1",
+        "RESEARCH_ONLY", "NOT_INTEGRATED", True, True, False, False, "NOT_DOCUMENTED", False,
+        ("https://apidog.com/blog/best-image-to-3d-api",), "Third-party comparison only (about USD 0.10 / 0.04 per call); open-weights hosting not assessed; NOT reviewed."),
 )
 
 # What each provider does with the photos we send (R-037 / reply 14). Taken from the provider's public documentation read on 2026-11-15 and NOT
