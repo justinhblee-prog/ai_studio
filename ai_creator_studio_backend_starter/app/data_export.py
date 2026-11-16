@@ -28,7 +28,7 @@ from app.private_file_response import PrivateFileError, open_private_file_respon
 
 router = APIRouter(tags=["data-export"])
 EXCLUDE = {"deletion_requests", "data_exports", "account_exports", "data_lifecycle_audit", "generation_outbox", "generation_poll_tasks", "generation_worker_heartbeats",
-           "generation_ops_alerts", "generation_ops_alert_deliveries", "acs_schema_migrations", "generation_schema_migrations", "library_items", "library_item_versions"}
+           "generation_ops_alerts", "generation_ops_alert_deliveries", "acs_schema_migrations", "generation_schema_migrations", "rate_limit_hits", "library_items", "library_item_versions"}
 DROP_COLUMNS = {"storage_key", "signature", "secret"}
 ADMINS = {"owner", "admin"}
 
@@ -157,7 +157,10 @@ def create_workspace_export(workspace_id: str, user_id: str = Depends(current_us
         since = (_now() - timedelta(days=1)).isoformat()
         used = db.execute("SELECT COUNT(*) AS n FROM data_exports WHERE workspace_id=? AND created_at>=?", (workspace_id, since)).fetchone()["n"]
         if used >= config.EXPORT_DAILY_LIMIT_PER_WORKSPACE:
-            raise HTTPException(status_code=429, headers={"Retry-After": "3600"}, detail={"code": "EXPORT_LIMIT", "message": f"at most {config.EXPORT_DAILY_LIMIT_PER_WORKSPACE} exports per workspace per day"})
+            from app import rate_limit
+            oldest = db.execute("SELECT MIN(created_at) AS t FROM data_exports WHERE workspace_id=? AND created_at>=?", (workspace_id, since)).fetchone()["t"]
+            wait, est = rate_limit.seconds_until_window_frees(oldest, 86400)
+            raise rate_limit.too_many("EXPORT_LIMIT", f"at most {config.EXPORT_DAILY_LIMIT_PER_WORKSPACE} exports per workspace per day", wait, estimated=est)
         data, skipped = _dump_workspace(db, workspace_id)
         assets, held, total = [], [], 0
         for row in db.execute("SELECT asset_id, original_filename, media_type, size_bytes FROM assets WHERE workspace_id=? AND deleted_at IS NULL ORDER BY created_at, asset_id", (workspace_id,)).fetchall():
@@ -225,7 +228,10 @@ def create_account_export(user_id: str = Depends(current_user)):
         _expire_due(db)
         since = (_now() - timedelta(days=1)).isoformat()
         if db.execute("SELECT COUNT(*) AS n FROM account_exports WHERE user_id=? AND created_at>=?", (user_id, since)).fetchone()["n"] >= config.EXPORT_DAILY_LIMIT_PER_WORKSPACE:
-            raise HTTPException(status_code=429, headers={"Retry-After": "3600"}, detail={"code": "EXPORT_LIMIT", "message": f"at most {config.EXPORT_DAILY_LIMIT_PER_WORKSPACE} exports per day"})
+            from app import rate_limit
+            oldest = db.execute("SELECT MIN(created_at) AS t FROM account_exports WHERE user_id=? AND created_at>=?", (user_id, since)).fetchone()["t"]
+            wait, est = rate_limit.seconds_until_window_frees(oldest, 86400)
+            raise rate_limit.too_many("EXPORT_LIMIT", f"at most {config.EXPORT_DAILY_LIMIT_PER_WORKSPACE} exports per day", wait, estimated=est)
         data = {
             "memberships": _user_rows(db, "workspace_members", "user_id", user_id), "consents": _user_rows(db, "consents", "user_id", user_id),
             "legal_acceptances": _user_rows(db, "legal_acceptances", "user_id", user_id), "deletion_requests": _user_rows(db, "deletion_requests", "user_id", user_id),
@@ -279,6 +285,8 @@ def download_export(export_id: str, user_id: str = Depends(current_user)):
         _init(db)
         _expire_due(db)
         table, row = _find(db, export_id, user_id)
+        from app import rate_limit    # R-067
+        rate_limit.check("download", user_id, row["workspace_id"] if table == "data_exports" else None)
         if row["status"] != "ready" or not row["storage_key"]:
             raise HTTPException(status_code=410, detail={"code": "EXPORT_GONE", "message": f"this export is {row['status']}; create a new one"})
         path = (config.ASSET_STORAGE_DIR / row["storage_key"]).resolve()

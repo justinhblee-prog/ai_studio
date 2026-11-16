@@ -1481,8 +1481,9 @@ def test_lookbook_assembles_only_approved_photo_outputs_with_product_variant_sna
     finally:
         _config.DOWNLOAD_MONTHLY_LIMIT = 0
     assert over_limit.status_code == 429
-    assert over_limit.json()["detail"] == {"code": "DOWNLOAD_MONTHLY_LIMIT", "limit": 1, "used": 1,
-                                           "message": "Monthly download limit reached for this workspace."}
+    over = over_limit.json()["detail"]    # R-067: same 429 answer everywhere (old keys + retry_after_seconds / retry_at)
+    assert {k: over[k] for k in ("code", "limit", "used", "message")} == {"code": "DOWNLOAD_MONTHLY_LIMIT", "limit": 1, "used": 1, "message": "Monthly download limit reached for this workspace."}
+    assert over["retry_after_seconds"] >= 1 and over["retry_at"] and over_limit.headers["Retry-After"] == str(over["retry_after_seconds"])
     with sqlite3.connect(asset_env / "assets.sqlite3") as db:
         assert db.execute("SELECT COUNT(*) FROM download_audit").fetchone()[0] == 1, "a refused download is not recorded as a download"
         db.execute("UPDATE lookbook_drafts SET workflow_status='DRAFT' WHERE draft_id=?", (draft_id,))

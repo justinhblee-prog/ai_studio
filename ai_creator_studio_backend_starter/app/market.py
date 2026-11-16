@@ -391,6 +391,8 @@ class ReportIn(BaseModel):
 @router.post("/v1/market/listings/{listing_id}/reports", status_code=202, operation_id="reportMarketListing")
 async def report_listing(listing_id: str, body: ReportIn, user_id: str = Depends(current_user)):
     """The answer is the same whether or not the listing exists or the report changed anything (no probing for listing ids)."""
+    from app import rate_limit    # R-067
+    rate_limit.check("report", user_id, None)
     received = {"status": "received"}
     details = _clean_text(body.details, "details", limit=1000) or None
     with store._connect() as db:
@@ -402,7 +404,10 @@ async def report_listing(listing_id: str, body: ReportIn, user_id: str = Depends
         since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
         filed = db.execute("SELECT COUNT(*) AS n FROM market_reports WHERE reporter_id=? AND created_at>=?", (user_id, since)).fetchone()["n"]
         if filed >= config.MARKET_REPORT_DAILY_LIMIT:
-            raise HTTPException(status_code=429, detail="Too many reports today")
+            from app import rate_limit
+            oldest = db.execute("SELECT MIN(created_at) AS t FROM market_reports WHERE reporter_id=? AND created_at>=?", (user_id, since)).fetchone()["t"]
+            wait, est = rate_limit.seconds_until_window_frees(oldest, 86400)
+            raise rate_limit.too_many("REPORT_DAILY_LIMIT", "Too many reports today", wait, estimated=est, limit=config.MARKET_REPORT_DAILY_LIMIT)
         if db.execute("SELECT 1 FROM market_reports WHERE listing_id=? AND reporter_id=? AND status='open'", (listing_id, user_id)).fetchone():
             return received
         db.execute("INSERT INTO market_reports(report_id, listing_id, reporter_id, reason, details, status, created_at) VALUES (?,?,?,?,?,'open',?)",

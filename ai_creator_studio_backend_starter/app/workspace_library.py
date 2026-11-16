@@ -372,6 +372,8 @@ async def upload(workspace_id: str, kind: Kind = Form(...), file: UploadFile = F
     """Upload a file straight into the library: images carry the same rights/likeness declaration as every image upload (L-04, recorded in
     asset_provenance); a 3D item must be a .glb/.gltf (validated, external references refused)."""
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    from app import rate_limit    # R-067
+    rate_limit.check("upload", user_id, workspace_id)
     filename = Path(file.filename or "item").name
     limit = config.WORKSPACE_LIBRARY_MAX_3D_BYTES if kind == "3d" else config.ASSET_MAX_UPLOAD_BYTES
     content = await file.read(limit + 1)

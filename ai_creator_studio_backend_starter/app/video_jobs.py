@@ -167,6 +167,8 @@ def _load_inputs(workspace_id: str, user_id: str, item_ids: list[str]) -> list[I
 @router.post("", status_code=201, response_model=VideoOut, operation_id="createVideoJob")
 async def create_video_job(workspace_id: str, body: VideoIn, user_id: str = Depends(current_user)):
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    from app import rate_limit    # R-067
+    rate_limit.check("generate", user_id, workspace_id)
     if config.PROVIDER_MODE != "mock":
         raise HTTPException(status_code=409, detail={"code": "VIDEO_PROVIDER_NOT_CONNECTED", "message": "Video generation by an external AI service is not connected yet."})
     if len(set(body.input_item_ids)) != len(body.input_item_ids):
@@ -177,7 +179,8 @@ async def create_video_job(workspace_id: str, body: VideoIn, user_id: str = Depe
         used = db.execute("SELECT COUNT(*) AS n FROM video_jobs WHERE workspace_id=? AND created_at>=?", (workspace_id, since)).fetchone()["n"]
     limit = int(getattr(config, "VIDEO_DAILY_LIMIT", DAILY_LIMIT_DEFAULT))
     if used >= limit:
-        raise HTTPException(status_code=429, detail={"code": "VIDEO_DAILY_LIMIT", "message": "today's video limit is used up", "limit": limit, "used": used})
+        from app import rate_limit
+        raise rate_limit.too_many("VIDEO_DAILY_LIMIT", "today's video limit is used up", 3600, estimated=True, limit=limit, used=used)
     images = _load_inputs(workspace_id, user_id, body.input_item_ids)
     job_id, now = "vid_" + uuid.uuid4().hex, _now()
     frames = make_frames(images, body.aspect, body.duration_seconds, body.motion)

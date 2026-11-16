@@ -32,6 +32,7 @@ GLOBAL_TABLES = {
     "acs_schema_migrations", "generation_schema_migrations", "generation_worker_heartbeats",
     "generation_ops_alerts", "generation_ops_alert_deliveries", "deletion_requests", "sqlite_sequence",
     "library_items", "library_item_versions",  # R-032: platform-owned default library, never part of a workspace or account purge
+    "rate_limit_hits",  # R-067: transient counters keyed by one-way hashes, emptied by the limiter itself after an hour
     "data_lifecycle_audit",  # R-065: the record that a deletion / export happened is kept (it holds only hashes and counts, never content or ids)
 }
 USER_TABLES = ("legal_acceptances", "consents", "market_profiles", "account_exports")   # R-064 seller profile, R-065 account export records
@@ -40,7 +41,7 @@ ANON_COLUMNS = ("actor_id", "owner_id", "created_by")
 ANON_BY_TABLE = {"upload_rights_confirmations": ("user_id",), "content_reports": ("reporter_id", "resolved_by"),
                  # R-063 / R-064 / R-065: columns that name a person but are not called actor_id / owner_id / created_by
                  "asset_reviews": ("requested_by", "handled_by"), "workspace_settings": ("updated_by",), "market_reports": ("reporter_id",),
-                 "market_listings": ("rights_confirmed_by",), "data_exports": ("requested_by",), "assist_usage": ("user_id",)}
+                 "market_listings": ("rights_confirmed_by",), "data_exports": ("requested_by",), "assist_usage": ("user_id",), "rate_limit_blocked": ("user_id",)}
 # Tables tied to a workspace through a column that is not a declared foreign key (R-064: reports on a listing live and die with the listing's workspace).
 EXTRA_FKS = {"market_reports": [("market_listings", "listing_id", "listing_id")]}
 SHELL_TABLES = {"workspaces", "workspace_members"}

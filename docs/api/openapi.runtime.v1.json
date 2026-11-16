@@ -9014,6 +9014,64 @@
         "summary": "Provider Registry Diagnostics"
       }
     },
+    "/internal/ops/rate-limits": {
+      "get": {
+        "description": "The limits in force and how often they refused someone (counts only; no names).",
+        "operationId": "getOpsRateLimits",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Rate Limits",
+        "tags": [
+          "ops-rate-limits"
+        ]
+      }
+    },
     "/internal/ops/rollup": {
       "get": {
         "operationId": "getOpsRollup",

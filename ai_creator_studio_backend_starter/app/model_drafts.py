@@ -169,6 +169,8 @@ class SelectOut(BaseModel):
 @router.post("", status_code=201, response_model=DraftOut, operation_id="createModelDraft")
 async def create_draft(workspace_id: str, body: DraftIn, user_id: str = Depends(current_user)):
     require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    from app import rate_limit    # R-067
+    rate_limit.check("generate", user_id, workspace_id)
     if config.PROVIDER_MODE != "mock":
         raise HTTPException(status_code=409, detail={"code": "MODEL_PROVIDER_NOT_CONNECTED",
                             "message": "Model generation by an external AI service is not connected yet."})

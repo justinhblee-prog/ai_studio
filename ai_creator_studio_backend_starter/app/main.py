@@ -50,6 +50,7 @@ from app.reviews import router as reviews_router, settings_router as review_sett
 from app.ops_audit import router as ops_audit_router
 from app.market import router as market_router
 from app.data_export import router as data_export_router
+from app.rate_limit import router as rate_limit_router
 from app.lookbook import router as lookbook_drafts_router
 from app.products import router as products_router
 from app.project_products import router as project_products_router
@@ -158,6 +159,7 @@ app.include_router(review_settings_router)
 app.include_router(ops_audit_router)
 app.include_router(market_router)
 app.include_router(data_export_router)
+app.include_router(rate_limit_router)
 app.include_router(lookbook_drafts_router)
 app.include_router(products_router)
 app.include_router(project_products_router)
@@ -272,6 +274,9 @@ async def list_models():
 @app.post("/v1/generation-jobs", response_model=JobResponse, status_code=202)
 async def create_job(body: CreateTryOnJob, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), user_id: str = Depends(current_user), repository: JobRepository = Depends(get_job_repository)):
     require_role(body.workspace_id, user_id, {"owner", "admin", "editor"})
+    from app import rate_limit    # R-067: a replay of an Idempotency-Key is not a new action, so it is not counted
+    if not (idempotency_key and repository.get_idempotent(body.workspace_id, idempotency_key)):
+        rate_limit.check("generate", user_id, body.workspace_id)
     payload = body.model_dump(mode="json")
     payload_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
     if idempotency_key:
@@ -315,8 +320,8 @@ async def create_job(body: CreateTryOnJob, idempotency_key: str | None = Header(
     except CostCapExceeded as exc:
         raise HTTPException(status_code=429, detail={"code": exc.code, "message": exc.message, **exc.extra}) from exc
     except DailyJobLimitExceeded as exc:
-        raise HTTPException(status_code=429, headers={"Retry-After": str(exc.retry_after_seconds)}, detail={
-            "code": "DAILY_JOB_LIMIT_EXCEEDED", "message": str(exc), "limit": exc.limit, "used": exc.used}) from exc
+        from app import rate_limit
+        raise rate_limit.too_many("DAILY_JOB_LIMIT_EXCEEDED", str(exc), exc.retry_after_seconds, limit=exc.limit, used=exc.used) from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Job persistence is temporarily unavailable.") from exc
     if not created:
@@ -596,6 +601,8 @@ async def get_job_output(job_id: str, user_id: str = Depends(current_user), repo
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     require_role(job["workspace_id"], user_id, {"owner", "admin", "editor", "viewer"})
+    from app import rate_limit    # R-067
+    rate_limit.check("download", user_id, job["workspace_id"])
     if job.get("status") != "succeeded" or not job.get("output_url"):
         raise HTTPException(status_code=404, detail="Output not found")
     output_record = job_repository.get_output(job_id)
