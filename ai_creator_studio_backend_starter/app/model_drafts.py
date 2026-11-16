@@ -108,7 +108,7 @@ class SelectIn(BaseModel):
 
 _LIKENESS = re.compile(
     r"(닮|똑같|흉내|복제|비슷하게\s*생|처럼\s*생|연예인|유명인|셀럽|아이돌|정치인|대통령|실존\s*인물|실제\s*인물|딥페이크"
-    r"|look(?:s|ing)?[\s-]*like|lookalike|resembl|celebrit|real[\s-]*person|real[\s-]*people|likeness\s+of|deep[\s-]*fake|clone\s+of|modeled\s+(?:on|after)|face\s+of\s+[A-Z])",
+    r"|look(?:s|ing)?[\s-]*like|lookalike|resembl|celebrit|real[\s-]*person|real[\s-]*people|likeness\s+of|deep[\s-]*fake|clone\s+of|modeled\s+(?:on|after))",
     re.IGNORECASE)
 
 
