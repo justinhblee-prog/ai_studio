@@ -204,6 +204,8 @@ async def create_deletion_request(body: DeletionRequestInput, response: Response
             response.status_code = 200
             return _request_row(existing)
         row = db.execute("SELECT * FROM deletion_requests WHERE request_id=?", (request_id,)).fetchone()
+        from app import data_lifecycle     # R-065: the request itself is audited (hash of the subject, never the id or the reason)
+        data_lifecycle.record(db, "deletion.requested", scope=body.scope, request_id=request_id, subject=workspace_id if body.scope == "workspace_content" else user_id)
     return _request_row(row)
 
 
@@ -226,6 +228,9 @@ async def cancel_deletion_request(request_id: str, user_id: str = Depends(curren
         if row["status"] != "pending":
             raise HTTPException(status_code=409, detail="Only a pending deletion request can be cancelled")
         db.execute("UPDATE deletion_requests SET status='cancelled', resolved_at=? WHERE request_id=?", (_now(), request_id))
+        from app import data_lifecycle
+        full = db.execute("SELECT scope, workspace_id FROM deletion_requests WHERE request_id=?", (request_id,)).fetchone()
+        data_lifecycle.record(db, "deletion.cancelled", scope=full["scope"], request_id=request_id, subject=full["workspace_id"] if full["scope"] == "workspace_content" else user_id)
     return Response(status_code=204)
 
 

@@ -32,11 +32,17 @@ GLOBAL_TABLES = {
     "acs_schema_migrations", "generation_schema_migrations", "generation_worker_heartbeats",
     "generation_ops_alerts", "generation_ops_alert_deliveries", "deletion_requests", "sqlite_sequence",
     "library_items", "library_item_versions",  # R-032: platform-owned default library, never part of a workspace or account purge
+    "data_lifecycle_audit",  # R-065: the record that a deletion / export happened is kept (it holds only hashes and counts, never content or ids)
 }
-USER_TABLES = ("legal_acceptances", "consents")
+USER_TABLES = ("legal_acceptances", "consents", "market_profiles", "account_exports")   # R-064 seller profile, R-065 account export records
 ANON_COLUMNS = ("actor_id", "owner_id", "created_by")
 # Columns anonymised only in these tables (a user_id column elsewhere is a consent/acceptance record that is deleted instead).
-ANON_BY_TABLE = {"upload_rights_confirmations": ("user_id",), "content_reports": ("reporter_id", "resolved_by")}
+ANON_BY_TABLE = {"upload_rights_confirmations": ("user_id",), "content_reports": ("reporter_id", "resolved_by"),
+                 # R-063 / R-064 / R-065: columns that name a person but are not called actor_id / owner_id / created_by
+                 "asset_reviews": ("requested_by", "handled_by"), "workspace_settings": ("updated_by",), "market_reports": ("reporter_id",),
+                 "market_listings": ("rights_confirmed_by",), "data_exports": ("requested_by",), "assist_usage": ("user_id",)}
+# Tables tied to a workspace through a column that is not a declared foreign key (R-064: reports on a listing live and die with the listing's workspace).
+EXTRA_FKS = {"market_reports": [("market_listings", "listing_id", "listing_id")]}
 SHELL_TABLES = {"workspaces", "workspace_members"}
 
 
@@ -50,7 +56,9 @@ def _cols(conn, table):
 
 
 def _fks(conn, table):
-    return [(r[2], r[3], r[4]) for r in conn.execute(f'PRAGMA foreign_key_list("{table}")')]
+    declared = [(r[2], r[3], r[4]) for r in conn.execute(f'PRAGMA foreign_key_list("{table}")')]
+    have = {(p, c) for p, c, _ in declared}
+    return declared + [(p, c, k) for p, c, k in EXTRA_FKS.get(table, []) if (p, c) not in have and p in _tables(conn)]
 
 
 @dataclass
@@ -102,6 +110,20 @@ def _scope_clauses(conn, workspaces, include_shell):
 
     clauses = {t: clause(t) for t in scoped}
     return clauses, tables
+
+
+def _suspend_guards(conn, tables):
+    """The append-only triggers (BEFORE UPDATE / DELETE ... RAISE(ABORT)) protect the history tables from the application. This sanctioned purge has to delete and anonymise them, so the
+    triggers of the tables it touches are dropped INSIDE its transaction and put back before the commit; a failure rolls the whole thing back, triggers included."""
+    saved = []
+    for t in tables:
+        for name, sql in conn.execute("SELECT name, sql FROM sqlite_master WHERE type='trigger' AND tbl_name=?", (t,)).fetchall():
+            upper = (sql or "").upper()
+            if "RAISE" in upper and ("BEFORE DELETE" in upper or "BEFORE UPDATE" in upper):
+                saved.append((name, sql))
+    for name, _ in saved:
+        conn.execute(f'DROP TRIGGER "{name}"')
+    return saved
 
 
 def _delete_order(conn, scoped):
@@ -193,6 +215,17 @@ def build_plan(conns, request, asset_dir, output_dir, keep_history=False):
                         n = conn.execute(f'SELECT COUNT(*) FROM "{t}" WHERE "{c}"=?', (user,)).fetchone()[0]
                         if n:
                             plan.anonymize[f"{t}.{c}"] = plan.anonymize.get(f"{t}.{c}", 0) + n
+    root = Path(asset_dir).resolve()
+    for path in list(files):       # R-061: the display pictures made from an asset go with it
+        if path.parent == root:
+            files += [t for t in (root / "thumbs").glob(f"{path.stem}.*.webp") if root in t.resolve().parents]
+    if request["scope"] == "account":   # R-065: account export files of this user
+        for conn in conns[:1]:
+            if "account_exports" in _tables(conn) and "storage_key" in _cols(conn, "account_exports"):
+                for (key,) in conn.execute("SELECT storage_key FROM account_exports WHERE user_id=? AND storage_key IS NOT NULL", (user,)):
+                    path = (root / key).resolve()
+                    if root in path.parents:
+                        files.append(path)
     plan.rows = counts
     plan.files = sorted(set(files))
     return plan
@@ -214,6 +247,10 @@ def apply_plan(conns, request, plan, keep_history=False, now=None):
                 clauses["workspaces"] = ("workspace_id IN (%s)" % ",".join("?" * len(full_ws)), list(full_ws))
                 clauses.setdefault("workspace_members", clauses["workspaces"])
             scoped = {t: v for t, v in clauses.items()}
+            touched = set(scoped)
+            if request["scope"] == "account":
+                touched |= {t for t in _tables(conn) if t not in GLOBAL_TABLES and any(c in _cols(conn, t) for c in ANON_COLUMNS + ANON_BY_TABLE.get(t, ()))}
+            guards = _suspend_guards(conn, sorted(touched))
             for t in _delete_order(conn, scoped):
                 w, p = scoped[t]
                 deleted += conn.execute(f'DELETE FROM "{t}" WHERE {w}', p).rowcount
@@ -234,14 +271,17 @@ def apply_plan(conns, request, plan, keep_history=False, now=None):
                     for c in ANON_COLUMNS + ANON_BY_TABLE.get(t, ()):
                         if c in _cols(conn, t):
                             conn.execute(f'UPDATE "{t}" SET "{c}"=? WHERE "{c}"=?', (ANON, user))
+            for _, trigger_sql in guards:
+                conn.execute(trigger_sql)
             conn.execute("COMMIT")
         except Exception:
             conn.execute("ROLLBACK")
             raise
-    removed, failed = 0, []
+    removed, failed, freed = 0, [], 0
     for path in plan.files:
         try:
             if path.exists():
+                freed += path.stat().st_size
                 path.unlink()
             removed += 1
         except OSError as exc:
@@ -250,6 +290,9 @@ def apply_plan(conns, request, plan, keep_history=False, now=None):
         stamp = (now or datetime.now(timezone.utc)).isoformat()
         conns[0].execute("UPDATE deletion_requests SET status='completed', reason=NULL, resolved_at=? WHERE request_id=?",
                          (stamp, request["request_id"]))
+        from app import data_lifecycle      # R-065: the fact that it happened is kept (hashes and counts only)
+        data_lifecycle.record(conns[0], "deletion.completed", scope=request["scope"], request_id=request["request_id"],
+                              subject=request["workspace_id"] if request["scope"] == "workspace_content" else request["user_id"], rows=deleted, files=removed, size_bytes=freed, at=stamp)
     return deleted, removed, failed
 
 
