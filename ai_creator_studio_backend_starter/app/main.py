@@ -53,6 +53,7 @@ from app.data_export import router as data_export_router
 from app.rate_limit import router as rate_limit_router
 from app.work_items import router as work_items_router
 from app.members import router as members_router
+from app.three_d_jobs import router as three_d_jobs_router
 from app.error_catalog_routes import router as error_catalog_router
 from app.lookbook import router as lookbook_drafts_router
 from app.products import router as products_router
@@ -165,6 +166,7 @@ app.include_router(data_export_router)
 app.include_router(rate_limit_router)
 app.include_router(work_items_router)
 app.include_router(members_router)
+app.include_router(three_d_jobs_router)
 app.include_router(error_catalog_router)
 app.include_router(lookbook_drafts_router)
 app.include_router(products_router)

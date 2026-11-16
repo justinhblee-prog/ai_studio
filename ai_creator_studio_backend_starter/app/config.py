@@ -68,6 +68,7 @@ ASSIST_LLM_DAILY_LIMIT = int(os.getenv("ASSIST_LLM_DAILY_LIMIT", "200"))  # per 
 VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT", "20"))   # R-050: video jobs per workspace per 24h (proposal; also bounds mock storage)
 MARKET_REPORT_DAILY_LIMIT = int(os.getenv("MARKET_REPORT_DAILY_LIMIT", "10"))   # R-064: reports one person may file per day
 WORK_ITEMS_MAX = int(os.getenv("WORK_ITEMS_MAX", "2000"))   # R-069: work items per workspace (archived ones count)
+THREED_DAILY_LIMIT = int(os.getenv("THREED_DAILY_LIMIT", "20"))   # lane 5: 3D jobs per workspace per 24h (mock)
 # R-067: request-rate limits (0 = that rule is off; RATE_LIMITS_ENABLED=0 turns every rule off). Conservative defaults.
 RATE_LIMITS_ENABLED = env_flag_default_on(os.getenv("RATE_LIMITS_ENABLED"))
 RATE_UPLOAD_USER_PER_MINUTE = int(os.getenv("RATE_UPLOAD_USER_PER_MINUTE", "30"))
