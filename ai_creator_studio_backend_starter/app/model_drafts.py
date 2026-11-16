@@ -37,9 +37,13 @@ MAX_OPEN_DRAFTS = 20
 MAX_REFERENCES, RECOMMENDED_MIN_REFERENCES = 30, 15
 EVENT = "asset.model_candidate"
 # design keys that map straight onto the Character identity; everything else is kept whole under identity["design"]
-IDENTITY_KEYS = {"gender": "gender", "age_range": "age_range", "face_shape": "face_shape", "eye_shape": "eye_shape", "nose_shape": "nose_shape",
-                 "lip_shape": "lip_shape", "hairstyle": "hairstyle", "hair": "hairstyle", "hair_color": "hair_color", "body_type": "body_type",
-                 "skin_tone": "skin_tone", "skin_texture": "skin_texture"}
+IDENTITY_KEYS = {"gender": "gender", "gen": "gender", "age_range": "age_range", "age": "age_range", "face_shape": "face_shape", "face": "face_shape",
+                 "eye_shape": "eye_shape", "eyes": "eye_shape", "nose_shape": "nose_shape", "nose": "nose_shape", "lip_shape": "lip_shape", "lips": "lip_shape",
+                 "hairstyle": "hairstyle", "hs": "hairstyle", "hair_color": "hair_color", "hair": "hair_color", "body_type": "body_type", "body": "body_type",
+                 "skin_tone": "skin_tone", "skin": "skin_tone", "skin_texture": "skin_texture"}
+# The first spelling of a field that is present wins; the homepage studio's own keys (skin, body, gen, age, face, eyes, nose, lips, hair = hair COLOUR,
+# hs = hair STYLE) are accepted next to the long names. Values may be a short text or a small whole number (the studio sends swatch / style indexes).
+MAX_INT = 9999
 
 
 def _init(db) -> None:
@@ -70,10 +74,23 @@ def validate_design(v: Any) -> dict[str, Any]:
         if not isinstance(key, str) or not KEY_RE.match(key):
             raise HTTPException(status_code=422, detail={"code": "DESIGN_KEY_INVALID", "message": "keys are lowercase letters, digits and underscores"})
         items = value if isinstance(value, list) else [value]
-        if not items or len(items) > MAX_LIST or any(not isinstance(i, str) or not i.strip() or len(i) > MAX_VALUE for i in items):
-            raise HTTPException(status_code=422, detail={"code": "DESIGN_VALUE_INVALID", "message": f"{key}: give a short text or a short list of texts"})
-        out[key] = [i.strip() for i in value] if isinstance(value, list) else value.strip()
+        if not items or len(items) > MAX_LIST or any(not _scalar_ok(i) for i in items):
+            raise HTTPException(status_code=422, detail={"code": "DESIGN_VALUE_INVALID",
+                                                         "message": f"{key}: give a short text or a whole number 0-{MAX_INT}, or a short list of them"})
+        out[key] = [_norm(i) for i in value] if isinstance(value, list) else _norm(value)
     return out
+
+
+def _scalar_ok(item: Any) -> bool:
+    if isinstance(item, bool):
+        return False
+    if isinstance(item, int):
+        return 0 <= item <= MAX_INT
+    return isinstance(item, str) and bool(item.strip()) and len(item) <= MAX_VALUE
+
+
+def _norm(item: Any) -> Any:
+    return item.strip() if isinstance(item, str) else item
 
 
 class DraftIn(BaseModel):
@@ -209,7 +226,7 @@ def identity_from_design(name: str, design: dict[str, Any]) -> dict[str, Any]:
     for key, field in IDENTITY_KEYS.items():
         if key in design and field not in identity:
             value = design[key]
-            identity[field] = (value if isinstance(value, str) else ", ".join(value))[:100]
+            identity[field] = (", ".join(str(x) for x in value) if isinstance(value, list) else str(value))[:100]
     identity["design"] = design   # the whole pick list, so nothing the designer chose is lost
     return identity
 
