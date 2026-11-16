@@ -48,6 +48,7 @@ def test_every_api_route_is_authenticated_or_explicitly_public():
         ("GET", "/v1/engines/models"),
         ("GET", "/v1/legal/documents"),  # public: lists legal document names and versions only
         ("GET", "/v1/assets/{asset_id}/preview"),
+        ("GET", "/v1/assets/{asset_id}/thumb/{size}"),   # R-061: signed, short-lived display picture
         ("GET", "/v1/assets/{asset_id}/versions/{version_id}/preview"),
         ("GET", "/v1/library/items/{item_id}/versions/{version}/preview"),  # R-032: signed, short-lived link
     }

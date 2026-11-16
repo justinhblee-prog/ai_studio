@@ -2900,6 +2900,20 @@
             ],
             "title": "Thumbnail Asset Id"
           },
+          "thumbs": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbs"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -8892,6 +8906,74 @@
         "summary": "Asset Takedown Status",
         "tags": [
           "moderation"
+        ]
+      }
+    },
+    "/v1/assets/{asset_id}/thumb/{size}": {
+      "get": {
+        "operationId": "getAssetDisplayPicture",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "size",
+            "required": true,
+            "schema": {
+              "title": "Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expires",
+            "required": true,
+            "schema": {
+              "title": "Expires",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "title": "Signature",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "image/webp": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Thumb",
+        "tags": [
+          "image-thumbs"
         ]
       }
     },

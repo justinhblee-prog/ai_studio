@@ -17,7 +17,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 
-from app import config, takedown
+from app import config, image_thumbs, takedown
 from app.assets import store
 from app.assets.rights import build_upload_confirmation
 from app.assets.routes import current_user, require_role
@@ -71,6 +71,7 @@ class LibraryItemOut(BaseModel):
     media_type: str
     size_bytes: int
     thumbnail_asset_id: str | None = None
+    thumbs: dict[str, str] | None = None      # R-061: signed addresses of the 480 / 960 px display pictures (images only)
 
 
 class LibraryListOut(BaseModel):
@@ -153,7 +154,8 @@ def _out(row) -> dict[str, Any]:
     return {"item_id": row["item_id"], "workspace_id": row["workspace_id"], "asset_id": row["asset_id"], "kind": row["kind"], "origin": row["origin"],
             "is_ai_generated": row["origin"] == "ai", "name": row["name"], "tags": json.loads(row["tags_json"]), "attrs": json.loads(row["attrs_json"] or "{}"), "created_by": row["created_by"],
             "created_at": row["created_at"], "updated_at": row["updated_at"], "original_filename": row["original_filename"],
-            "media_type": row["media_type"], "size_bytes": row["size_bytes"], "thumbnail_asset_id": row["thumbnail_asset_id"]}
+            "media_type": row["media_type"], "size_bytes": row["size_bytes"], "thumbnail_asset_id": row["thumbnail_asset_id"],
+            "thumbs": image_thumbs.urls_for(row["asset_id"], row["media_type"])}
 
 
 def _check_caps(db, workspace_id: str, kind: str) -> None:
@@ -170,6 +172,7 @@ def _insert(db, workspace_id: str, user_id: str, asset_id: str, kind: str, name:
     item_id, now = "wli_" + uuid.uuid4().hex, _now()
     db.execute("INSERT INTO workspace_library_items(item_id, workspace_id, asset_id, kind, origin, name, tags_json, attrs_json, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                (item_id, workspace_id, asset_id, kind, _origin_of(db, asset_id), name, json.dumps(tags, ensure_ascii=False), json.dumps(attrs or {}, ensure_ascii=False), user_id, now, now))
+    image_thumbs.prepare(asset_id)      # R-061: the display pictures are made now (best effort; they are rebuilt on first request otherwise)
     return _out(db.execute(_SELECT + " WHERE i.item_id=?", (item_id,)).fetchone())
 
 

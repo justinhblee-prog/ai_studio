@@ -45,6 +45,7 @@ from app.assist import router as assist_router
 from app.video_jobs import router as video_jobs_router
 from app.ops_usage import router as ops_usage_router
 from app.customers import router as customers_router
+from app.image_thumbs import router as image_thumbs_router
 from app.lookbook import router as lookbook_drafts_router
 from app.products import router as products_router
 from app.project_products import router as project_products_router
@@ -147,6 +148,7 @@ app.include_router(assist_router)
 app.include_router(video_jobs_router)
 app.include_router(ops_usage_router)
 app.include_router(customers_router)
+app.include_router(image_thumbs_router)
 app.include_router(lookbook_drafts_router)
 app.include_router(products_router)
 app.include_router(project_products_router)
