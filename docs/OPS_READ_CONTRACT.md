@@ -73,3 +73,12 @@
 
 ## 11. 미구현·결정 대기 항목
 계정·회사 정지, 설정값(킬 스위치·월 한도), 사이트 콘텐츠·점검 모드, 운영자 역할 표와 2단계 인증, 운영자 쓰기 감사(`ops_audit` 해시 체인), 마지막 백업 시각. 모두 R-052의 결정 9건에 묶여 있음.
+
+## 응답 예시 (시험이 OpenAPI와 대조함)
+### `GET /internal/ops/audit`
+<!-- contract: listOpsAudit 200 -->
+```json
+{"items": [{"at": "2026-11-16T09:30:00+00:00", "source": "review", "workspace_id": "ws-demo", "actor_id": "user-e", "action": "review.approve", "object_type": "review", "object_id": "rev_0a1b2c3d4e5f60718293a4b5c6d7e8f9"}],
+ "next_offset": null, "sources": ["review", "contract", "download", "report", "asset"],
+ "coverage": {"measured": {"review": "asset_review_events (append-only)"}, "not_measured": ["operator reads are not recorded"], "tamper_evidence": "review and contract history refuse UPDATE/DELETE"}}
+```

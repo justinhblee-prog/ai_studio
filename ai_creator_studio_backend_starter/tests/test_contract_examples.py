@@ -15,7 +15,7 @@ from app.main import app
 from tests.test_photo_steps_api import auth, env  # noqa: F401  (wa: owner a + viewer c, wb: owner b)
 
 DOCS = Path(__file__).resolve().parents[2] / "docs"
-FILES = ["AIS_API_CONTRACT.md", "WORK_ITEMS_CONTRACT.md"]
+FILES = ["AIS_API_CONTRACT.md", "WORK_ITEMS_CONTRACT.md", "MARKET_CONTRACT.md", "OPS_READ_CONTRACT.md"]
 MARKER = re.compile(r"<!--\s*contract:\s*(\w+)\s+(\d{3})\s*-->\s*```json\n(.*?)```", re.S)
 client = TestClient(app)
 SPEC = app.openapi()
@@ -98,7 +98,8 @@ EXAMPLES = examples()
 
 def test_the_documents_carry_the_examples_the_adapter_depends_on():
     ids = {e[1] for e in EXAMPLES}
-    assert {"getFeatures", "listWorkspaceLibraryFacets", "getWorkspaceLibraryItem", "getWorkItem", "listWorkItems", "listWorkItemEvents"} <= ids, ids
+    assert {"getFeatures", "listWorkspaceLibraryFacets", "getWorkspaceLibraryItem", "getWorkItem", "listWorkItems", "listWorkItemEvents",
+            "getMarketListing", "searchMarketListings", "listOpsAudit", "getAssetReview"} <= ids, ids
 
 
 @pytest.mark.parametrize("doc,operation,status,example", EXAMPLES, ids=[f"{e[0]}:{e[1]}" for e in EXAMPLES])
@@ -175,3 +176,21 @@ def test_a_real_work_item_answer_has_exactly_the_documented_fields(env):
     assert validate(listing, response_schema("listWorkItems", "200")) == []
     ev = client.get(f"/v1/workspaces/wa/work-items/{r.json()['item_id']}/events", headers=auth("a")).json()
     assert validate(ev, response_schema("listWorkItemEvents", "200")) == [] and set(ev[0]) == set(next(e[3] for e in EXAMPLES if e[1] == "listWorkItemEvents")[0])
+
+
+def test_a_real_review_and_a_real_market_listing_have_exactly_the_documented_fields(env):
+    import io
+    from PIL import Image
+    buf = io.BytesIO(); Image.new("RGB", (8, 8), (1, 2, 3)).save(buf, format="PNG")
+    asset = client.post("/v1/assets/images", headers=auth("a"), data={"workspace_id": "wa", "rights_confirmed": "true"}, files={"file": ("a.png", buf.getvalue(), "image/png")}).json()["asset_id"]
+    rv = client.post("/v1/workspaces/wa/reviews", headers=auth("a"), json={"asset_id": asset})
+    assert rv.status_code == 201
+    assert validate(rv.json(), response_schema("getAssetReview", "200")) == []
+    assert set(rv.json()) == set(next(e[3] for e in EXAMPLES if e[1] == "getAssetReview"))
+    body = {"workspace_id": "wa", "kind": "preset", "title": "t", "license_scope": "x", "is_ai_generated": False, "rights_confirmed": True, "payload": {"a": 1}}
+    made = client.post("/v1/market/listings", headers=auth("a"), json=body).json()
+    client.post(f"/v1/market/listings/{made['listing_id']}/publish", headers=auth("a"), json={"rights_confirmed": True})
+    one = client.get(f"/v1/market/listings/{made['listing_id']}", headers=auth("a")).json()
+    assert validate(one, response_schema("getMarketListing", "200")) == [] and set(one) == set(next(e[3] for e in EXAMPLES if e[1] == "getMarketListing"))
+    found = client.get("/v1/market/listings", headers=auth("a")).json()
+    assert validate(found, response_schema("searchMarketListings", "200")) == [] and set(found["items"][0]) == set(next(e[3] for e in EXAMPLES if e[1] == "searchMarketListings")["items"][0])
