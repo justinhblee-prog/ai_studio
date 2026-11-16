@@ -1,5 +1,6 @@
 // R-044 A-3: screen side of the local photo steps. Bounds mirror the server (app/photo_steps.py); the server stays the authority.
 import { apiRequest } from './apiClient.mjs';
+import { appendRightsDeclaration } from './rightsDeclaration.mjs';
 
 export const MAX_STEPS = 12;
 export const STEP_DEFS = Object.freeze({
@@ -63,3 +64,49 @@ export function validatePresetName(name, existing = []) {
   if (existing.some((p) => p.name === n)) return '같은 이름의 프리셋이 이미 있습니다.';
   return '';
 }
+
+// Several-image import (R-044 A item 2, without ZIP): each file is one ordinary upload with the same rights declaration.
+export const MAX_BULK_FILES = 20;
+export const IMAGE_NAME = /\.(png|jpe?g|webp)$/i;
+
+// Picks what can be sent; everything else is listed with a Korean reason instead of being dropped silently.
+export function planBulk(files) {
+  const list = Array.from(files ?? []);
+  const skipped = [];
+  const accepted = [];
+  for (const file of list) {
+    if (!IMAGE_NAME.test(file.name || '')) skipped.push({ name: file.name, reason: 'png·jpg·webp 이미지가 아닙니다.' });
+    else if (accepted.length >= MAX_BULK_FILES) skipped.push({ name: file.name, reason: `한 번에 최대 ${MAX_BULK_FILES}장까지입니다.` });
+    else accepted.push(file);
+  }
+  return { accepted, skipped };
+}
+
+export async function uploadMany(api, token, workspaceId, files, declaration, upload = uploadOne) {
+  const done = [];
+  const failed = [];
+  for (const file of files) {
+    try { done.push({ name: file.name, asset: await upload(api, token, workspaceId, file, declaration) }); }
+    catch (reason) { failed.push({ name: file.name, reason: reason?.message || '업로드하지 못했습니다.', status: reason?.status }); }
+  }
+  return { done, failed };
+}
+
+async function uploadOne(api, token, workspaceId, file, declaration) {
+  const form = new FormData();
+  form.set('workspace_id', workspaceId);
+  form.set('file', file);
+  appendRightsDeclaration(form, declaration);
+  const response = await fetch(`${String(api || '').trim().replace(/\/+$/, '')}/v1/assets/images`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw Object.assign(new Error(typeof body?.detail === 'string' ? body.detail : body?.detail?.message || `업로드 실패 (${response.status})`), { status: response.status });
+  }
+  return response.json();
+}
+
+// Steps the photo studio plans but does not have yet; shown (not hidden) as "개발 예정".
+export const PLANNED_STEPS = Object.freeze([
+  '배경 제거(투명 PNG)', '그림자·반사', '화이트 밸런스·색상 기준', '형태·로고 보존 확인',
+  '주름·먼지·잡티 정리(외부 AI)', '업스케일', '장면 배경 교체(외부 AI)', '색상 변형', '일괄 처리 큐',
+]);

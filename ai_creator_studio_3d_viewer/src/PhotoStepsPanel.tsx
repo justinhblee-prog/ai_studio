@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiRequest } from './app/apiClient.mjs';
 import { errorText } from './app/errorMessages.mjs';
 import { currentVersionId, listVersions, modelContentUrl } from './app/threeDClient.mjs';
-import { MAX_STEPS, STEP_DEFS, deletePreset, listPresets, moveStep, newStep, runPhotoSteps, savePreset, stepsFromPreset, summarizeRecords, validatePresetName, validateSteps } from './app/photoStepsClient.mjs';
+import { RIGHTS_CONFIRMATION_COPY } from './rightsConfirmationCopy';
+import { MAX_BULK_FILES, MAX_STEPS, PLANNED_STEPS, planBulk, uploadMany, STEP_DEFS, deletePreset, listPresets, moveStep, newStep, runPhotoSteps, savePreset, stepsFromPreset, summarizeRecords, validatePresetName, validateSteps } from './app/photoStepsClient.mjs';
 import type { Preset, Step } from './app/photoStepsClient.mjs';
 
 type Props = { apiBaseUrl: string; accessToken: string; workspaceId: string };
@@ -19,6 +20,10 @@ export default function PhotoStepsPanel({ apiBaseUrl, accessToken, workspaceId }
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState('');
   const [note, setNote] = useState('');
+  const [rights, setRights] = useState(false);
+  const [person, setPerson] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const [bulk, setBulk] = useState<{ done: number; failed: { name: string; reason: string }[]; skipped: { name: string; reason: string }[] } | null>(null);
 
   const load = useCallback(async () => {
     try { setImages((await apiRequest(apiBaseUrl, `/v1/assets?workspace_id=${encodeURIComponent(workspaceId)}&kind=image`, { token: accessToken }))?.items ?? []); }
@@ -36,6 +41,20 @@ export default function PhotoStepsPanel({ apiBaseUrl, accessToken, workspaceId }
     if (!version) return '';
     const res = await fetch(modelContentUrl(apiBaseUrl, assetId, version), { headers: { Authorization: `Bearer ${accessToken}` } });
     return res.ok ? URL.createObjectURL(await res.blob()) : '';
+  };
+  const importMany = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.currentTarget.files;
+    const plan = planBulk(files);
+    event.currentTarget.value = '';
+    setError(''); setBulk(null);
+    if (!rights) { setError(RIGHTS_CONFIRMATION_COPY.rightsRequiredError); return; }
+    if (person && !consent) { setError(RIGHTS_CONFIRMATION_COPY.likenessRequiredError); return; }
+    setBusy(true);
+    try {
+      const result = await uploadMany(apiBaseUrl, accessToken, workspaceId, plan.accepted, { rightsConfirmed: rights, depictsPerson: person, likenessConsent: consent });
+      setBulk({ done: result.done.length, failed: result.failed, skipped: plan.skipped });
+      await load();
+    } finally { setBusy(false); }
   };
   const presetProblem = validatePresetName(presetName, presets);
   const savePresetNow = async () => {
@@ -69,6 +88,15 @@ export default function PhotoStepsPanel({ apiBaseUrl, accessToken, workspaceId }
     <h2>사진 단계 편집</h2>
     <p>자동 크롭·단색 배경·캔버스 맞춤을 순서대로 적용해 새 이미지로 저장합니다. 이 서버 안에서만 처리되며 외부 AI 서비스로 보내지 않고, 원본은 그대로 남습니다.</p>
     {error && <div className="auth-error" role="alert">{error}</div>}
+    <fieldset aria-label="여러 장 가져오기" disabled={busy}>
+      <legend>여러 장 한 번에 가져오기 (최대 {MAX_BULK_FILES}장)</legend>
+      <label><input type="checkbox" checked={rights} onChange={e => setRights(e.currentTarget.checked)}/> {RIGHTS_CONFIRMATION_COPY.rightsConfirmed}</label>
+      <label><input type="checkbox" checked={person} onChange={e => { setPerson(e.currentTarget.checked); if (!e.currentTarget.checked) setConsent(false); }}/> {RIGHTS_CONFIRMATION_COPY.depictsPerson}</label>
+      {person && <label><input type="checkbox" checked={consent} onChange={e => setConsent(e.currentTarget.checked)}/> {RIGHTS_CONFIRMATION_COPY.likenessConsent}</label>}
+      <input type="file" multiple accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" aria-label="이미지 여러 장 가져오기" onChange={importMany}/>
+    </fieldset>
+    {bulk && <div role="status" aria-label="가져오기 결과"><b>{bulk.done}장을 가져왔습니다.</b>
+      {[...bulk.failed, ...bulk.skipped].length > 0 && <ul>{[...bulk.failed, ...bulk.skipped].map(f => <li key={f.name}>{f.name}: {f.reason}</li>)}</ul>}</div>}
     <label>원본 이미지<select value={source} onChange={e => setSource(e.currentTarget.value)} aria-label="편집할 이미지">
       <option value="">{images.length ? '선택' : '이미지가 없습니다'}</option>
       {images.map(i => <option key={i.asset_id} value={i.asset_id}>{i.original_filename}</option>)}</select></label>
@@ -104,6 +132,8 @@ export default function PhotoStepsPanel({ apiBaseUrl, accessToken, workspaceId }
       <button type="button" className="outline" disabled={!!presetProblem || !!validateSteps(steps)} onClick={savePresetNow}>현재 단계를 프리셋으로 저장</button>
     </div>
     <button type="button" className="primary" disabled={!!problem || busy} onClick={run}>{busy ? '처리 중…' : '실행해서 새 이미지로 저장'}</button>
+    <section aria-label="개발 예정 단계"><h3>개발 예정 단계</h3><p>아래 단계는 아직 사용할 수 없습니다.</p>
+      <ul>{PLANNED_STEPS.map(n => <li key={n}>{n} <small>· 개발 예정</small></li>)}</ul></section>
     {result && <div role="status" aria-label="단계 실행 결과">
       <b>"{result.name}" 이(가) 내 자산에 저장되었습니다.</b>
       <ul>{result.lines.map(l => <li key={l}>{l}</li>)}</ul>
