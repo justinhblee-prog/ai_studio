@@ -66,6 +66,11 @@ ASSIST_INTERPRETER_MODE = os.getenv("ASSIST_INTERPRETER_MODE", "rules").strip().
 ASSIST_PER_MINUTE = int(os.getenv("ASSIST_PER_MINUTE", "30"))            # per user, every interpreter
 ASSIST_LLM_DAILY_LIMIT = int(os.getenv("ASSIST_LLM_DAILY_LIMIT", "200"))  # per workspace, only external (llm) interpretations
 VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT", "20"))   # R-050: video jobs per workspace per 24h (proposal; also bounds mock storage)
+# R-062: the "AI-made" mark written into AI-made pictures that are downloaded. The wording is a setting: the final legal wording is pending.
+AI_MARKING_ENABLED = env_flag_default_on(os.getenv("AI_MARKING_ENABLED"))
+AI_MARK_TEXT_GENERATED = os.getenv("AI_MARK_TEXT_GENERATED", "AI-generated image")
+AI_MARK_TEXT_EDITED = os.getenv("AI_MARK_TEXT_EDITED", "AI-edited image")
+AI_MARK_TEXT_UNKNOWN = os.getenv("AI_MARK_TEXT_UNKNOWN", "AI-generated or AI-edited image")
 # R-061: pictures (PNG/JPEG/WebP) may be at most this big (the general ASSET_MAX_UPLOAD_BYTES still applies to 3D files); display sizes are made on demand/at save.
 IMAGE_MAX_UPLOAD_BYTES = int(os.getenv("IMAGE_MAX_UPLOAD_BYTES", str(25 * 1024 * 1024)))
 THUMB_SIZES = (480, 960)

@@ -593,7 +593,8 @@ async def get_job_output(job_id: str, user_id: str = Depends(current_user), repo
         raise HTTPException(status_code=404, detail="Output not found")
     media_type = {".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp"}.get(path.suffix, "application/octet-stream")
     try:
-        return open_private_file_response(path, media_type=media_type, filename=path.name,
+        from app import ai_marking     # R-062: an AI provider's picture leaves with the "AI-made" mark inside it
+        return ai_marking.serve(path, media_type=media_type, kind=ai_marking.kind_for_job(job), filename=path.name,
             expected_size=output_record.get("size_bytes"), expected_sha256=output_record.get("checksum_sha256"), inline=True)
     except PrivateFileError as exc:
         raise HTTPException(status_code=409, detail="Output file failed descriptor integrity validation") from exc
