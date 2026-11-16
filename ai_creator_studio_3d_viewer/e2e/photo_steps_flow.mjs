@@ -62,6 +62,18 @@ try {
     assert.ok(await compare.getByText('전(원본)').isVisible() && await compare.getByText('후(결과)').isVisible());
   });
 
+  await run('the before/after slider reveals the result from the left as it is moved', async () => {
+    const range = panel().getByRole('slider', { name: '전후 비교 슬라이더' });
+    await range.waitFor({ timeout: 10000 });
+    const after = panel().getByAltText('슬라이더 결과');
+    assert.equal(await after.getAttribute('data-clip'), 'inset(0 50% 0 0)', 'starts in the middle');
+    await range.fill('30');
+    assert.equal(await after.getAttribute('data-clip'), 'inset(0 70% 0 0)');
+    assert.match(await after.evaluate(el => getComputedStyle(el).clipPath), /inset\(.*70%/);
+    await range.fill('100'); assert.equal(await after.getAttribute('data-clip'), 'inset(0 0% 0 0)');
+    await range.fill('0'); assert.equal(await after.getAttribute('data-clip'), 'inset(0 100% 0 0)');
+  });
+
   await run('a preset can be saved from the current steps, applied later, and deleted; names are unique', async () => {
     const items = panel().locator('ol[aria-label="적용할 단계"] > li');
     const save = panel().getByRole('button', { name: '현재 단계를 프리셋으로 저장' });

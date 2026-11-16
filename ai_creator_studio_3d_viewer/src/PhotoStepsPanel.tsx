@@ -3,7 +3,7 @@ import { apiRequest } from './app/apiClient.mjs';
 import { errorText } from './app/errorMessages.mjs';
 import { currentVersionId, listVersions, modelContentUrl } from './app/threeDClient.mjs';
 import { RIGHTS_CONFIRMATION_COPY } from './rightsConfirmationCopy';
-import { MAX_BULK_FILES, MAX_STEPS, PLANNED_STEPS, planBulk, uploadMany, STEP_DEFS, deletePreset, listPresets, moveStep, newStep, runPhotoSteps, savePreset, stepsFromPreset, summarizeRecords, validatePresetName, validateSteps } from './app/photoStepsClient.mjs';
+import { afterClip, MAX_BULK_FILES, MAX_STEPS, PLANNED_STEPS, planBulk, uploadMany, STEP_DEFS, deletePreset, listPresets, moveStep, newStep, runPhotoSteps, savePreset, stepsFromPreset, summarizeRecords, validatePresetName, validateSteps } from './app/photoStepsClient.mjs';
 import type { Preset, Step } from './app/photoStepsClient.mjs';
 
 type Props = { apiBaseUrl: string; accessToken: string; workspaceId: string };
@@ -20,6 +20,7 @@ export default function PhotoStepsPanel({ apiBaseUrl, accessToken, workspaceId }
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState('');
   const [note, setNote] = useState('');
+  const [slider, setSlider] = useState(50);
   const [rights, setRights] = useState(false);
   const [person, setPerson] = useState(false);
   const [consent, setConsent] = useState(false);
@@ -137,6 +138,13 @@ export default function PhotoStepsPanel({ apiBaseUrl, accessToken, workspaceId }
     {result && <div role="status" aria-label="단계 실행 결과">
       <b>"{result.name}" 이(가) 내 자산에 저장되었습니다.</b>
       <ul>{result.lines.map(l => <li key={l}>{l}</li>)}</ul>
+      {result.before && result.preview && <div>
+        <div role="group" aria-label="전후 슬라이더" style={{ position: 'relative', width: '100%', maxWidth: 480, height: 320, background: '#f3f3f3' }}>
+          <img src={result.before} alt="슬라이더 원본" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }}/>
+          <img src={result.preview} alt="슬라이더 결과" data-clip={afterClip(slider)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', clipPath: afterClip(slider) }}/>
+        </div>
+        <label>전(오른쪽) ↔ 후(왼쪽) 비교 위치<input type="range" min={0} max={100} value={slider} aria-label="전후 비교 슬라이더" onChange={e => setSlider(Number(e.currentTarget.value))} style={{ width: '100%', maxWidth: 480 }}/></label>
+      </div>}
       <div role="group" aria-label="전후 비교" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         {result.before && <figure style={{ margin: 0, minWidth: 0 }}><figcaption>전(원본)</figcaption><img src={result.before} alt="편집 전 원본" style={{ maxWidth: '100%', height: 'auto', maxHeight: 320 }}/></figure>}
         {result.preview && <figure style={{ margin: 0, minWidth: 0 }}><figcaption>후(결과)</figcaption><img src={result.preview} alt="편집 결과 미리보기" style={{ maxWidth: '100%', height: 'auto', maxHeight: 320 }}/></figure>}
