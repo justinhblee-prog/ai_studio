@@ -237,6 +237,15 @@ class SQLiteJobRepository:
                 f"SELECT substr(created_at,1,{int(width)}) AS bucket, provider, status, COUNT(*) AS n FROM generation_jobs "
                 "WHERE created_at>=? AND created_at<? GROUP BY bucket, provider, status ORDER BY bucket", (start, end)).fetchall()]
 
+    def ops_usage_rows(self, start, end, limit):
+        """Raw job rows for [start, end) (newest first, at most `limit`): created_at, workspace_id, owner_id, provider, status. Metadata only (R-054)."""
+        storage, path, _ = self._context()
+        self.initialize()
+        with storage.transaction(path) as conn:
+            return [dict(r) for r in conn.execute(
+                "SELECT created_at, workspace_id, owner_id, provider, status FROM generation_jobs WHERE created_at>=? AND created_at<? "
+                "ORDER BY created_at DESC LIMIT ?", (start, end, int(limit))).fetchall()]
+
     def get_idempotent(self, workspace_id, key):
         if self._impl is not None: return self._impl.get_idempotent_job(workspace_id, key)
         storage, path, _ = self._context()
