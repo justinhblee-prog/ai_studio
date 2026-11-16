@@ -8,7 +8,7 @@ from tests.test_photo_steps_api import auth, env  # noqa: F401  (wa: owner a + v
 from tests.test_workspace_library import png
 
 client = TestClient(app)
-V = {"skin_tone": "3", "hair": "wavy", "body_type": "regular", "age_range": "30s", "expression": ["calm", "smile"], "light": "soft"}
+V = {"skin": 3, "hs": 2, "body": "regular", "age": "30s", "mood": ["calm", "smile"], "lite": "soft"}   # the homepage studio's own keys: swatch / style INDEXES are numbers
 
 
 def draft(v=None, prompt="봄 화보", who="a", ws="wa"):
@@ -52,7 +52,9 @@ def test_candidates_are_marked_as_mock_not_ai_and_are_readable_images(env):
 @pytest.mark.parametrize("v, code", [
     ({}, "DESIGN_REQUIRED"), ([], "DESIGN_REQUIRED"), ({"Bad-Key": "x"}, "DESIGN_KEY_INVALID"), ({"hair": {"nested": "x"}}, "DESIGN_VALUE_INVALID"),
     ({"hair": ""}, "DESIGN_VALUE_INVALID"), ({"hair": "x" * 61}, "DESIGN_VALUE_INVALID"), ({"hair": []}, "DESIGN_VALUE_INVALID"),
-    ({"hair": ["a"] * 11}, "DESIGN_VALUE_INVALID"), ({f"k{i}": "x" for i in range(41)}, "DESIGN_TOO_MANY"), ({"hair": 5}, "DESIGN_VALUE_INVALID"),
+    ({"hair": ["a"] * 11}, "DESIGN_VALUE_INVALID"), ({f"k{i}": "x" for i in range(41)}, "DESIGN_TOO_MANY"), ({"hair": 1.5}, "DESIGN_VALUE_INVALID"),
+    ({"hair": True}, "DESIGN_VALUE_INVALID"), ({"hair": None}, "DESIGN_VALUE_INVALID"), ({"hair": 10000}, "DESIGN_VALUE_INVALID"), ({"hair": -1}, "DESIGN_VALUE_INVALID"),
+    ({"hair": [1, {"a": 1}]}, "DESIGN_VALUE_INVALID"),
 ])
 def test_bad_designs_are_refused_before_anything_is_made(env, v, code):
     r = client.post("/v1/workspaces/wa/model-drafts", headers=auth("a"), json={"v": v})
@@ -86,7 +88,7 @@ def test_choosing_creates_the_brand_model_with_identity_references_and_a_library
     assert body["references"] == 3 and body["consistency_ready"] is False and body["recommended_min_references"] == 15 and body["max_references"] == 30
     ch = client.get(f"/v1/workspaces/wa/characters/{body['character_id']}", headers=auth("a")).json()
     ident = ch["identity"]
-    assert ident["name"] == "브랜드 모델 A" and ident["skin_tone"] == "3" and ident["hairstyle"] == "wavy" and ident["body_type"] == "regular" and ident["age_range"] == "30s"
+    assert ident["name"] == "브랜드 모델 A" and ident["skin_tone"] == "3" and ident["hairstyle"] == "2" and ident["body_type"] == "regular" and ident["age_range"] == "30s"
     assert ident["design"] == {**V}, "nothing the designer chose is lost"
     assert set(ch["asset_ids"]) == {pick["asset_id"], *reference_ids}, "the chosen picture and the references, no others (the list order is not defined)"
     item = client.get(f"/v1/workspaces/wa/library/{body['library_item_id']}", headers=auth("a")).json()
@@ -143,7 +145,31 @@ def test_open_drafts_are_capped_and_a_real_provider_is_not_connected(env, monkey
     assert blocked.status_code == 409 and blocked.json()["detail"]["code"] == "MODEL_PROVIDER_NOT_CONNECTED", "fails closed: nothing is sent anywhere"
 
 
-def test_identity_mapping_prefers_the_explicit_key_and_keeps_unknown_keys_only_under_design():
-    ident = model_drafts.identity_from_design(" A ", {"hair": "bob", "hairstyle": "ignored-second", "camera": "wide", "tags": ["x", "y"], "face_shape": ["oval", "soft"]})
-    assert ident["name"] == "A" and ident["hairstyle"] == "ignored-second" and ident["face_shape"] == "oval, soft"
-    assert "camera" not in ident and ident["design"]["camera"] == "wide" and ident["design"]["tags"] == ["x", "y"]
+def test_identity_mapping_prefers_the_long_name_and_keeps_unknown_keys_only_under_design():
+    ident = model_drafts.identity_from_design(" A ", {"hair": 4, "hs": 2, "hairstyle": "ignored-second", "camera": "wide", "tags": ["x", "y"], "face_shape": ["oval", "soft"]})
+    assert ident["name"] == "A" and ident["hair_color"] == "4" and ident["hairstyle"] == "ignored-second" and ident["face_shape"] == "oval, soft"
+    assert "camera" not in ident and ident["design"]["camera"] == "wide" and ident["design"]["tags"] == ["x", "y"] and ident["design"]["hair"] == 4, "numbers stay numbers"
+
+
+STUDIO = {"skin": 2, "body": "regular", "gen": "f", "age": "20s", "ht": "avg", "reg": "east-asia", "face": "oval", "eyes": "almond", "brow": "soft", "nose": "straight",
+          "lips": "rose", "hair": 3, "hs": 0, "htex": "wavy", "mood": "calm", "acc": ["earring", "necklace"], "bg": "studio-white", "cam": "bust", "lite": "soft", "tone": "warm"}
+
+
+def test_every_key_of_the_homepage_character_studio_is_accepted_with_its_real_value_types(env):
+    d = draft(v=STUDIO)
+    assert d.status_code == 201, d.text
+    assert d.json()["v"] == STUDIO, "numbers are returned as numbers, lists as lists"
+    r = client.post(f"/v1/workspaces/wa/model-drafts/{d.json()['draft_id']}/select", headers=auth("a"), json={"rank": 1, "name": "스튜디오 모델"})
+    assert r.status_code == 200, r.text
+    ident = client.get(f"/v1/workspaces/wa/characters/{r.json()['character_id']}", headers=auth("a")).json()["identity"]
+    assert (ident["skin_tone"], ident["body_type"], ident["gender"], ident["age_range"], ident["face_shape"], ident["eye_shape"], ident["nose_shape"],
+            ident["lip_shape"], ident["hair_color"], ident["hairstyle"]) == ("2", "regular", "f", "20s", "oval", "almond", "straight", "rose", "3", "0")
+    assert ident["design"] == STUDIO, "ht, reg, brow, htex, mood, acc, bg, cam, lite and tone are kept whole under design"
+
+
+@pytest.mark.parametrize("key, values", [("age", ["20s", "30s", "40s", "50s", "60s", "70s"]), ("gen", ["f", "m", "n"]), ("ht", ["petite", "avg", "tallm", "runway"]),
+                                         ("reg", ["east-asia", "se-asia", "south-asia", "mena", "europe", "n-america", "latin-america", "africa", "oceania", "global"]),
+                                         ("hs", list(range(14))), ("hair", list(range(13))), ("skin", list(range(12)))])
+def test_the_expanded_option_ranges_are_accepted(key, values):
+    for value in values:
+        assert model_drafts.validate_design({key: value}) == {key: value}
