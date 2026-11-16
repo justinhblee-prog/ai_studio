@@ -13,6 +13,16 @@ export const STEP_DEFS = Object.freeze({
     { key: 'width', label: '가로(px)', type: 'int', min: 16, max: 8192, value: 1200 },
     { key: 'height', label: '세로(px)', type: 'int', min: 16, max: 8192, value: 1200 },
     { key: 'color', label: '여백색', type: 'color', value: '#ffffff' }] },
+  gradient_background: { label: '그라데이션 배경', help: '투명한 부분을 위→아래 두 색의 그라데이션으로 채웁니다.', params: [
+    { key: 'top_color', label: '위쪽 색', type: 'color', value: '#ffffff' },
+    { key: 'bottom_color', label: '아래쪽 색', type: 'color', value: '#e6e6e6' }] },
+  white_balance: { label: '화이트 밸런스', help: '전체 색 기울기를 중립 회색 기준으로 맞춥니다(강도로 원본과 섞음).', params: [
+    { key: 'strength_pct', label: '강도(%)', type: 'int', min: 0, max: 100, value: 100 }] },
+  drop_shadow: { label: '그림자 넣기', help: '배경이 투명한 이미지에서 물체 아래에 부드러운 그림자를 만듭니다. 그 뒤에 배경 단계를 붙여 주세요.', params: [
+    { key: 'offset_x', label: '가로 이동(px)', type: 'int', min: -200, max: 200, value: 0 },
+    { key: 'offset_y', label: '세로 이동(px)', type: 'int', min: -200, max: 200, value: 12 },
+    { key: 'blur', label: '번짐', type: 'int', min: 0, max: 100, value: 16 },
+    { key: 'opacity_pct', label: '진하기(%)', type: 'int', min: 0, max: 100, value: 40 }] },
 });
 
 export function newStep(op) {
@@ -107,6 +117,6 @@ async function uploadOne(api, token, workspaceId, file, declaration) {
 
 // Steps the photo studio plans but does not have yet; shown (not hidden) as "개발 예정".
 export const PLANNED_STEPS = Object.freeze([
-  '배경 제거(투명 PNG)', '그림자·반사', '화이트 밸런스·색상 기준', '형태·로고 보존 확인',
+  '배경 제거(투명 PNG)', '반사', '형태·로고 보존 확인',
   '주름·먼지·잡티 정리(외부 AI)', '업스케일', '장면 배경 교체(외부 AI)', '색상 변형', '일괄 처리 큐',
 ]);

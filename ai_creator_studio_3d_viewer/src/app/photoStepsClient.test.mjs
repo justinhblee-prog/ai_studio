@@ -91,4 +91,15 @@ test('the default upload sends the workspace, the file and the rights declaratio
   assert.equal(result.done.length, 1);
 });
 
-test('planned steps are listed in Korean', () => { assert.ok(PLANNED_STEPS.length >= 8 && PLANNED_STEPS.every((n) => /[가-힣]/.test(n))); });
+test('planned steps are listed in Korean', () => { assert.ok(PLANNED_STEPS.length >= 7 && !PLANNED_STEPS.some((n) => /그림자|화이트/.test(n)) && PLANNED_STEPS.every((n) => /[가-힣]/.test(n))); });
+
+test('the new local steps have defaults and bounds that match the server', () => {
+  assert.deepEqual(newStep('white_balance'), { op: 'white_balance', strength_pct: 100 });
+  assert.deepEqual(newStep('drop_shadow'), { op: 'drop_shadow', offset_x: 0, offset_y: 12, blur: 16, opacity_pct: 40 });
+  assert.deepEqual(newStep('gradient_background'), { op: 'gradient_background', top_color: '#ffffff', bottom_color: '#e6e6e6' });
+  assert.equal(validateSteps([newStep('drop_shadow'), newStep('white_balance'), newStep('gradient_background')]), '');
+  assert.equal(validateSteps([{ ...newStep('drop_shadow'), offset_x: -200 }]), '');
+  assert.match(validateSteps([{ ...newStep('drop_shadow'), blur: 101 }]), /1번 단계: 번짐/);
+  assert.match(validateSteps([{ ...newStep('drop_shadow'), offset_y: 201 }]), /세로 이동/);
+  assert.match(validateSteps([{ ...newStep('gradient_background'), top_color: 'x' }]), /위쪽 색/);
+});

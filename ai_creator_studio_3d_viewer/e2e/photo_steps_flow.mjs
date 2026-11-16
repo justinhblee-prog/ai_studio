@@ -103,8 +103,9 @@ try {
 
   await run('steps that do not exist yet are listed as "개발 예정", not hidden', async () => {
     const planned = panel().getByRole('region', { name: '개발 예정 단계' });
-    for (const name of ['배경 제거', '그림자', '업스케일']) assert.ok((await planned.innerText()).includes(name), name);
-    assert.ok((await planned.locator('li').count()) >= 8);
+    for (const name of ['배경 제거', '반사', '업스케일']) assert.ok((await planned.innerText()).includes(name), name);
+    assert.ok((await planned.locator('li').count()) >= 7);
+    for (const name of ['그라데이션 배경', '화이트 밸런스', '그림자 넣기']) assert.equal(await panel().getByRole('button', { name: new RegExp(name) }).count(), 1, `${name} is a real step now`);
   });
 
   await run('the same run against a deleted source reports an error in Korean and stores nothing', async () => {
