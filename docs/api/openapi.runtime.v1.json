@@ -48,24 +48,21 @@
       },
       "Acquisition": {
         "additionalProperties": false,
+        "description": "The browser's own names (reply 37): source, medium, campaign, referrer_host, landing, first_seen. No allow-list of values; only shape and length.",
         "properties": {
-          "channel": {
-            "default": "other",
-            "enum": [
-              "search",
-              "social",
-              "ads",
-              "email",
-              "referral",
-              "direct",
-              "event",
-              "partner",
-              "other"
+          "campaign": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Channel",
-            "type": "string"
+            "title": "Campaign"
           },
-          "first_visit_at": {
+          "first_seen": {
             "anyOf": [
               {
                 "maxLength": 40,
@@ -75,9 +72,9 @@
                 "type": "null"
               }
             ],
-            "title": "First Visit At"
+            "title": "First Seen"
           },
-          "landing_page": {
+          "landing": {
             "anyOf": [
               {
                 "maxLength": 300,
@@ -87,7 +84,19 @@
                 "type": "null"
               }
             ],
-            "title": "Landing Page"
+            "title": "Landing"
+          },
+          "medium": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medium"
           },
           "referrer_host": {
             "anyOf": [
@@ -101,7 +110,7 @@
             ],
             "title": "Referrer Host"
           },
-          "utm_campaign": {
+          "source": {
             "anyOf": [
               {
                 "maxLength": 60,
@@ -111,31 +120,7 @@
                 "type": "null"
               }
             ],
-            "title": "Utm Campaign"
-          },
-          "utm_medium": {
-            "anyOf": [
-              {
-                "maxLength": 60,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Medium"
-          },
-          "utm_source": {
-            "anyOf": [
-              {
-                "maxLength": 60,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Source"
+            "title": "Source"
           }
         },
         "title": "Acquisition",
@@ -210,6 +195,49 @@
           "user_id"
         ],
         "title": "AddMemberBody",
+        "type": "object"
+      },
+      "AggRow": {
+        "properties": {
+          "active_end": {
+            "title": "Active End",
+            "type": "integer"
+          },
+          "bucket": {
+            "title": "Bucket",
+            "type": "string"
+          },
+          "churned": {
+            "title": "Churned",
+            "type": "integer"
+          },
+          "converted": {
+            "title": "Converted",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "signups": {
+            "title": "Signups",
+            "type": "integer"
+          },
+          "trials": {
+            "title": "Trials",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bucket",
+          "key",
+          "signups",
+          "churned",
+          "active_end",
+          "trials",
+          "converted"
+        ],
+        "title": "AggRow",
         "type": "object"
       },
       "AssetListResponse": {
@@ -998,39 +1026,6 @@
         "title": "CharacterResponse",
         "type": "object"
       },
-      "CompanyRow": {
-        "properties": {
-          "estimated_cost_usd": {
-            "title": "Estimated Cost Usd",
-            "type": "number"
-          },
-          "failed": {
-            "title": "Failed",
-            "type": "integer"
-          },
-          "jobs": {
-            "title": "Jobs",
-            "type": "integer"
-          },
-          "members": {
-            "title": "Members",
-            "type": "integer"
-          },
-          "workspace_id": {
-            "title": "Workspace Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "workspace_id",
-          "members",
-          "jobs",
-          "failed",
-          "estimated_cost_usd"
-        ],
-        "title": "CompanyRow",
-        "type": "object"
-      },
       "ConsentInput": {
         "additionalProperties": false,
         "properties": {
@@ -1060,12 +1055,12 @@
             ],
             "title": "Churn Reason"
           },
-          "clear_contract_end": {
+          "clear_end": {
             "default": false,
-            "title": "Clear Contract End",
+            "title": "Clear End",
             "type": "boolean"
           },
-          "contract_end": {
+          "end": {
             "anyOf": [
               {
                 "maxLength": 10,
@@ -1075,35 +1070,7 @@
                 "type": "null"
               }
             ],
-            "title": "Contract End"
-          },
-          "contract_start": {
-            "anyOf": [
-              {
-                "maxLength": 10,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Contract Start"
-          },
-          "contract_status": {
-            "anyOf": [
-              {
-                "enum": [
-                  "trial",
-                  "active",
-                  "ended"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Contract Status"
+            "title": "End"
           },
           "plan": {
             "anyOf": [
@@ -1116,9 +1083,134 @@
               }
             ],
             "title": "Plan"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "trial",
+                  "active",
+                  "ended",
+                  "cancelled"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
           }
         },
         "title": "ContractIn",
+        "type": "object"
+      },
+      "ContractOut": {
+        "properties": {
+          "end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "status": {
+            "enum": [
+              "trial",
+              "active",
+              "ended",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "status",
+          "plan"
+        ],
+        "title": "ContractOut",
+        "type": "object"
+      },
+      "ContractResponse": {
+        "properties": {
+          "churn_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churn Reason"
+          },
+          "churned_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churned At"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/ContractOut"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "contract",
+          "churned_at",
+          "churn_reason"
+        ],
+        "title": "ContractResponse",
         "type": "object"
       },
       "Controls": {
@@ -1293,47 +1385,22 @@
         "title": "CreateWorkspaceBody",
         "type": "object"
       },
-      "CustomerRow": {
+      "CustomersResponse": {
         "properties": {
-          "acquisition": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Acquisition"
-          },
-          "churn_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Churn Reason"
-          },
-          "churned_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Churned At"
-          },
-          "company": {
-            "title": "Company",
+          "by": {
+            "title": "By",
             "type": "string"
           },
-          "contract_end": {
+          "collection_enabled": {
+            "title": "Collection Enabled",
+            "type": "boolean"
+          },
+          "coverage": {
+            "additionalProperties": true,
+            "title": "Coverage",
+            "type": "object"
+          },
+          "from": {
             "anyOf": [
               {
                 "type": "string"
@@ -1342,30 +1409,27 @@
                 "type": "null"
               }
             ],
-            "title": "Contract End"
+            "title": "From"
           },
-          "contract_start": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Contract Start"
-          },
-          "contract_status": {
-            "enum": [
-              "trial",
-              "active",
-              "expiring",
-              "ended"
-            ],
-            "title": "Contract Status",
+          "group_by": {
+            "title": "Group By",
             "type": "string"
           },
-          "email_domain": {
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AggRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "to": {
             "anyOf": [
               {
                 "type": "string"
@@ -1374,79 +1438,24 @@
                 "type": "null"
               }
             ],
-            "title": "Email Domain"
+            "title": "To"
           },
-          "first_job_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "First Job At"
-          },
-          "joined_at": {
-            "title": "Joined At",
-            "type": "string"
-          },
-          "last_active_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Active At"
-          },
-          "plan": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Plan"
-          },
-          "survey": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Survey"
-          },
-          "users": {
-            "title": "Users",
-            "type": "integer"
+          "totals": {
+            "$ref": "#/components/schemas/Totals"
           }
         },
         "required": [
-          "company",
-          "email_domain",
-          "plan",
-          "joined_at",
-          "contract_start",
-          "contract_end",
-          "contract_status",
-          "churned_at",
-          "churn_reason",
-          "acquisition",
-          "survey",
-          "users",
-          "first_job_at",
-          "last_active_at"
+          "group_by",
+          "by",
+          "from",
+          "to",
+          "rows",
+          "totals",
+          "coverage",
+          "collection_enabled",
+          "notes"
         ],
-        "title": "CustomerRow",
+        "title": "CustomersResponse",
         "type": "object"
       },
       "DeletionRequestInput": {
@@ -3959,7 +3968,7 @@
           },
           "companies": {
             "items": {
-              "$ref": "#/components/schemas/CompanyRow"
+              "$ref": "#/components/schemas/app__ops_overview__CompanyRow"
             },
             "title": "Companies",
             "type": "array"
@@ -5010,7 +5019,7 @@
       "ProfileIn": {
         "additionalProperties": false,
         "properties": {
-          "acquisition": {
+          "acq": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Acquisition"
@@ -5036,7 +5045,7 @@
       },
       "ProfileOut": {
         "properties": {
-          "acquisition": {
+          "acq": {
             "anyOf": [
               {
                 "additionalProperties": true,
@@ -5046,7 +5055,7 @@
                 "type": "null"
               }
             ],
-            "title": "Acquisition"
+            "title": "Acq"
           },
           "survey": {
             "anyOf": [
@@ -5067,7 +5076,7 @@
         },
         "required": [
           "workspace_id",
-          "acquisition",
+          "acq",
           "survey"
         ],
         "title": "ProfileOut",
@@ -5678,7 +5687,7 @@
             ],
             "title": "Industry"
           },
-          "team_size": {
+          "size": {
             "anyOf": [
               {
                 "maxLength": 30,
@@ -5688,10 +5697,43 @@
                 "type": "null"
               }
             ],
-            "title": "Team Size"
+            "title": "Size"
           }
         },
         "title": "Survey",
+        "type": "object"
+      },
+      "Totals": {
+        "properties": {
+          "active_end": {
+            "title": "Active End",
+            "type": "integer"
+          },
+          "churned": {
+            "title": "Churned",
+            "type": "integer"
+          },
+          "converted": {
+            "title": "Converted",
+            "type": "integer"
+          },
+          "signups": {
+            "title": "Signups",
+            "type": "integer"
+          },
+          "trials": {
+            "title": "Trials",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "signups",
+          "churned",
+          "trials",
+          "converted",
+          "active_end"
+        ],
+        "title": "Totals",
         "type": "object"
       },
       "UsageRow": {
@@ -5995,6 +6037,162 @@
           "finished_at"
         ],
         "title": "VideoOut",
+        "type": "object"
+      },
+      "app__customers__CompanyRow": {
+        "properties": {
+          "acq": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acq"
+          },
+          "churn_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churn Reason"
+          },
+          "churned_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churned At"
+          },
+          "company": {
+            "title": "Company",
+            "type": "string"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/ContractOut"
+          },
+          "converted": {
+            "title": "Converted",
+            "type": "boolean"
+          },
+          "first_job_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Job At"
+          },
+          "joined_at": {
+            "title": "Joined At",
+            "type": "string"
+          },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "survey": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Survey"
+          },
+          "users": {
+            "title": "Users",
+            "type": "integer"
+          },
+          "was_trial": {
+            "title": "Was Trial",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "company",
+          "plan",
+          "joined_at",
+          "contract",
+          "churned_at",
+          "churn_reason",
+          "acq",
+          "survey",
+          "users",
+          "first_job_at",
+          "last_active_at",
+          "was_trial",
+          "converted"
+        ],
+        "title": "CompanyRow",
+        "type": "object"
+      },
+      "app__ops_overview__CompanyRow": {
+        "properties": {
+          "estimated_cost_usd": {
+            "title": "Estimated Cost Usd",
+            "type": "number"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "jobs": {
+            "title": "Jobs",
+            "type": "integer"
+          },
+          "members": {
+            "title": "Members",
+            "type": "integer"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "members",
+          "jobs",
+          "failed",
+          "estimated_cost_usd"
+        ],
+        "title": "CompanyRow",
         "type": "object"
       },
       "app__ops_usage__UsageResponse": {
@@ -6411,8 +6609,122 @@
     },
     "/internal/ops/customers": {
       "get": {
-        "description": "`from` / `to` select companies by their joining time (UTC, `to` excluded). `email_domain` is always null: e-mail addresses live with the identity provider.",
-        "operationId": "listOpsCustomers",
+        "description": "`AIS_API.ops.customers({from,to,group_by,by})`: per bucket and key: signups, churned, active_end, trials, converted (+ totals, coverage).",
+        "operationId": "getOpsCustomerStats",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_by",
+            "required": false,
+            "schema": {
+              "default": "month",
+              "enum": [
+                "month",
+                "year"
+              ],
+              "title": "Group By",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "by",
+            "required": false,
+            "schema": {
+              "default": "channel",
+              "enum": [
+                "channel",
+                "industry",
+                "size",
+                "plan"
+              ],
+              "title": "By",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomersResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Customers",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/internal/ops/customers/companies": {
+      "get": {
+        "description": "One row per company (company = workspace id; names and e-mail addresses live with the identity provider). `from`/`to` select by joining time.",
+        "operationId": "listOpsCompanies",
         "parameters": [
           {
             "in": "query",
@@ -6471,9 +6783,9 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/CustomerRow"
+                    "$ref": "#/components/schemas/app__customers__CompanyRow"
                   },
-                  "title": "Response Listopscustomers",
+                  "title": "Response Listopscompanies",
                   "type": "array"
                 }
               }
@@ -6491,15 +6803,119 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Ops Customers",
+        "summary": "Ops Companies",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/internal/ops/customers/retention": {
+      "get": {
+        "description": "Cohorts by joining month: how many companies had NOT churned n months after joining. A cell exists only when the cohort is at least n months old.",
+        "operationId": "getOpsCustomerRetention",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Retention",
         "tags": [
           "customers"
         ]
       }
     },
     "/internal/ops/customers/{workspace_id}/contract": {
+      "get": {
+        "operationId": "getOpsCustomerContract",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Contract",
+        "tags": [
+          "customers"
+        ]
+      },
       "put": {
-        "description": "Operator: set plan / contract dates / status. Setting status ``ended`` records ``churned_at`` (now) and the reason; going back to trial/active clears it.\nEvery changed field is written to the append-only history with the operator's id.",
+        "description": "Operator: set plan (a text slot, no amounts) / contract dates / status. A churn status (ended, cancelled) records ``churned_at`` (now, kept on later\nedits) and the reason; going back to trial/active clears it. Every changed field is written to the append-only history with the operator's id.",
         "operationId": "putOpsCustomerContract",
         "parameters": [
           {
@@ -6543,7 +6959,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerRow"
+                  "$ref": "#/components/schemas/ContractResponse"
                 }
               }
             },
@@ -6879,67 +7295,6 @@
           }
         },
         "summary": "Deep Health Diagnostics"
-      }
-    },
-    "/internal/ops/marketing": {
-      "get": {
-        "operationId": "getOpsMarketing",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "period",
-            "required": false,
-            "schema": {
-              "default": "m",
-              "enum": [
-                "m",
-                "y"
-              ],
-              "title": "Period",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Ops Marketing",
-        "tags": [
-          "customers"
-        ]
       }
     },
     "/internal/ops/metrics": {
@@ -14941,7 +15296,7 @@
     },
     "/v1/workspaces/{workspace_id}/acquisition": {
       "post": {
-        "description": "Owner only. The acquisition record is written ONCE (a second call keeps the first: first touch is the fact); the survey can be updated.",
+        "description": "Owner only, and only while collection is switched on. ``acq`` is written ONCE (a second call keeps the first: first touch is the fact);\n``survey`` can be updated. Neither carries an IP address, an e-mail address or a name.",
         "operationId": "recordWorkspaceAcquisition",
         "parameters": [
           {
