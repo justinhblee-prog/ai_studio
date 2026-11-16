@@ -1,7 +1,7 @@
 // Responsive layout: no screen may be wider than the viewport (a page that scrolls sideways is broken on phones and tablets).
 // Real: web bundle, backend, SQLite. Mocked: Supabase Auth. The 3D studio (WebGL) and the job review screen (needs a job) are not covered.
 import assert from 'node:assert/strict';
-import { startStack, chromium, loginThroughUi, gotoPage, newUserPage, seedSharedWorkspace, makeRunner, USERS } from './harness.mjs';
+import { startStack, chromium, loginThroughUi, gotoPage, newUserPage, seedSharedWorkspace, makeRunner, makePng, USERS } from './harness.mjs';
 
 const WIDTHS = [360, 390, 700, 701, 768, 840, 900, 901, 1024, 1280];
 const SCREENS = ['대시보드', '프로젝트 관리', '에셋 라이브러리', '상품 카탈로그', '프로젝트·상품 연결', '포토 스튜디오', '룩북 스튜디오'];
@@ -11,6 +11,11 @@ const browser = await chromium.launch();
 let failed = false;
 try {
   const seed = await seedSharedWorkspace(stack);  // gives the lists real content (long ids)
+  // A very long name with no place to break, like a long file name or id: the layout must wrap or clip it, never grow sideways (it did at 901 px).
+  const longForm = new FormData(); longForm.set('workspace_id', seed.workspace); longForm.set('rights_confirmed', 'true');
+  longForm.set('file', new Blob([makePng(24, 24, [90, 60, 30])], { type: 'image/png' }), 'x'.repeat(90) + '.png');
+  const longUp = await fetch(`${stack.apiUrl}/v1/assets/images`, { method: 'POST', headers: { Authorization: `Bearer ${USERS.owner.token}` }, body: longForm });
+  if (longUp.status !== 201) throw new Error('long-name image seed failed ' + longUp.status);
   const { context, page } = await newUserPage(browser, USERS.owner, { viewport: { width: 1280, height: 800 } });
   const { run, results } = makeRunner(page, stack);
   await run('login and select the seeded workspace', async () => {
@@ -27,8 +32,14 @@ try {
         await page.evaluate(() => document.fonts?.ready);
         await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
         await page.waitForTimeout(250);
-        const m = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
-        if (m.scroll > m.inner + 1) wide.push(`${screen}: ${m.scroll}px > ${m.inner}px`);
+        const m = await page.evaluate(() => {
+          const inner = window.innerWidth;
+          const offenders = [...document.querySelectorAll('body *')].map(el => ({ el, r: el.getBoundingClientRect() }))
+            .filter(({ r }) => r.width > 0 && r.right > inner + 1).slice(0, 4)
+            .map(({ el, r }) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''} right=${Math.round(r.right)} text="${(el.textContent || '').trim().slice(0, 40)}"`);
+          return { scroll: document.documentElement.scrollWidth, inner, offenders };
+        });
+        if (m.scroll > m.inner + 1) wide.push(`${screen}: ${m.scroll}px > ${m.inner}px [${m.offenders.join(' | ')}]`);
       }
       assert.deepEqual(wide, [], 'horizontal overflow on: ' + wide.join('; '));
     });
