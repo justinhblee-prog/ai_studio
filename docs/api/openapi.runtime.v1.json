@@ -472,6 +472,20 @@
         "title": "AttachIn",
         "type": "object"
       },
+      "Body_putWorkspaceLibraryThumbnail": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_putWorkspaceLibraryThumbnail",
+        "type": "object"
+      },
       "Body_uploadWorkspaceLibraryItem": {
         "properties": {
           "depicts_person": {
@@ -2329,6 +2343,17 @@
             "title": "Tags",
             "type": "array"
           },
+          "thumbnail_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Asset Id"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -3295,6 +3320,123 @@
           "services"
         ],
         "title": "MemberUsage",
+        "type": "object"
+      },
+      "ModelInfoOut": {
+        "properties": {
+          "animations": {
+            "title": "Animations",
+            "type": "integer"
+          },
+          "cameras": {
+            "title": "Cameras",
+            "type": "integer"
+          },
+          "extensions_used": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Extensions Used",
+            "type": "array"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "generator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generator"
+          },
+          "gltf_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gltf Version"
+          },
+          "images": {
+            "title": "Images",
+            "type": "integer"
+          },
+          "item_id": {
+            "title": "Item Id",
+            "type": "string"
+          },
+          "materials": {
+            "title": "Materials",
+            "type": "integer"
+          },
+          "meshes": {
+            "title": "Meshes",
+            "type": "integer"
+          },
+          "nodes": {
+            "title": "Nodes",
+            "type": "integer"
+          },
+          "primitives": {
+            "title": "Primitives",
+            "type": "integer"
+          },
+          "scenes": {
+            "title": "Scenes",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "skins": {
+            "title": "Skins",
+            "type": "integer"
+          },
+          "textures": {
+            "title": "Textures",
+            "type": "integer"
+          },
+          "triangles": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triangles"
+          }
+        },
+        "required": [
+          "item_id",
+          "format",
+          "gltf_version",
+          "generator",
+          "scenes",
+          "nodes",
+          "meshes",
+          "primitives",
+          "triangles",
+          "materials",
+          "textures",
+          "images",
+          "animations",
+          "skins",
+          "cameras",
+          "extensions_used",
+          "size_bytes"
+        ],
+        "title": "ModelInfoOut",
         "type": "object"
       },
       "NoticeRequest": {
@@ -14368,6 +14510,152 @@
           }
         },
         "summary": "Update Item",
+        "tags": [
+          "workspace-library"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/library/{item_id}/model-info": {
+      "get": {
+        "description": "R-049: counts read from the 3D file's own JSON (meshes, triangles, materials, textures, animations ...) for the library and the viewer.",
+        "operationId": "getWorkspaceLibraryModelInfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelInfoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Model Info",
+        "tags": [
+          "workspace-library"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/library/{item_id}/thumbnail": {
+      "put": {
+        "description": "R-049: the picture shown for a 3D item. The server has no GPU renderer, so the browser's 3D viewer renders it and uploads the result\n(a small PNG/JPEG/WebP, at most 1024 px and 2 MB). Replacing it removes the previous one. Only 3D items have a thumbnail (other kinds ARE images).",
+        "operationId": "putWorkspaceLibraryThumbnail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_putWorkspaceLibraryThumbnail"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryItemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Thumbnail",
         "tags": [
           "workspace-library"
         ]
