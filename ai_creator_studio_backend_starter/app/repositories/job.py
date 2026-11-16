@@ -216,6 +216,15 @@ class SQLiteJobRepository:
                 "SELECT (julianday(finished_at) - julianday(started_at)) * 86400.0 FROM generation_executions "
                 "WHERE finished_at IS NOT NULL AND started_at>=? AND started_at<?", (start, end)).fetchall() if r[0] is not None and r[0] >= 0]
 
+    def ops_failed_jobs(self, limit):
+        """Newest failed jobs of every workspace (R-043): ids, provider, error code, times. No payload, no message text, no addresses."""
+        storage, path, _ = self._context()
+        self.initialize()
+        with storage.transaction(path) as conn:
+            return [dict(r) for r in conn.execute(
+                "SELECT job_id, workspace_id, provider, error_code, created_at, updated_at FROM generation_jobs WHERE status='failed' "
+                "ORDER BY updated_at DESC, job_id DESC LIMIT ?", (limit,)).fetchall()]
+
     def get_idempotent(self, workspace_id, key):
         if self._impl is not None: return self._impl.get_idempotent_job(workspace_id, key)
         storage, path, _ = self._context()

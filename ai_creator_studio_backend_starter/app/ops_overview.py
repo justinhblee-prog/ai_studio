@@ -114,3 +114,48 @@ async def ops_overview(month: str | None = Query(default=None, max_length=7), us
         return build_overview(month)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail={"code": "INVALID_MONTH", "message": str(exc)}) from exc
+
+
+class FailedJob(BaseModel):
+    job_id: str
+    workspace_id: str
+    provider: str
+    error_code: str | None
+    created_at: str
+    updated_at: str
+
+
+class DownloadRow(BaseModel):
+    download_id: str
+    workspace_id: str
+    actor_id: str
+    kind: str
+    object_id: str
+    size_bytes: int
+    created_at: str
+
+
+def _require_operator(user_id: str) -> None:
+    if user_id not in config.OPS_ADMIN_USER_IDS:
+        raise HTTPException(status_code=403, detail="Platform operations role required")
+
+
+@router.get("/failed-jobs", response_model=list[FailedJob], operation_id="listOpsFailedJobs")
+async def ops_failed_jobs(limit: int = Query(default=50, ge=1, le=200), user_id: str = Depends(current_user)):
+    _require_operator(user_id)
+    from app.dependencies import get_job_repository
+    return get_job_repository().ops_failed_jobs(limit)
+
+
+@router.get("/downloads", response_model=list[DownloadRow], operation_id="listOpsDownloads")
+async def ops_downloads(limit: int = Query(default=50, ge=1, le=200), user_id: str = Depends(current_user)):
+    """The newest package downloads (who took what, when, how big) of every workspace: the download audit trail (R-035)."""
+    _require_operator(user_id)
+    from app import lookbook
+    lookbook.initialize()
+    db = lookbook._connect()
+    try:
+        return [dict(r) for r in db.execute("SELECT download_id, workspace_id, actor_id, kind, object_id, size_bytes, created_at FROM download_audit "
+                                            "ORDER BY created_at DESC, download_id DESC LIMIT ?", (limit,)).fetchall()]
+    finally:
+        db.close()

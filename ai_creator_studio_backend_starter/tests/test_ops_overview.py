@@ -119,3 +119,37 @@ def test_latency_percentiles_come_from_finished_executions_of_the_month(env):
     assert lat == {"count": 10, "avg": 5.5, "p50": 5.0, "p95": 10.0}
     assert overview(month="2026-10").json()["latency_seconds"] == {"count": 0, "avg": None, "p50": None, "p95": None}
     assert [percentile([], 50), percentile([5.0], 95), percentile([1.0, 2.0, 3.0, 4.0], 50)] == [None, 5.0, 2.0]
+
+
+def test_failed_jobs_list_is_operator_only_newest_first_and_metadata_only(env):
+    import app.config as config
+    ids = [job("co-paid", "a", n) for n in range(3)]
+    db = sqlite3.connect(config.GENERATION_DATABASE_PATH)
+    for i, job_id in enumerate(ids[:2]):
+        db.execute("UPDATE generation_jobs SET status='failed', error_code=?, updated_at=? WHERE job_id=?",
+                   (f"PROVIDER_GENERATION_FAILED", f"2026-11-16T10:00:0{i}+00:00", job_id))
+    db.commit()
+    assert client.get("/internal/ops/failed-jobs").status_code == 401
+    assert client.get("/internal/ops/failed-jobs", headers=auth("a")).status_code == 403
+    rows = client.get("/internal/ops/failed-jobs", headers=auth("o")).json()
+    assert [r["job_id"] for r in rows] == [ids[1], ids[0]], "newest first, the healthy job is not listed"
+    assert rows[0]["error_code"] == "PROVIDER_GENERATION_FAILED" and rows[0]["workspace_id"] == "co-paid"
+    assert set(rows[0]) == {"job_id", "workspace_id", "provider", "error_code", "created_at", "updated_at"}
+    assert len(client.get("/internal/ops/failed-jobs", headers=auth("o"), params={"limit": 1}).json()) == 1
+    assert client.get("/internal/ops/failed-jobs", headers=auth("o"), params={"limit": 0}).status_code == 422
+
+
+def test_downloads_list_is_operator_only_newest_first(env):
+    import app.config as config
+    from app import lookbook
+    lookbook.initialize()
+    db = sqlite3.connect(config.ASSET_DATABASE_PATH)
+    for i in range(3):
+        db.execute("INSERT INTO download_audit(download_id,workspace_id,actor_id,kind,object_id,size_bytes,created_at) VALUES(?,?,?,?,?,?,?)",
+                   (f"dl_{i}", "co-paid", "user-a", "lookbook_package", f"lbx_{i}", 100 + i, f"2026-11-16T10:00:0{i}+00:00"))
+    db.commit()
+    assert client.get("/internal/ops/downloads").status_code == 401
+    assert client.get("/internal/ops/downloads", headers=auth("b")).status_code == 403
+    rows = client.get("/internal/ops/downloads", headers=auth("o")).json()
+    assert [r["download_id"] for r in rows] == ["dl_2", "dl_1", "dl_0"] and rows[0]["size_bytes"] == 102
+    assert len(client.get("/internal/ops/downloads", headers=auth("o"), params={"limit": 2}).json()) == 2

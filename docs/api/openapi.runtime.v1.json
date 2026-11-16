@@ -909,6 +909,49 @@
         "title": "DeletionRequestInput",
         "type": "object"
       },
+      "DownloadRow": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "download_id": {
+            "title": "Download Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "object_id": {
+            "title": "Object Id",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "download_id",
+          "workspace_id",
+          "actor_id",
+          "kind",
+          "object_id",
+          "size_bytes",
+          "created_at"
+        ],
+        "title": "DownloadRow",
+        "type": "object"
+      },
       "EngineInfo": {
         "properties": {
           "configured": {
@@ -1025,6 +1068,51 @@
           "total"
         ],
         "title": "EventListResponse",
+        "type": "object"
+      },
+      "FailedJob": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "workspace_id",
+          "provider",
+          "error_code",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FailedJob",
         "type": "object"
       },
       "FeatureState": {
@@ -4411,6 +4499,137 @@
           }
         },
         "summary": "Get Operational Alerts"
+      }
+    },
+    "/internal/ops/downloads": {
+      "get": {
+        "description": "The newest package downloads (who took what, when, how big) of every workspace: the download audit trail (R-035).",
+        "operationId": "listOpsDownloads",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DownloadRow"
+                  },
+                  "title": "Response Listopsdownloads",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Downloads",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/internal/ops/failed-jobs": {
+      "get": {
+        "operationId": "listOpsFailedJobs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FailedJob"
+                  },
+                  "title": "Response Listopsfailedjobs",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Failed Jobs",
+        "tags": [
+          "ops"
+        ]
       }
     },
     "/internal/ops/health": {
