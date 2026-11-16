@@ -198,7 +198,11 @@ def get_provider_for_job(job: dict[str, Any]):
 
 
 def public_job(job: dict[str, Any]) -> JobResponse:
-    return JobResponse(**{k: v for k, v in job.items() if k in JobResponse.model_fields})
+    data = {k: v for k, v in job.items() if k in JobResponse.model_fields}
+    payload = job.get("payload") or {}
+    for key in ("style", "region", "prompt_prefix"):   # R-059: echoed from the stored request
+        data[key] = payload.get(key)
+    return JobResponse(**data)
 
 
 def require_platform_ops(user_id: str) -> None:

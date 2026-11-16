@@ -8,6 +8,7 @@ provider's server key, an open decision), operators only (``OPS_ADMIN_USER_IDS``
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import json
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -35,6 +36,7 @@ COVERAGE = {
 }
 GLOBAL_NOT_MEASURED = ["blocked: jobs refused by a limit (HTTP 429) are not stored, so blocked is always 0 here",
                        "company/user names and e-mails: identity provider server key not available (ids only)",
+                       "style / region: recorded only on try-on jobs (the one generation job the server has); every other service counts as 'unknown'",
                        "real provider invoices: cost_usd is unit price x count, never reconciled with a bill"]
 
 
@@ -58,9 +60,9 @@ def collect_events(start: str, end: str) -> tuple[list[dict[str, Any]], list[str
     events: list[dict[str, Any]] = []
     truncated: list[str] = []
 
-    def add(service, t, ws, user, provider, status, cost=0.0, duration_ms=None, size=None):
+    def add(service, t, ws, user, provider, status, cost=0.0, duration_ms=None, size=None, style="unknown", region="unknown"):
         events.append({"t": t, "company": ws, "user": user, "service": service, "provider": provider, "status": status,
-                       "cost": cost, "duration_ms": duration_ms, "bytes": size})
+                       "cost": cost, "duration_ms": duration_ms, "bytes": size, "style": style, "region": region})
 
     from app.dependencies import get_job_repository
     jobs = get_job_repository().ops_usage_rows(start, end, ROW_CAP)
@@ -69,7 +71,12 @@ def collect_events(start: str, end: str) -> tuple[list[dict[str, Any]], list[str
     for r in jobs:
         status = STATUS.get(r["status"], "pending")
         billed = 0 if r["provider"] == cost_cap.MOCK_PROVIDER else (1 if (status != "failed" or cost_cap.bills_failed(r["provider"])) and status != "pending" else 0)
-        add("tryon", r["created_at"], r["workspace_id"], r["owner_id"], r["provider"], status, billed * cost_cap.unit_cost(r["provider"]))
+        try:
+            sent = json.loads(r.get("payload_json") or "{}")
+        except ValueError:
+            sent = {}
+        add("tryon", r["created_at"], r["workspace_id"], r["owner_id"], r["provider"], status, billed * cost_cap.unit_cost(r["provider"]),
+            style=sent.get("style") or "unknown", region=sent.get("region") or "unknown")
     with store._connect() as db:
         store.initialize()
         def rows(sql, args):
@@ -169,7 +176,7 @@ class UsageResponse(BaseModel):
 
 @router.get("/usage", response_model=UsageResponse, response_model_by_alias=True, operation_id="getOpsUsage")
 async def ops_usage(granularity: Literal["hour", "day", "month"] = Query(default="day", alias="group_by"),
-                    by: Literal["company", "user", "service", "provider"] = "service",
+                    by: Literal["company", "user", "service", "provider", "style", "region"] = "service",
                     start: str | None = Query(default=None, alias="from", max_length=40), end: str | None = Query(default=None, alias="to", max_length=40),
                     user_id: str = Depends(current_user)):
     if user_id not in config.OPS_ADMIN_USER_IDS:
