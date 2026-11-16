@@ -452,6 +452,11 @@ def delete_asset(asset_id: str, workspace_id: str, actor_id: str = "system") -> 
         path = (root / key).resolve()
         if path.parent == root:
             path.unlink(missing_ok=True)
+    thumbs = root / "thumbs"        # R-061: the display pictures made from this asset go with it
+    if thumbs.is_dir():
+        for key in keys:
+            for derived in thumbs.glob(f"{Path(key).stem}.*.webp"):
+                derived.unlink(missing_ok=True)
     return True
 
 

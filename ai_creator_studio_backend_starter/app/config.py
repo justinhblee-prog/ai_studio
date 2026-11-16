@@ -66,6 +66,9 @@ ASSIST_INTERPRETER_MODE = os.getenv("ASSIST_INTERPRETER_MODE", "rules").strip().
 ASSIST_PER_MINUTE = int(os.getenv("ASSIST_PER_MINUTE", "30"))            # per user, every interpreter
 ASSIST_LLM_DAILY_LIMIT = int(os.getenv("ASSIST_LLM_DAILY_LIMIT", "200"))  # per workspace, only external (llm) interpretations
 VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT", "20"))   # R-050: video jobs per workspace per 24h (proposal; also bounds mock storage)
+# R-061: pictures (PNG/JPEG/WebP) may be at most this big (the general ASSET_MAX_UPLOAD_BYTES still applies to 3D files); display sizes are made on demand/at save.
+IMAGE_MAX_UPLOAD_BYTES = int(os.getenv("IMAGE_MAX_UPLOAD_BYTES", str(25 * 1024 * 1024)))
+THUMB_SIZES = (480, 960)
 # R-057: collection of acquisition / survey values is OFF until the privacy-notice wording and the retention period are decided (legal).
 CUSTOMER_STATS_COLLECTION = env_flag(os.getenv("CUSTOMER_STATS_COLLECTION"))
 LIBRARY_PREVIEW_MAX_EDGE = int(os.getenv("LIBRARY_PREVIEW_MAX_EDGE", "1200"))  # library images are shown downscaled, never at original size

@@ -121,7 +121,8 @@ def validate_image_upload(filename: str, content: bytes, *, max_bytes: int = MAX
     """Decode and verify a single-frame PNG/JPEG/WebP image with bounded dimensions."""
     if not isinstance(content, bytes) or not content:
         raise AssetValidationError("ASSET_EMPTY", "The uploaded image is empty.")
-    if len(content) > max_bytes:
+    from app import config as _config
+    if len(content) > min(max_bytes, _config.IMAGE_MAX_UPLOAD_BYTES):   # R-061: pictures have their own (smaller) ceiling
         raise AssetValidationError("ASSET_TOO_LARGE", "The uploaded image exceeds the configured size limit.")
     suffix = PurePosixPath(filename.replace("\\", "/")).suffix.lower()
     try:
