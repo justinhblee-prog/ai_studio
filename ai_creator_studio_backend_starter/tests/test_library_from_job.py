@@ -138,7 +138,11 @@ def test_a_deleted_result_asset_cannot_be_filed(linked_output_env):
     finally:
         wl.file_generated_output = original
     asset_id = approved.json()["output"]["asset_id"]
-    assert client.delete(f"/v1/assets/{asset_id}", headers=A).status_code in (200, 204)
+    import sqlite3
+    import app.config as config
+    assert client.delete(f"/v1/assets/{asset_id}", headers=A).status_code == 409, "a generated output is removed only through the retention workflow"
+    with sqlite3.connect(config.ASSET_DATABASE_PATH) as c:      # the retention workflow's end state: the asset is soft-deleted
+        c.execute("UPDATE assets SET deleted_at='2026-01-01T00:00:00+00:00' WHERE asset_id=?", (asset_id,))
     r = from_job({"job_id": job_id})
     assert r.status_code == 409 and r.json()["detail"]["code"] == "OUTPUT_UNAVAILABLE" and lib()["total"] == 0
 
