@@ -1609,6 +1609,55 @@
         "title": "JobResponse",
         "type": "object"
       },
+      "Latency": {
+        "properties": {
+          "avg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P50"
+          },
+          "p95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95"
+          }
+        },
+        "required": [
+          "count",
+          "avg",
+          "p50",
+          "p95"
+        ],
+        "title": "Latency",
+        "type": "object"
+      },
       "LibraryImportRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2719,6 +2768,9 @@
             "title": "Jobs",
             "type": "integer"
           },
+          "latency_seconds": {
+            "$ref": "#/components/schemas/Latency"
+          },
           "month": {
             "title": "Month",
             "type": "string"
@@ -2733,6 +2785,7 @@
         },
         "required": [
           "month",
+          "latency_seconds",
           "jobs",
           "failed",
           "failure_rate",
