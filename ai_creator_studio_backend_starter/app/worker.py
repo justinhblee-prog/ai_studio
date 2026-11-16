@@ -31,12 +31,14 @@ async def process_one(repository=None) -> bool:
         from app import cost_cap
         if provider.name != cost_cap.MOCK_PROVIDER and cost_cap.kill_switch_on():
             raise RuntimeError("AI_JOBS_DISABLED")
+        from app import tryon_inputs   # R-046: signed addresses for picked library items are made NOW (short-lived, never stored)
+        payload = tryon_inputs.resolve_payload(job["payload"], for_provider=provider.name != cost_cap.MOCK_PROVIDER)
         if provider.name == cost_cap.MOCK_PROVIDER:
-            started = await provider.start(job["payload"])
+            started = await provider.start(payload)
         else:  # R-037: stay below the provider's own concurrency and rate limits
             from app.throttle import throttle_for
             async with throttle_for(provider.name).slot():
-                started = await provider.start(job["payload"])
+                started = await provider.start(payload)
         request_id = started.get("request_id")
         if not request_id:
             raise RuntimeError("Provider response did not contain a request id.")

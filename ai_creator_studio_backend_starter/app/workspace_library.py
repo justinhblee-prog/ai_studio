@@ -266,3 +266,23 @@ async def remove_item(workspace_id: str, item_id: str, delete_asset: bool = Quer
         _init(db)
         db.execute("DELETE FROM workspace_library_items WHERE item_id=?", (item_id,))
     return None
+
+
+def file_generated_output(workspace_id: str, asset_id: str | None, user_id: str, name: str) -> str:
+    """R-046: file an APPROVED generated output under 'render' in the workspace library. Never raises (the approval must not fail because
+    of the library): returns 'filed', 'exists', 'full' or 'skipped'. The origin is read from the asset's provenance like everywhere else."""
+    if not asset_id:
+        return "skipped"
+    try:
+        with store._connect() as db:
+            _init(db)
+            if db.execute("SELECT 1 FROM workspace_library_items WHERE workspace_id=? AND asset_id=?", (workspace_id, asset_id)).fetchone():
+                return "exists"
+            try:
+                _check_caps(db, workspace_id, "render")
+            except HTTPException:
+                return "full"
+            _insert(db, workspace_id, user_id, asset_id, "render", name[:MAX_NAME], [])
+        return "filed"
+    except Exception:  # noqa: BLE001
+        return "skipped"
