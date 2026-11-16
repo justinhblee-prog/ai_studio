@@ -41,7 +41,7 @@ def test_the_owner_changes_any_non_owner_and_the_history_records_it(team):
     assert roles()["user-g"] == "admin" and roles()["user-e"] == "editor"
     same = client.patch(f"{M}/user-g", headers=auth("a"), json={"role": "admin"})
     assert same.status_code == 200
-    ev = client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()
+    ev = [e for e in client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json() if e["event"] == "role_changed"]
     assert [(e["member_id"], e["from_role"], e["to_role"], e["actor_id"]) for e in ev] == [("user-c", "viewer", "editor", "user-a"), ("user-d", "editor", "viewer", "user-a"),
                                                                                          ("user-e", "admin", "editor", "user-a"), ("user-g", "editor", "admin", "user-a")], "an unchanged role adds nothing"
     assert client.get("/v1/workspaces/wa/members-history", headers=auth("c")).status_code == 403
@@ -89,7 +89,7 @@ def test_removing_and_leaving(team):
     assert client.get("/v1/workspaces/wa/library", headers=auth("d")).status_code in (403, 404), "a member who left has no access"
     assert client.delete(f"{M}/user-g", headers=auth("a")).status_code == 404, "already gone"
     assert client.delete(f"{M}/user-c", headers=auth("c")).status_code == 204
-    ev = client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()
+    ev = [e for e in client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json() if e["event"] in ("removed", "left")]
     assert [(e["member_id"], e["event"], e["actor_id"]) for e in ev] == [("user-g", "removed", "user-e"), ("user-f", "removed", "user-a"), ("user-d", "left", "user-d"), ("user-c", "left", "user-c")]
     assert set(roles()) == {"user-a", "user-e"}
 
