@@ -22,8 +22,9 @@ const upload = async (token, workspace, name, color) => {
   const f = new FormData(); f.set('workspace_id', workspace); f.set('rights_confirmed', 'true');
   f.set('file', new Blob([makePng(24, 24, color)], { type: 'image/png' }), name);
   const r = await fetch(`${stack.apiUrl}/v1/assets/images`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: f });
-  assert.equal(r.status, 201, await r.text());
-  return (await r.json()).asset_id;
+  const body = await r.json().catch(() => ({}));
+  assert.equal(r.status, 201, JSON.stringify(body));
+  return body.asset_id;
 };
 const files = () => readdirSync(paths.assets);
 try {
