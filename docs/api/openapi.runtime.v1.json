@@ -1369,6 +1369,30 @@
             ],
             "title": "Prompt"
           },
+          "prompt_prefix": {
+            "anyOf": [
+              {
+                "maxLength": 400,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Prefix"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
           "resolution": {
             "default": "2k",
             "enum": [
@@ -1378,6 +1402,18 @@
             ],
             "title": "Resolution",
             "type": "string"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style"
           },
           "workspace_id": {
             "maxLength": 64,
@@ -2592,6 +2628,17 @@
             ],
             "title": "Output Url"
           },
+          "prompt_prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Prefix"
+          },
           "provider": {
             "title": "Provider",
             "type": "string"
@@ -2607,6 +2654,17 @@
             ],
             "title": "Provider Request Id"
           },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
           "status": {
             "enum": [
               "queued",
@@ -2617,6 +2675,17 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style"
           }
         },
         "required": [
@@ -7804,7 +7873,9 @@
                 "company",
                 "user",
                 "service",
-                "provider"
+                "provider",
+                "style",
+                "region"
               ],
               "title": "By",
               "type": "string"
