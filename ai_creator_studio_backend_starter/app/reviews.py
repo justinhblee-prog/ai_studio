@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from app import takedown
 from app.assets import store
@@ -290,8 +290,8 @@ class SettingsOut(BaseModel):
 
 class SettingsPatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    require_review_for_export: bool | None = None
-    forbid_self_approval: bool | None = None
+    require_review_for_export: StrictBool | None = None      # a real true / false (not "yes", not 1)
+    forbid_self_approval: StrictBool | None = None
 
 
 class SettingsEventOut(BaseModel):
