@@ -4760,6 +4760,96 @@
         "title": "ManifestExportResponse",
         "type": "object"
       },
+      "MeOut": {
+        "properties": {
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          },
+          "workspaces": {
+            "items": {
+              "$ref": "#/components/schemas/MeWorkspace"
+            },
+            "title": "Workspaces",
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_id",
+          "workspaces"
+        ],
+        "title": "MeOut",
+        "type": "object"
+      },
+      "MeWorkspace": {
+        "properties": {
+          "role": {
+            "enum": [
+              "owner",
+              "admin",
+              "editor",
+              "viewer"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "role"
+        ],
+        "title": "MeWorkspace",
+        "type": "object"
+      },
+      "MemberListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemberOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "MemberListOut",
+        "type": "object"
+      },
+      "MemberOut": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "admin",
+              "editor",
+              "viewer"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "role",
+          "created_at"
+        ],
+        "title": "MemberOut",
+        "type": "object"
+      },
       "MemberUsage": {
         "properties": {
           "failed": {
@@ -6742,6 +6832,25 @@
         "title": "ReviewOut",
         "type": "object"
       },
+      "RolePatch": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "admin",
+              "editor",
+              "viewer"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "RolePatch",
+        "type": "object"
+      },
       "RollupBucket": {
         "properties": {
           "bucket": {
@@ -7649,6 +7758,58 @@
           "member_since"
         ],
         "title": "ProfileOut",
+        "type": "object"
+      },
+      "app__members__EventOut": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "at": {
+            "title": "At",
+            "type": "string"
+          },
+          "event": {
+            "title": "Event",
+            "type": "string"
+          },
+          "from_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Role"
+          },
+          "member_id": {
+            "title": "Member Id",
+            "type": "string"
+          },
+          "to_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Role"
+          }
+        },
+        "required": [
+          "at",
+          "actor_id",
+          "member_id",
+          "event",
+          "from_role",
+          "to_role"
+        ],
+        "title": "EventOut",
         "type": "object"
       },
       "app__ops_overview__CompanyRow": {
@@ -15400,6 +15561,56 @@
         ]
       }
     },
+    "/v1/me": {
+      "get": {
+        "description": "The caller's id and the workspaces they belong to (with their role). No name or e-mail: the server does not know them.",
+        "operationId": "getMe",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "members"
+        ]
+      }
+    },
     "/v1/me/consents": {
       "get": {
         "description": "Optional consents (default: not granted). Separate from accepting the terms and privacy policy.",
@@ -19670,6 +19881,62 @@
       }
     },
     "/v1/workspaces/{workspace_id}/members": {
+      "get": {
+        "operationId": "listWorkspaceMembers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Members",
+        "tags": [
+          "members"
+        ]
+      },
       "post": {
         "operationId": "add_member_v1_workspaces__workspace_id__members_post",
         "parameters": [
@@ -19732,6 +19999,203 @@
         "summary": "Add Member",
         "tags": [
           "workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/members-history": {
+      "get": {
+        "operationId": "listWorkspaceMemberEvents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/app__members__EventOut"
+                  },
+                  "title": "Response Listworkspacememberevents",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Member History",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/members/{member_id}": {
+      "delete": {
+        "operationId": "removeWorkspaceMember",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "title": "Member Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Member",
+        "tags": [
+          "members"
+        ]
+      },
+      "patch": {
+        "operationId": "changeWorkspaceMemberRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "title": "Member Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Role",
+        "tags": [
+          "members"
         ]
       }
     },
