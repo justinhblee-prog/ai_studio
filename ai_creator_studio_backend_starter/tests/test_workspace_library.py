@@ -56,7 +56,8 @@ def test_upload_image_creates_asset_and_item_with_server_origin_and_rights_recor
     assert rights.status_code == 200 and rights.json()["depicts_person"] is False, "the declaration is recorded like any image upload"
 
 
-def test_image_upload_needs_the_rights_declaration_and_nothing_is_stored_without_it(env):
+def test_image_upload_needs_the_rights_declaration_and_nothing_is_stored_without_it(env, monkeypatch):
+    monkeypatch.setattr(config, "ASSET_REQUIRE_RIGHTS_CONFIRMATION", True)
     r = client.post("/v1/workspaces/wa/library", headers=auth("a"), data={"kind": "model", "name": "x"}, files={"file": ("a.png", png(), "image/png")})
     assert r.status_code == 422
     assert lib().json()["total"] == 0
