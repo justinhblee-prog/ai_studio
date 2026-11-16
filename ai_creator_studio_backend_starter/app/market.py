@@ -43,7 +43,7 @@ def _init(db) -> None:
         status TEXT NOT NULL CHECK(status IN ('active','deleted')), created_at TEXT NOT NULL, updated_at TEXT NOT NULL, published_at TEXT, version INTEGER NOT NULL DEFAULT 1)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_market_public ON market_listings(visibility, status, created_at)")
     db.execute("""CREATE TABLE IF NOT EXISTS market_reports (
-        report_id TEXT PRIMARY KEY, listing_id TEXT NOT NULL, reporter_id TEXT NOT NULL, reason TEXT NOT NULL, details TEXT, status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL)""")
+        report_id TEXT PRIMARY KEY, listing_id TEXT NOT NULL REFERENCES market_listings(listing_id), reporter_id TEXT NOT NULL, reason TEXT NOT NULL, details TEXT, status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL)""")
     db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_market_reports_open ON market_reports(listing_id, reporter_id) WHERE status='open'")
     db.execute("""CREATE TABLE IF NOT EXISTS market_profiles (
         user_id TEXT PRIMARY KEY, display_name TEXT NOT NULL, bio TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
