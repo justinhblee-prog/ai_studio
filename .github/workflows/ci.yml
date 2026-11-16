@@ -162,6 +162,13 @@ jobs:
           set -o pipefail
           node e2e/library_flow.mjs | tee e2e_library.txt
           grep -q "SUMMARY 7/7 library steps passed" e2e_library.txt
+      - name: 3D Studio, viewing (R-038)
+        if: matrix.group == 'a'
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          node e2e/threed_flow.mjs | tee e2e_threed.txt
+          grep -q "SUMMARY 6/6 three-d steps passed" e2e_threed.txt
       - name: Brand model profiles (R-039)
         if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
