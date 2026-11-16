@@ -39,6 +39,7 @@ from app.ops_overview import router as ops_overview_router
 from app.photo_engine import router as photo_drafts_router
 from app.photo_steps_routes import router as photo_steps_router
 from app.photo_presets import router as photo_presets_router
+from app.workspace_library import router as workspace_library_router
 from app.lookbook import router as lookbook_drafts_router
 from app.products import router as products_router
 from app.project_products import router as project_products_router
@@ -135,6 +136,7 @@ app.include_router(moderation_router)
 app.include_router(photo_drafts_router)
 app.include_router(photo_steps_router)
 app.include_router(photo_presets_router)
+app.include_router(workspace_library_router)
 app.include_router(lookbook_drafts_router)
 app.include_router(products_router)
 app.include_router(project_products_router)

@@ -54,6 +54,10 @@ APP_CORS_ORIGINS = tuple(origin.strip() for origin in os.getenv("APP_CORS_ORIGIN
 # (APP_CORS_ORIGINS) a request must carry a matching Origin or Referer header (PREVIEW_REQUIRE_ORIGIN=0 switches the check off).
 PREVIEW_REQUIRE_ORIGIN = env_flag_default_on(os.getenv("PREVIEW_REQUIRE_ORIGIN"))
 PREVIEW_ALLOWED_ORIGINS = tuple(o.rstrip("/") for o in APP_CORS_ORIGINS)
+# R-045 "my library" (workspace-owned items): proposed limits, change by environment.
+WORKSPACE_LIBRARY_MAX_ITEMS = int(os.getenv("WORKSPACE_LIBRARY_MAX_ITEMS", "500"))
+WORKSPACE_LIBRARY_MAX_3D = int(os.getenv("WORKSPACE_LIBRARY_MAX_3D", "50"))
+WORKSPACE_LIBRARY_MAX_3D_BYTES = int(os.getenv("WORKSPACE_LIBRARY_MAX_3D_BYTES", str(50 * 1024 * 1024)))
 LIBRARY_PREVIEW_MAX_EDGE = int(os.getenv("LIBRARY_PREVIEW_MAX_EDGE", "1200"))  # library images are shown downscaled, never at original size
 # Package downloads per workspace per calendar month (UTC). 0 = no limit: the value is a product decision that has not been made yet.
 DOWNLOAD_MONTHLY_LIMIT = int(os.getenv("DOWNLOAD_MONTHLY_LIMIT", "0"))
