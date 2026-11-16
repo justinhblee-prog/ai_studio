@@ -5215,64 +5215,67 @@
         "title": "SelectOut",
         "type": "object"
       },
-      "UsageResponse": {
+      "UsageRow": {
         "properties": {
+          "blocked": {
+            "title": "Blocked",
+            "type": "integer"
+          },
+          "bucket": {
+            "title": "Bucket",
+            "type": "string"
+          },
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "duration_ms_count": {
+            "title": "Duration Ms Count",
+            "type": "integer"
+          },
+          "duration_ms_total": {
+            "title": "Duration Ms Total",
+            "type": "integer"
+          },
+          "estimated_cost_usd": {
+            "title": "Estimated Cost Usd",
+            "type": "number"
+          },
+          "events": {
+            "title": "Events",
+            "type": "integer"
+          },
           "failed": {
             "title": "Failed",
             "type": "integer"
           },
-          "jobs": {
-            "title": "Jobs",
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "pending": {
+            "title": "Pending",
             "type": "integer"
           },
-          "limit": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/LimitInfo"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "members": {
-            "items": {
-              "$ref": "#/components/schemas/MemberUsage"
-            },
-            "title": "Members",
-            "type": "array"
-          },
-          "month": {
-            "title": "Month",
-            "type": "string"
-          },
-          "scope": {
-            "title": "Scope",
-            "type": "string"
-          },
-          "services": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "title": "Services",
-            "type": "object"
-          },
-          "workspace_id": {
-            "title": "Workspace Id",
-            "type": "string"
+          "success": {
+            "title": "Success",
+            "type": "integer"
           }
         },
         "required": [
-          "workspace_id",
-          "month",
-          "scope",
-          "jobs",
+          "bucket",
+          "key",
+          "events",
+          "success",
           "failed",
-          "services",
-          "limit",
-          "members"
+          "pending",
+          "blocked",
+          "estimated_cost_usd",
+          "duration_ms_total",
+          "duration_ms_count",
+          "bytes"
         ],
-        "title": "UsageResponse",
+        "title": "UsageRow",
         "type": "object"
       },
       "ValidationError": {
@@ -5513,6 +5516,141 @@
           "finished_at"
         ],
         "title": "VideoOut",
+        "type": "object"
+      },
+      "app__ops_usage__UsageResponse": {
+        "properties": {
+          "by": {
+            "title": "By",
+            "type": "string"
+          },
+          "coverage": {
+            "additionalProperties": true,
+            "title": "Coverage",
+            "type": "object"
+          },
+          "from": {
+            "title": "From",
+            "type": "string"
+          },
+          "granularity": {
+            "title": "Granularity",
+            "type": "string"
+          },
+          "limits": {
+            "additionalProperties": true,
+            "title": "Limits",
+            "type": "object"
+          },
+          "not_measured": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Measured",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/UsageRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "storage_bytes_now": {
+            "title": "Storage Bytes Now",
+            "type": "integer"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          },
+          "totals": {
+            "additionalProperties": true,
+            "title": "Totals",
+            "type": "object"
+          },
+          "truncated_services": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Truncated Services",
+            "type": "array"
+          }
+        },
+        "required": [
+          "granularity",
+          "by",
+          "from",
+          "to",
+          "rows",
+          "totals",
+          "truncated_services",
+          "storage_bytes_now",
+          "limits",
+          "coverage",
+          "not_measured"
+        ],
+        "title": "UsageResponse",
+        "type": "object"
+      },
+      "app__usage__UsageResponse": {
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "jobs": {
+            "title": "Jobs",
+            "type": "integer"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LimitInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberUsage"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "services": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Services",
+            "type": "object"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "month",
+          "scope",
+          "jobs",
+          "failed",
+          "services",
+          "limit",
+          "members"
+        ],
+        "title": "UsageResponse",
         "type": "object"
       }
     }
@@ -6480,6 +6618,120 @@
           }
         },
         "summary": "Runtime Readiness Diagnostics"
+      }
+    },
+    "/internal/ops/usage": {
+      "get": {
+        "operationId": "getOpsUsage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "group_by",
+            "required": false,
+            "schema": {
+              "default": "day",
+              "enum": [
+                "hour",
+                "day",
+                "month"
+              ],
+              "title": "Group By",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "by",
+            "required": false,
+            "schema": {
+              "default": "service",
+              "enum": [
+                "company",
+                "user",
+                "service",
+                "provider"
+              ],
+              "title": "By",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__ops_usage__UsageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Usage",
+        "tags": [
+          "ops"
+        ]
       }
     },
     "/internal/ops/workers": {
@@ -15586,7 +15838,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UsageResponse"
+                  "$ref": "#/components/schemas/app__usage__UsageResponse"
                 }
               }
             },
