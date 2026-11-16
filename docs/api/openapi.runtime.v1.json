@@ -685,6 +685,39 @@
         "title": "CharacterResponse",
         "type": "object"
       },
+      "CompanyRow": {
+        "properties": {
+          "estimated_cost_usd": {
+            "title": "Estimated Cost Usd",
+            "type": "number"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "jobs": {
+            "title": "Jobs",
+            "type": "integer"
+          },
+          "members": {
+            "title": "Members",
+            "type": "integer"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "members",
+          "jobs",
+          "failed",
+          "estimated_cost_usd"
+        ],
+        "title": "CompanyRow",
+        "type": "object"
+      },
       "ConsentInput": {
         "additionalProperties": false,
         "properties": {
@@ -697,6 +730,39 @@
           "granted"
         ],
         "title": "ConsentInput",
+        "type": "object"
+      },
+      "Controls": {
+        "properties": {
+          "global_monthly_limit": {
+            "title": "Global Monthly Limit",
+            "type": "integer"
+          },
+          "kill_switch_on": {
+            "title": "Kill Switch On",
+            "type": "boolean"
+          },
+          "stop_percent": {
+            "title": "Stop Percent",
+            "type": "integer"
+          },
+          "usd_limit_month_configured": {
+            "title": "Usd Limit Month Configured",
+            "type": "boolean"
+          },
+          "workspace_monthly_limit": {
+            "title": "Workspace Monthly Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kill_switch_on",
+          "workspace_monthly_limit",
+          "global_monthly_limit",
+          "stop_percent",
+          "usd_limit_month_configured"
+        ],
+        "title": "Controls",
         "type": "object"
       },
       "CreateTryOnJob": {
@@ -2621,6 +2687,64 @@
         "title": "OutputReviewInput",
         "type": "object"
       },
+      "OverviewResponse": {
+        "properties": {
+          "active_companies": {
+            "title": "Active Companies",
+            "type": "integer"
+          },
+          "companies": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyRow"
+            },
+            "title": "Companies",
+            "type": "array"
+          },
+          "controls": {
+            "$ref": "#/components/schemas/Controls"
+          },
+          "estimated_cost_usd": {
+            "title": "Estimated Cost Usd",
+            "type": "number"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "failure_rate": {
+            "title": "Failure Rate",
+            "type": "number"
+          },
+          "jobs": {
+            "title": "Jobs",
+            "type": "integer"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderRow"
+            },
+            "title": "Providers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "month",
+          "jobs",
+          "failed",
+          "failure_rate",
+          "estimated_cost_usd",
+          "active_companies",
+          "providers",
+          "companies",
+          "controls"
+        ],
+        "title": "OverviewResponse",
+        "type": "object"
+      },
       "PhotoDraftInput": {
         "additionalProperties": false,
         "properties": {
@@ -3684,6 +3808,34 @@
         "title": "ProjectUpdate",
         "type": "object"
       },
+      "ProviderRow": {
+        "properties": {
+          "estimated_cost_usd": {
+            "title": "Estimated Cost Usd",
+            "type": "number"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "jobs": {
+            "title": "Jobs",
+            "type": "integer"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "jobs",
+          "failed",
+          "estimated_cost_usd"
+        ],
+        "title": "ProviderRow",
+        "type": "object"
+      },
       "ReconcileProviderSubmission": {
         "properties": {
           "action": {
@@ -4297,6 +4449,72 @@
           }
         },
         "summary": "Get Operational Metrics"
+      }
+    },
+    "/internal/ops/overview": {
+      "get": {
+        "operationId": "getOpsOverview",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 7,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Overview",
+        "tags": [
+          "ops"
+        ]
       }
     },
     "/internal/ops/poll-tasks": {
