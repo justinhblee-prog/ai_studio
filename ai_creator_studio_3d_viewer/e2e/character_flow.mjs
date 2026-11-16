@@ -61,7 +61,8 @@ try {
   });
 
   await run('deleting asks twice, and the profile is gone afterwards', async () => {
-    const before = await list().count();
+    const before = (await chars()).length;   // the server's count, not the screen's: the list re-reads after the "created" message shows
+    await page.waitForFunction(n => document.querySelectorAll('ul[aria-label="프로필 목록"] li').length === n, before, { timeout: 10000 });
     await list().filter({ hasText: '내 브랜드 모델' }).getByRole('button', { name: '삭제' }).click();
     assert.equal(await chars().then(c => c.length), before, 'one click does not delete');
     await list().filter({ hasText: '내 브랜드 모델' }).getByRole('button', { name: '정말 삭제' }).click();
