@@ -106,6 +106,17 @@ class SelectIn(BaseModel):
     reference_asset_ids: list[str] = Field(default_factory=list, max_length=MAX_REFERENCES)
 
 
+_LIKENESS = re.compile(
+    r"(닮|똑같|흉내|복제|비슷하게\s*생|처럼\s*생|연예인|유명인|셀럽|아이돌|정치인|대통령|실존\s*인물|실제\s*인물|딥페이크"
+    r"|look(?:s|ing)?[\s-]*like|lookalike|resembl|celebrit|real[\s-]*person|real[\s-]*people|likeness\s+of|deep[\s-]*fake|clone\s+of|modeled\s+(?:on|after)|face\s+of\s+[A-Z])",
+    re.IGNORECASE)
+
+
+def likeness_requested(text: str) -> bool:
+    """True when the wording asks for a real person's likeness (rule-based, deliberately cautious: it can over-block an innocent sentence; the person is told to rephrase)."""
+    return bool(text and _LIKENESS.search(text))
+
+
 def _digest(design: dict[str, Any], prompt: str | None, salt: str) -> bytes:
     return hashlib.sha256((json.dumps(design, sort_keys=True, ensure_ascii=False) + "|" + (prompt or "") + "|" + salt).encode()).digest()
 
@@ -176,6 +187,9 @@ async def create_draft(workspace_id: str, body: DraftIn, user_id: str = Depends(
                             "message": "Model generation by an external AI service is not connected yet."})
     design = validate_design(body.v)
     prompt = (body.prompt or "").strip() or None
+    texts = [prompt or ""] + [str(x) for value in design.values() for x in (value if isinstance(value, list) else [value])]
+    if any(likeness_requested(t) for t in texts):    # R-074: a brand model is invented, never made to look like a real person
+        raise HTTPException(status_code=422, detail={"code": "MODEL_REAL_PERSON_BLOCKED", "message": "A brand model cannot be made to look like a real person."})
     with store._connect() as db:
         _init(db)
         open_n = db.execute("SELECT COUNT(*) AS n FROM model_drafts WHERE workspace_id=? AND status='ready'", (workspace_id,)).fetchone()["n"]

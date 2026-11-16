@@ -111,6 +111,7 @@
 | `MODEL_DRAFT_LIMIT` | model | limit | 열려 있는 모델 시안이 너무 많습니다. 하나를 선택하거나 지워 주세요. | Too many open model drafts. Pick or remove one. |
 | `MODEL_NAME_REQUIRED` | model | error | 모델 이름을 입력해 주세요. | Please enter a model name. |
 | `MODEL_PROVIDER_NOT_CONNECTED` | model | error | 외부 AI 서비스로 모델을 만드는 기능은 아직 연결되지 않았습니다. | Model generation by an external AI service is not connected yet. |
+| `MODEL_REAL_PERSON_BLOCKED` | model | error | 실존 인물을 닮게 만드는 요청은 받을 수 없습니다. 표현을 바꿔 다시 적어 주세요. | Requests to look like a real person are not accepted. Please rephrase. |
 | `MODEL_UNREADABLE` | model | error | 3D 모델 파일을 읽을 수 없습니다. | The 3D model file cannot be read. |
 | `OUTPUT_NOT_APPROVED` | tryon | error | 결과를 승인한 뒤에 사용할 수 있습니다. | The result can be used after it is approved. |
 | `OUTPUT_NOT_LINKED` | tryon | error | 결과가 아직 저장되지 않았습니다. 잠시 뒤 다시 시도해 주세요. | The result is not saved yet. Please try again shortly. |

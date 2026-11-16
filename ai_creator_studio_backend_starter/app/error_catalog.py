@@ -126,6 +126,7 @@ CODES: dict[str, tuple[str, str]] = {
     "REFERENCE_INVALID": ("참조 사진이 올바르지 않습니다.", "A reference picture is not valid."),
     "REFERENCE_DUPLICATE": ("같은 참조 사진이 중복되었습니다.", "A reference picture is listed twice."),
     "MODEL_DRAFT_ALREADY_CHOSEN": ("이 시안은 이미 선택되었습니다.", "A candidate was already chosen for this draft."),
+    "MODEL_REAL_PERSON_BLOCKED": ("실존 인물을 닮게 만드는 요청은 받을 수 없습니다. 표현을 바꿔 다시 적어 주세요.", "Requests to look like a real person are not accepted. Please rephrase."),
     "MODEL_NAME_REQUIRED": ("모델 이름을 입력해 주세요.", "Please enter a model name."),
     "MODEL_PROVIDER_NOT_CONNECTED": ("외부 AI 서비스로 모델을 만드는 기능은 아직 연결되지 않았습니다.", "Model generation by an external AI service is not connected yet."),
     "VIDEO_PROVIDER_NOT_CONNECTED": ("외부 AI 서비스로 영상을 만드는 기능은 아직 연결되지 않았습니다.", "Video generation by an external AI service is not connected yet."),
