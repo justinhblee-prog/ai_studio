@@ -197,6 +197,16 @@ class SQLiteJobRepository:
                 "WHERE workspace_id=? AND created_at>=? AND created_at<? GROUP BY owner_id, provider, status",
                 (workspace_id, start, end)).fetchall()]
 
+    def ops_overview_rows(self, start, end):
+        """Job counts of ALL workspaces in [start, end) per workspace / provider / status, with the average of finished jobs' execution time in
+        seconds (R-043, operators only). Metadata only: no payloads, no image addresses."""
+        storage, path, _ = self._context()
+        self.initialize()
+        with storage.transaction(path) as conn:
+            return [dict(r) for r in conn.execute(
+                "SELECT workspace_id, provider, status, COUNT(*) AS n, COUNT(DISTINCT owner_id) AS users FROM generation_jobs "
+                "WHERE created_at>=? AND created_at<? GROUP BY workspace_id, provider, status", (start, end)).fetchall()]
+
     def get_idempotent(self, workspace_id, key):
         if self._impl is not None: return self._impl.get_idempotent_job(workspace_id, key)
         storage, path, _ = self._context()

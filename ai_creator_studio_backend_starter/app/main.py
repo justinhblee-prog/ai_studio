@@ -35,6 +35,7 @@ from app.library_routes import router as library_router
 from app.features_routes import router as features_router
 from app.external_notice import router as external_notice_router
 from app.usage import router as usage_router
+from app.ops_overview import router as ops_overview_router
 from app.photo_engine import router as photo_drafts_router
 from app.lookbook import router as lookbook_drafts_router
 from app.products import router as products_router
@@ -127,6 +128,7 @@ app.include_router(library_router)
 app.include_router(features_router)
 app.include_router(external_notice_router)
 app.include_router(usage_router)
+app.include_router(ops_overview_router)
 app.include_router(moderation_router)
 app.include_router(photo_drafts_router)
 app.include_router(lookbook_drafts_router)
