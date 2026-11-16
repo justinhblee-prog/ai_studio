@@ -12,6 +12,7 @@ import LibraryBrowser from './LibraryBrowser';
 import { importLibraryItem } from './app/libraryClient.mjs';
 import type { LibraryItem } from './app/libraryClient.mjs';
 import { errorText, responseErrorText } from './app/errorMessages.mjs';
+import { acknowledgeNotice, noticeFromError } from './app/externalNotice.mjs';
 
 type ImageAsset = { asset_id: string; original_filename: string };
 
@@ -35,6 +36,7 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [job, setJob] = useState<GenerationJob | null>(null);
+  const [notice, setNotice] = useState<{ provider: string; lines: string[] } | null>(null);   // R-037: external-transfer notice waiting for a click
   const [requestKey, setRequestKey] = useState(() => `gen-${crypto.randomUUID()}`);
 
   const loadImages = useCallback(async () => {
@@ -71,10 +73,8 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
     } finally { setBusy(false); }
   };
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!ready || busy) return;
-    setBusy(true); setError(''); setJob(null);
+  const startJob = async () => {
+    setBusy(true); setError(''); setJob(null); setNotice(null);
     try {
       const created = await startGeneration({
         api: apiBaseUrl, token: accessToken, publicBase, workspaceId, modelAssetId: modelId, garmentAssetId: garmentId,
@@ -83,8 +83,25 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
       setJob(created);
       setRequestKey(`gen-${crypto.randomUUID()}`); // a new click is a new job; a retry of the same failed click reuses the key
     } catch (reason) {
-      setError(errorText(reason, '생성을 시작하지 못했습니다.'));
+      const needed = noticeFromError(reason);
+      if (needed) setNotice(needed);       // the job was NOT created: show the notice, the same click can be repeated after the confirmation
+      else setError(errorText(reason, '생성을 시작하지 못했습니다.'));
     } finally { setBusy(false); }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!ready || busy) return;
+    await startJob();
+  };
+
+  const confirmNotice = async () => {
+    if (!notice) return;
+    setBusy(true); setError('');
+    try { await acknowledgeNotice(apiBaseUrl, accessToken, workspaceId, notice.provider); }
+    catch (reason) { setError(errorText(reason, '확인을 기록하지 못했습니다.')); setBusy(false); return; }
+    setBusy(false); setNotice(null);
+    await startJob();
   };
 
   const refresh = async () => {
@@ -121,6 +138,11 @@ export default function GenerationStartWorkspace({ apiBaseUrl, accessToken, work
       <p>모델 사진과 의류 사진을 골라 생성 작업을 시작합니다. 지금은 <b>시험(mock) 모드</b>이며 실제 AI 이미지는 만들어지지 않습니다.</p></div></div>
     {!ready && <div className="warning" role="status"><b>생성 준비 중</b><span>{NOT_READY_MESSAGE}</span></div>}
     {error && <div className="auth-error" role="alert">{error}</div>}
+    {notice && <div className="warning" role="alertdialog" aria-label="외부 전송 안내">
+      <b>외부 AI 서비스로 사진이 전송됩니다</b>
+      {notice.lines.map(line => <span key={line}>{line}</span>)}
+      <div><button type="button" className="primary" onClick={confirmNotice} disabled={busy}>확인하고 생성 시작</button> <button type="button" className="outline" onClick={() => setNotice(null)} disabled={busy}>취소</button></div>
+    </div>}
     <form onSubmit={submit} className="gen-form">
       <fieldset aria-label={RIGHTS_CONFIRMATION_COPY.heading} disabled={busy}>
         <legend>{RIGHTS_CONFIRMATION_COPY.heading} (이미지를 올릴 때 적용)</legend>
