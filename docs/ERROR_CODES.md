@@ -52,6 +52,7 @@
 | `EXPORT_LIMIT` | export | limit | 내보내기는 하루에 정해진 횟수까지만 할 수 있습니다. | Exports are limited per day. |
 | `EXPORT_TOO_LARGE` | export | limit | 내보낼 파일이 너무 큽니다. 지원팀에 나눠서 내보내기를 요청해 주세요. | The files are too large to export at once. Ask support for a split export. |
 | `EXTERNAL_NOTICE_REQUIRED` | legal | error | **[결정 필요: 법무]** | **[decision needed: legal]** |
+| `GLB_INVALID` | general | error | 만들어진 3D 파일이 검사를 통과하지 못했습니다. | The generated 3D file did not pass the check. |
 | `GLOBAL_MONTHLY_LIMIT` | general | limit | 이번 달 서비스 전체 작업 한도에 도달했습니다. | The service-wide job limit for this month has been reached. |
 | `IMAGE_ANIMATION_UNSUPPORTED` | file | error | 움직이는 그림은 올릴 수 없습니다. | Animated pictures cannot be uploaded. |
 | `IMAGE_DECODE_FAILED` | file | error | 그림을 열 수 없습니다. 다른 파일로 시도해 주세요. | The picture could not be opened. Try another file. |
@@ -151,6 +152,11 @@
 | `SURVEY_SIZE_INVALID` | customers | error | 규모는 짧은 코드(예: 1-5, 50+)여야 합니다. | The size must be a short code such as 1-5 or 50+. |
 | `SURVEY_TOKEN_INVALID` | customers | error | 값에는 글자·숫자와 . _ ~ + - 만 쓸 수 있습니다. | Values may use letters, digits and . _ ~ + - only. |
 | `TAKEDOWN_ACTIVE` | legal | error | **[결정 필요: 법무]** | **[decision needed: legal]** |
+| `THREED_DAILY_LIMIT` | general | limit | 오늘 만들 수 있는 3D 작업 수를 모두 썼습니다. | Today's 3D job limit has been used up. |
+| `THREED_INPUT_GONE` | general | limit | 선택한 그림의 파일이 더는 없습니다. | The selected picture's file no longer exists. |
+| `THREED_INPUT_KIND` | general | error | 3D로 바꿀 수 있는 것은 그림 항목뿐입니다(너무 큰 그림도 안 됩니다). | Only picture items can be turned into 3D (and not very large ones). |
+| `THREED_INPUT_NOT_FOUND` | general | error | 선택한 그림 항목을 찾을 수 없습니다. | The selected picture item was not found. |
+| `THREED_PROVIDER_NOT_CONNECTED` | general | error | 외부 AI 서비스로 3D를 만드는 기능은 아직 연결되지 않았습니다. | 3D generation by an external AI service is not connected yet. |
 | `TRYON_INPUT_GONE` | tryon | limit | 선택한 사진이 더는 없습니다. 다시 골라 주세요. | A selected picture no longer exists. Please choose again. |
 | `TRYON_INPUT_KIND` | tryon | error | 모델·의류 자리에 맞지 않는 항목입니다. | That item does not fit the model / garment slot. |
 | `TRYON_INPUT_NOT_FOUND` | tryon | error | 선택한 항목을 찾을 수 없습니다. | The selected item was not found. |
