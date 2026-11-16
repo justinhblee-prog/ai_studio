@@ -31,8 +31,10 @@ REVIEW = ("requested", "approved", "changes_requested", "rejected", "withdrawn")
 
 def fill(db, table: str, values: dict) -> dict:
     """The row with every NOT NULL column without a default filled in (so the probe survives a schema change)."""
-    out = dict(values)
-    for _, name, ctype, notnull, default, pk in db.execute(f'PRAGMA table_info("{table}")').fetchall():
+    info = db.execute(f'PRAGMA table_info("{table}")').fetchall()
+    columns = {row[1] for row in info}
+    out = {k: v for k, v in values.items() if k in columns}      # a column this schema does not have is simply left out
+    for _, name, ctype, notnull, default, pk in info:
         if name not in out and notnull and default is None and not pk:
             out[name] = 0 if "INT" in (ctype or "").upper() else "x"
     return out
