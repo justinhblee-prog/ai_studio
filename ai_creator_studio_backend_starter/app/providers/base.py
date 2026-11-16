@@ -24,3 +24,12 @@ def normalize_provider_error(error: BaseException) -> dict[str, Any]:
                 "retry_after_seconds": error.retry_after_seconds}
     return {"code": "INTERNAL_ADAPTER_ERROR", "message": "Provider adapter failed.",
             "retryable": False, "outcome_unknown": False, "retry_after_seconds": None}
+
+
+class ImageTo3DProvider(Protocol):
+    """Lane 5 slot: a provider that turns ONE picture into a 3D model (.glb bytes). Nothing real implements it yet; ``MockImageTo3D`` is the flow-only stand-in.
+    A real provider must also be registered in provider_registry with a data-handling record and a unit price before it can be enabled (cost cap and external transfer notice apply)."""
+    name: str
+    model: str
+
+    async def convert(self, image_bytes: bytes) -> bytes: ...
