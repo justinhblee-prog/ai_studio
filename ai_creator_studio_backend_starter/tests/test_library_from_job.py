@@ -171,3 +171,33 @@ def test_a_failed_video_is_not_filed(env):
     assert job["status"] == "failed"
     r = client.post("/v1/workspaces/wa/library/from-job", headers=auth_photo("a"), json={"job_id": job["job_id"]})
     assert r.status_code == 409 and r.json()["detail"]["code"] == "JOB_NOT_FINISHED"
+
+
+def test_the_approval_itself_records_service_style_region_and_the_picked_inputs(linked_output_env):
+    """R-059 follow-up: no extra call is needed; the item the approval files already carries what the server knows."""
+    import json as _json
+    from tests.test_output_asset_link_worker import job_repository
+    job_id, output_id = linked(linked_output_env)
+    items = {}
+    for kind, shade in (("model", 11), ("garment", 22)):
+        buf = io.BytesIO(); Image.new("RGB", (16, 16), (shade, shade, shade)).save(buf, format="PNG")
+        r = client.post(f"/v1/workspaces/{WS}/library", headers=A, data={"kind": kind, "name": kind, "rights_confirmed": "true"}, files={"file": (f"{kind}.png", buf.getvalue(), "image/png")})
+        assert r.status_code == 201, r.text
+        items[kind] = r.json()
+    with job_repository._connect() as db:
+        payload = _json.loads(db.execute("SELECT payload_json FROM generation_jobs WHERE job_id=?", (job_id,)).fetchone()[0])
+        payload.update({"style": "webtoon", "region": "east", "model_item_id": items["model"]["item_id"], "garment_item_id": items["garment"]["item_id"]})
+        db.execute("UPDATE generation_jobs SET payload_json=? WHERE job_id=?", (_json.dumps(payload), job_id))
+    assert client.post(f"/v1/generation-jobs/{job_id}/outputs/{output_id}/review/approve", headers=A, json={"comment": "ok"}).status_code == 200
+    filed = [i for i in lib()["items"] if i["kind"] == "render"]
+    assert len(filed) == 1
+    assert filed[0]["attrs"] == {"service": "tryon", "style": "webtoon", "region": "east", "source_asset_ids": [items["model"]["asset_id"], items["garment"]["asset_id"]]}
+    found = client.get(f"/v1/workspaces/{WS}/library", headers=A, params={"attr": ["service:tryon", "style:webtoon"]}).json()
+    assert found["total"] == 1
+
+
+def test_an_approved_result_without_style_or_inputs_still_gets_the_service(linked_output_env):
+    job_id, output_id = linked(linked_output_env)
+    assert client.post(f"/v1/generation-jobs/{job_id}/outputs/{output_id}/review/approve", headers=A, json={"comment": "ok"}).status_code == 200
+    filed = [i for i in lib()["items"] if i["kind"] == "render"]
+    assert len(filed) == 1 and filed[0]["attrs"] == {"service": "tryon"}
