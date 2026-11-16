@@ -188,6 +188,8 @@ def _effective_status(row, now: datetime) -> str:
 
 def customer_rows(db, start: str | None, end: str | None) -> list[dict[str, Any]]:
     now = datetime.now(timezone.utc)
+    from app.dependencies import get_job_repository   # jobs may live in a separate database from the assets
+    spans = get_job_repository().ops_job_spans()
     for ws in db.execute("SELECT workspace_id FROM workspaces").fetchall():
         _profile(db, ws["workspace_id"])
     rows = db.execute("SELECT * FROM company_profiles ORDER BY joined_at, workspace_id").fetchall()
@@ -197,10 +199,7 @@ def customer_rows(db, start: str | None, end: str | None) -> list[dict[str, Any]
             continue
         ws = r["workspace_id"]
         users = db.execute("SELECT COUNT(*) AS n FROM workspace_members WHERE workspace_id=?", (ws,)).fetchone()["n"]
-        first_job = last_job = None
-        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='generation_jobs'").fetchone():
-            j = db.execute("SELECT MIN(created_at) AS a, MAX(created_at) AS b FROM generation_jobs WHERE workspace_id=?", (ws,)).fetchone()
-            first_job, last_job = j["a"], j["b"]
+        first_job, last_job = spans.get(ws, (None, None))
         a = db.execute("SELECT MAX(created_at) AS b FROM assets WHERE workspace_id=?", (ws,)).fetchone()["b"]
         last_active = max([t for t in (last_job, a) if t], default=None)
         out.append({"company": ws, "email_domain": None, "plan": r["plan"], "joined_at": r["joined_at"], "contract_start": r["contract_start"],

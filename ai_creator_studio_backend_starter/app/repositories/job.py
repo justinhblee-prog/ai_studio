@@ -246,6 +246,14 @@ class SQLiteJobRepository:
                 "SELECT created_at, workspace_id, owner_id, provider, status FROM generation_jobs WHERE created_at>=? AND created_at<? "
                 "ORDER BY created_at DESC LIMIT ?", (start, end, int(limit))).fetchall()]
 
+    def ops_job_spans(self):
+        """{workspace_id: (first job time, last job time)} over all jobs (metadata only; R-057 customer statistics)."""
+        storage, path, _ = self._context()
+        self.initialize()
+        with storage.transaction(path) as conn:
+            return {r["workspace_id"]: (r["a"], r["b"]) for r in conn.execute(
+                "SELECT workspace_id, MIN(created_at) AS a, MAX(created_at) AS b FROM generation_jobs GROUP BY workspace_id").fetchall()}
+
     def get_idempotent(self, workspace_id, key):
         if self._impl is not None: return self._impl.get_idempotent_job(workspace_id, key)
         storage, path, _ = self._context()
