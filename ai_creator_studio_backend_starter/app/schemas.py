@@ -1,6 +1,9 @@
+import re
+import unicodedata
 from typing import Literal, Optional
 from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
+_LABEL_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,19}$")
 JobStatus = Literal["queued", "running", "post_processing", "succeeded", "failed"]
 
 class CreateTryOnJob(BaseModel):
@@ -16,6 +19,30 @@ class CreateTryOnJob(BaseModel):
     resolution: Literal["1k", "2k", "4k"] = "2k"
     output_format: Literal["png", "jpeg"] = "png"
     prompt: Optional[str] = Field(default=None, max_length=500)
+    # R-059: the homepage's art style, region and an English prompt prefix. Only the SHAPE is checked (the catalogue belongs to the design window);
+    # the prefix is stored and returned as written (length and control characters only), never interpreted and not sent to a provider.
+    style: Optional[str] = Field(default=None, max_length=20)
+    region: Optional[str] = Field(default=None, max_length=20)
+    prompt_prefix: Optional[str] = Field(default=None, max_length=400)
+
+    @field_validator("style", "region")
+    @classmethod
+    def label_shape(cls, value):
+        if value is None:
+            return value
+        if not _LABEL_RE.match(value):
+            raise ValueError("use lowercase letters, digits and hyphens (at most 20 characters, starting with a letter or digit)")
+        return value
+
+    @field_validator("prompt_prefix")
+    @classmethod
+    def prefix_shape(cls, value):
+        if value is None:
+            return value
+        if any(unicodedata.category(ch) == "Cc" and ch not in "\n\t" for ch in value):
+            raise ValueError("control characters are not allowed")
+        value = value.strip()
+        return value or None
 
     @field_validator("model_image_url", "garment_image_url")
     @classmethod
@@ -41,6 +68,9 @@ class JobResponse(BaseModel):
     output_url: Optional[str] = None
     error_code: Optional[str] = None
     message: Optional[str] = None
+    style: Optional[str] = None
+    region: Optional[str] = None
+    prompt_prefix: Optional[str] = None
 
 class EngineInfo(BaseModel):
     provider: str

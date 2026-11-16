@@ -243,7 +243,7 @@ class SQLiteJobRepository:
         self.initialize()
         with storage.transaction(path) as conn:
             return [dict(r) for r in conn.execute(
-                "SELECT created_at, workspace_id, owner_id, provider, status FROM generation_jobs WHERE created_at>=? AND created_at<? "
+                "SELECT created_at, workspace_id, owner_id, provider, status, payload_json FROM generation_jobs WHERE created_at>=? AND created_at<? "
                 "ORDER BY created_at DESC LIMIT ?", (start, end, int(limit))).fetchall()]
 
     def ops_job_spans(self):
