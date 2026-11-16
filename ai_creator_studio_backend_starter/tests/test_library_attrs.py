@@ -12,14 +12,14 @@ def attrs_json(d):
     return json.dumps(d, ensure_ascii=False)
 
 
-def make(kind="garment", name="x", color=(1, 2, 3), **attrs):
-    r = upload(kind=kind, name=name, file=("a.png", png(color), "image/png"), **({"attrs": attrs_json(attrs)} if attrs else {}))
+def make(kind="garment", name="x", rgb=(1, 2, 3), **attrs):
+    r = upload(kind=kind, name=name, file=("a.png", png(rgb), "image/png"), **({"attrs": attrs_json(attrs)} if attrs else {}))
     assert r.status_code == 201, r.text
     return r.json()
 
 
 def test_upload_stores_attributes_and_defaults_to_empty(env):
-    plain = make(name="plain", color=(9, 9, 9))
+    plain = make(name="plain", rgb=(9, 9, 9))
     assert plain["attrs"] == {}
     item = make(name="셔츠", category="top", season="여름", fit="오버", color="아이보리", material="린넨", brand="아무개", size_no=95, colors=["white", "beige"])
     assert item["attrs"] == {"category": "top", "season": "여름", "fit": "오버", "color": "아이보리", "material": "린넨", "brand": "아무개", "size_no": 95, "colors": ["white", "beige"]}
@@ -66,10 +66,10 @@ def test_edge_values_are_accepted(env):
 
 
 def test_list_filter_by_attributes_with_and_semantics(env):
-    a = make(name="a", color=(11, 0, 0), category="top", season="summer", colors=["white", "beige"], size_no=95)
-    b = make(name="b", color=(12, 0, 0), category="top", season="winter")
-    c = make(name="c", color=(13, 0, 0), category="pants", season="summer")
-    d = make(name="d", color=(14, 0, 0))
+    a = make(name="a", rgb=(11, 0, 0), category="top", season="summer", colors=["white", "beige"], size_no=95)
+    b = make(name="b", rgb=(12, 0, 0), category="top", season="winter")
+    c = make(name="c", rgb=(13, 0, 0), category="pants", season="summer")
+    d = make(name="d", rgb=(14, 0, 0))
     def names(*filters, **params):
         r = client.get("/v1/workspaces/wa/library", headers=auth("a"), params={"attr": list(filters), **params})
         assert r.status_code == 200, r.text
@@ -94,8 +94,8 @@ def test_list_filter_by_attributes_with_and_semantics(env):
 
 
 def test_facets_list_keys_values_and_counts_and_respect_kind_and_roles(env):
-    make(name="a", color=(21, 0, 0), category="top", season="summer", colors=["white", "beige"])
-    make(name="b", color=(22, 0, 0), category="top", season="winter")
+    make(name="a", rgb=(21, 0, 0), category="top", season="summer", colors=["white", "beige"])
+    make(name="b", rgb=(22, 0, 0), category="top", season="winter")
     upload(kind="model", name="m", file=("m.png", png((23, 0, 0)), "image/png"), attrs=attrs_json({"gender": "female", "age": 25}))
     all_ = client.get("/v1/workspaces/wa/library/facets", headers=auth("a")).json()
     f = {x["key"]: {v["value"]: v["count"] for v in x["values"]} for x in all_["facets"]}
@@ -108,7 +108,7 @@ def test_facets_list_keys_values_and_counts_and_respect_kind_and_roles(env):
 
 
 def test_roles_viewers_cannot_write_attributes(env):
-    it = make(name="r", color=(31, 0, 0), category="top")
+    it = make(name="r", rgb=(31, 0, 0), category="top")
     assert client.patch(f"/v1/workspaces/wa/library/{it['item_id']}", headers=auth("c"), json={"attrs": {"category": "x"}}).status_code == 403
     assert upload(kind="garment", who="c", attrs=attrs_json({"a": "b"})).status_code == 403
     seen = client.get(f"/v1/workspaces/wa/library/{it['item_id']}", headers=auth("c")).json()
@@ -121,7 +121,7 @@ def test_an_existing_database_without_the_column_is_migrated(env):
         c.execute("""CREATE TABLE workspace_library_items (item_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, asset_id TEXT NOT NULL, kind TEXT NOT NULL,
             origin TEXT NOT NULL, name TEXT NOT NULL, tags_json TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
             UNIQUE(workspace_id, asset_id))""")
-    item = make(name="after", color=(41, 0, 0), category="top")
+    item = make(name="after", rgb=(41, 0, 0), category="top")
     assert item["attrs"] == {"category": "top"}
     with db(env) as c:
         assert any(r[1] == "attrs_json" for r in c.execute("PRAGMA table_info(workspace_library_items)").fetchall())
