@@ -73,7 +73,7 @@ def test_the_length_sets_the_frame_count(env, seconds):
 def test_each_motion_moves_differently_and_the_same_request_gives_the_same_picture(env):
     images = [Image.open(io.BytesIO(pattern(5))).convert("RGB"), Image.open(io.BytesIO(pattern(6))).convert("RGB")]
     sets = {m: video_jobs.make_frames(images, "9:16", 4, m) for m in video_jobs.MOTIONS}
-    mid = {m: f[len(f) // 2].tobytes() for m, f in sets.items()}
+    mid = {m: f[12].tobytes() for m, f in sets.items()}   # inside the first picture, late enough for the crossfade to have started (the very first frames of a zoom and a crossfade are the same)
     assert len(set(mid.values())) == 3, "zoom, pan and crossfade are three different moves"
     again = video_jobs.make_frames(images, "9:16", 4, "pan")
     assert [f.tobytes() for f in again] == [f.tobytes() for f in sets["pan"]], "deterministic"
