@@ -108,7 +108,7 @@ def test_qc_unit_checks_size_count_flicker_and_static_pictures():
 
 @pytest.mark.parametrize("body", [
     {"input_item_ids": []}, {"input_item_ids": ["wli_" + str(i) for i in range(9)]}, {"input_item_ids": ["wli_x"], "aspect": "1:1"},
-    {"input_item_ids": ["wli_x"], "duration_seconds": 2}, {"input_item_ids": ["wli_x"], "duration_seconds": 9}, {"input_item_ids": ["wli_x"], "motion": "spin"},
+    {"input_item_ids": ["wli_x"], "duration_seconds": 2}, {"input_item_ids": ["wli_x"], "duration_seconds": 16}, {"input_item_ids": ["wli_x"], "motion": "spin"},
     {"input_item_ids": ["wli_x"], "extra": 1}, {},
 ])
 def test_bad_requests_are_refused(env, body):

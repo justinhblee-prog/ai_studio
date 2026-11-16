@@ -27,7 +27,7 @@ router = APIRouter(prefix="/v1/workspaces/{workspace_id}/video-jobs", tags=["vid
 EVENT = "asset.video_output"
 FPS = 8
 SIZES = {"9:16": (270, 480), "4:5": (320, 400), "16:9": (480, 270)}   # mock sizes: small on purpose
-MIN_SECONDS, MAX_SECONDS, DEFAULT_SECONDS = 3, 8, 6
+MIN_SECONDS, MAX_SECONDS, DEFAULT_SECONDS = 3, 15, 6     # R-073: 5, 10 and 15 second videos
 MAX_INPUTS = 8
 DAILY_LIMIT_DEFAULT = 20
 MOTIONS = ("slow_zoom", "pan", "crossfade")
@@ -227,6 +227,30 @@ async def get_video_job(workspace_id: str, job_id: str, user_id: str = Depends(c
     with store._connect() as db:
         _init(db)
         return _public(_row(db, workspace_id, job_id))
+
+
+@router.post("/{job_id}/cancel", operation_id="cancelVideoJob")
+async def cancel_video_job(workspace_id: str, job_id: str, user_id: str = Depends(current_user)):
+    """The built-in mock makes a video inside the request, so a job is never waiting or running: it is always finished (succeeded or failed) and there is nothing to cancel.
+    The answer says so (409); a real provider's queued job will become cancellable when one is connected."""
+    require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    with store._connect() as db:
+        _init(db)
+        row = _row(db, workspace_id, job_id)
+    raise HTTPException(status_code=409, detail={"code": "VIDEO_NOT_CANCELLABLE", "message": f"the job is already {row['status']}; there is nothing to cancel"})
+
+
+@router.post("/{job_id}/retry", status_code=201, response_model=VideoOut, operation_id="retryVideoJob")
+async def retry_video_job(workspace_id: str, job_id: str, user_id: str = Depends(current_user)):
+    """Runs a FAILED job again with the same pictures and settings as a NEW job (the failed one stays as a record). Counts toward the same limits as any new video."""
+    require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    with store._connect() as db:
+        _init(db)
+        row = _row(db, workspace_id, job_id)
+    if row["status"] != "failed":
+        raise HTTPException(status_code=409, detail={"code": "VIDEO_RETRY_NOT_FAILED", "message": "only a failed video can be retried"})
+    body = VideoIn(input_item_ids=json.loads(row["input_item_ids_json"]), aspect=row["aspect"], duration_seconds=row["duration_seconds"], motion=row["motion"], prompt=row["instruction"])
+    return await create_video_job(workspace_id, body, user_id)
 
 
 @router.delete("/{job_id}", status_code=204, operation_id="deleteVideoJob")

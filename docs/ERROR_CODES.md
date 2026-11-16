@@ -161,7 +161,9 @@
 | `VIDEO_INPUT_GONE` | video | limit | 선택한 그림이 더는 없습니다. | A selected picture no longer exists. |
 | `VIDEO_INPUT_KIND` | video | error | 영상에는 그림 항목만 쓸 수 있습니다. | Only picture items can be used for a video. |
 | `VIDEO_INPUT_NOT_FOUND` | video | error | 선택한 그림을 찾을 수 없습니다. | A selected picture was not found. |
+| `VIDEO_NOT_CANCELLABLE` | video | error | 이미 끝난 영상 작업이라 취소할 것이 없습니다. | The video job has already finished, so there is nothing to cancel. |
 | `VIDEO_PROVIDER_NOT_CONNECTED` | video | error | 외부 AI 서비스로 영상을 만드는 기능은 아직 연결되지 않았습니다. | Video generation by an external AI service is not connected yet. |
+| `VIDEO_RETRY_NOT_FAILED` | video | error | 실패한 영상만 다시 시도할 수 있습니다. | Only a failed video can be retried. |
 | `WINDOW_TOO_DEEP` | general | limit | 너무 뒤쪽까지 요청했습니다. 기간을 좁혀 주세요. | That reaches too far back. Narrow the time range. |
 | `WORKSPACE_MONTHLY_LIMIT` | general | limit | 이번 달 작업공간의 작업 한도를 모두 썼습니다. | This workspace has used its job limit for the month. |
 | `WORK_ASSET_INVALID` | work | error | 연결한 파일은 이 작업공간의 파일이어야 합니다. | Linked files must belong to this workspace. |
