@@ -46,6 +46,52 @@
         "title": "AcceptedDocument",
         "type": "object"
       },
+      "ActionOut": {
+        "properties": {
+          "action": {
+            "enum": [
+              "click",
+              "set",
+              "fill",
+              "nav"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "confirm": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirm"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "action",
+          "target"
+        ],
+        "title": "ActionOut",
+        "type": "object"
+      },
       "AddMemberBody": {
         "properties": {
           "role": {
@@ -2004,6 +2050,79 @@
           "name"
         ],
         "title": "Identity",
+        "type": "object"
+      },
+      "InterpretIn": {
+        "additionalProperties": false,
+        "properties": {
+          "controls": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Controls",
+            "type": "array"
+          },
+          "page": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Page",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "workspace_id": {
+            "maxLength": 64,
+            "minLength": 2,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]+$",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "text"
+        ],
+        "title": "InterpretIn",
+        "type": "object"
+      },
+      "InterpretOut": {
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionOut"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "fallback": {
+            "default": false,
+            "title": "Fallback",
+            "type": "boolean"
+          },
+          "interpreter": {
+            "enum": [
+              "rules",
+              "llm"
+            ],
+            "title": "Interpreter",
+            "type": "string"
+          },
+          "understood": {
+            "title": "Understood",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "actions",
+          "interpreter",
+          "understood"
+        ],
+        "title": "InterpretOut",
         "type": "object"
       },
       "JobResponse": {
@@ -7267,6 +7386,65 @@
         "summary": "Restore Asset Version Route",
         "tags": [
           "assets"
+        ]
+      }
+    },
+    "/v1/assist/interpret": {
+      "post": {
+        "operationId": "assistInterpret",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterpretIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterpretOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Interpret",
+        "tags": [
+          "assist"
         ]
       }
     },
