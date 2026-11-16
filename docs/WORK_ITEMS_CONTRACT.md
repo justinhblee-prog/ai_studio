@@ -47,3 +47,30 @@
 
 ## 5. 기존 개체와의 관계
 사진 초안·룩북 초안·프로젝트·상품·작업(generation-jobs) 개체는 **그대로 두고 병행**합니다(연결 필드 없음). 홈페이지가 이들을 작업 항목과 이어 보여 주려면 `attrs`에 해당 개체 ID를 문자로 넣어 두는 방식이 지금 가능한 전부입니다(서버가 그 ID의 존재를 검사하지 않음).
+
+## 6. 응답 예시 (시험이 OpenAPI와 대조함 — 필드 이름·타입이 바뀌면 CI가 깨짐)
+### `GET …/work-items/{id}` (생성·수정·복원의 응답도 같은 모양)
+<!-- contract: getWorkItem 200 -->
+```json
+{"item_id": "wk_3b9e0d7c1a2f4e6d8c5b7a9f0e1d2c3b", "workspace_id": "ws-demo", "kind": "tryon", "title": "봄 룩 시착", "status": "req",
+ "attrs": {"sku": "SKU-001"}, "asset_ids": ["ast_5c1e7f0a9b2d4c6e8f1a3b5d7c9e0f12", "ast_8d2f4a6c0e1b3d5f7a9c1e3b5d7f9a0c"],
+ "assets": [
+  {"asset_id": "ast_5c1e7f0a9b2d4c6e8f1a3b5d7c9e0f12", "state": "live", "review_status": "approved", "screen_status": "ok", "exportable": true},
+  {"asset_id": "ast_8d2f4a6c0e1b3d5f7a9c1e3b5d7f9a0c", "state": "live", "review_status": "none", "screen_status": "draft", "exportable": false}],
+ "asset_review_summary": "draft", "created_by": "user-d", "created_at": "2026-11-16T09:00:00+00:00", "updated_at": "2026-11-16T09:30:00+00:00",
+ "archived_at": null, "version": 3}
+```
+### `GET …/work-items` (목록)
+<!-- contract: listWorkItems 200 -->
+```json
+{"items": [{"item_id": "wk_3b9e0d7c1a2f4e6d8c5b7a9f0e1d2c3b", "workspace_id": "ws-demo", "kind": "character", "title": "겨울 모델", "status": "draft", "attrs": {},
+            "asset_ids": [], "assets": [], "asset_review_summary": null, "created_by": "user-d", "created_at": "2026-11-16T09:00:00+00:00",
+            "updated_at": "2026-11-16T09:00:00+00:00", "archived_at": null, "version": 1}],
+ "total": 1}
+```
+### `GET …/work-items/{id}/events` (이력)
+<!-- contract: listWorkItemEvents 200 -->
+```json
+[{"at": "2026-11-16T09:00:00+00:00", "actor_id": "user-d", "event": "created", "from_status": null, "to_status": "draft", "changed": []},
+ {"at": "2026-11-16T09:30:00+00:00", "actor_id": "user-d", "event": "status", "from_status": "draft", "to_status": "req", "changed": ["title"]}]
+```

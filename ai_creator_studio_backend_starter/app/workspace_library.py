@@ -225,7 +225,22 @@ def _attrs_match(row, wanted: list[tuple[str, str]]) -> bool:
     return True
 
 
-@router.get("/facets", operation_id="listWorkspaceLibraryFacets")
+class FacetValueOut(BaseModel):
+    value: str
+    count: int
+
+
+class FacetOut(BaseModel):
+    key: str
+    values: list[FacetValueOut]
+
+
+class FacetsOut(BaseModel):
+    kind: str | None
+    facets: list[FacetOut]
+
+
+@router.get("/facets", response_model=FacetsOut, operation_id="listWorkspaceLibraryFacets")
 async def facets(workspace_id: str, kind: Kind | None = None, user_id: str = Depends(current_user)):
     """For building filters: every attribute key in use (optionally within one kind) with its values and how many items carry each."""
     require_role(workspace_id, user_id, {"owner", "admin", "editor", "viewer"})
