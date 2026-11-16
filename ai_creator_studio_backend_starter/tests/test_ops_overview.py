@@ -104,3 +104,18 @@ def test_the_month_must_be_valid_and_other_months_are_separate(env):
     job("co-paid", "a", 1)
     assert overview(month="2026-13").status_code == 422
     assert overview(month="2026-01").json()["jobs"] == 0
+
+
+def test_latency_percentiles_come_from_finished_executions_of_the_month(env):
+    import app.config as config
+    from app.ops_overview import percentile
+    ids = [job("co-paid", "a", n) for n in range(10)]
+    db = sqlite3.connect(config.GENERATION_DATABASE_PATH)
+    for i, job_id in enumerate(ids):   # run times 1..10 seconds
+        db.execute("UPDATE generation_executions SET started_at='2026-11-16T10:00:00+00:00', finished_at=? WHERE job_id=?",
+                   (f"2026-11-16T10:00:{i + 1:02d}+00:00", job_id))
+    db.execute("UPDATE generation_jobs SET created_at='2026-11-16T10:00:00+00:00'"); db.commit()
+    lat = overview(month="2026-11").json()["latency_seconds"]
+    assert lat == {"count": 10, "avg": 5.5, "p50": 5.0, "p95": 10.0}
+    assert overview(month="2026-10").json()["latency_seconds"] == {"count": 0, "avg": None, "p50": None, "p95": None}
+    assert [percentile([], 50), percentile([5.0], 95), percentile([1.0, 2.0, 3.0, 4.0], 50)] == [None, 5.0, 2.0]

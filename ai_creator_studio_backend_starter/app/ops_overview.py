@@ -15,6 +15,14 @@ from app.usage import month_range
 router = APIRouter(prefix="/internal/ops", tags=["ops"])
 
 
+def percentile(sorted_values: list[float], p: float) -> float | None:
+    """Nearest-rank percentile of an ascending list (None when empty)."""
+    if not sorted_values:
+        return None
+    rank = max(1, int(-(-p * len(sorted_values) // 100)))   # ceil(p% of n)
+    return round(sorted_values[min(rank, len(sorted_values)) - 1], 3)
+
+
 def build_overview(month: str | None) -> dict:
     label, start, nxt = month_range(month)
     from app.dependencies import get_job_repository
@@ -38,8 +46,11 @@ def build_overview(month: str | None) -> dict:
     companies = sorted(({**w, "members": members.get(w["workspace_id"], 0)} for w in by_workspace.values()), key=lambda c: (-c["jobs"], c["workspace_id"]))
     total_jobs = sum(p["jobs"] for p in by_provider.values())
     total_failed = sum(p["failed"] for p in by_provider.values())
+    seconds = sorted(get_job_repository().ops_execution_seconds(start, nxt))
+    latency = {"count": len(seconds), "avg": round(sum(seconds) / len(seconds), 3) if seconds else None,
+               "p50": percentile(seconds, 50), "p95": percentile(seconds, 95)}
     return {
-        "month": label, "jobs": total_jobs, "failed": total_failed,
+        "month": label, "latency_seconds": latency, "jobs": total_jobs, "failed": total_failed,
         "failure_rate": round(total_failed / (total_jobs + total_failed), 4) if (total_jobs + total_failed) else 0.0,
         "estimated_cost_usd": round(sum(p["estimated_cost_usd"] for p in by_provider.values()), 6),
         "active_companies": len(by_workspace), "providers": sorted(by_provider.values(), key=lambda p: p["provider"]),
@@ -75,8 +86,16 @@ class Controls(BaseModel):
     usd_limit_month_configured: bool
 
 
+class Latency(BaseModel):
+    count: int
+    avg: float | None
+    p50: float | None
+    p95: float | None
+
+
 class OverviewResponse(BaseModel):
     month: str
+    latency_seconds: Latency
     jobs: int
     failed: int
     failure_rate: float
