@@ -194,3 +194,72 @@ async def ops_deletion_requests(status: str = Query(default="pending", pattern="
         due = datetime.fromisoformat(r["requested_at"]) + timedelta(days=GRACE_DAYS)
         out.append({**dict(r), "due_at": due.isoformat(), "grace_expired": due <= now})
     return out
+
+
+BUCKETS = {"hour": 13, "day": 10, "month": 7}
+MAX_BUCKETS = 400
+
+
+class RollupBucket(BaseModel):
+    bucket: str
+    jobs: int
+    failed: int
+    estimated_cost_usd: float
+
+
+class RollupResponse(BaseModel):
+    granularity: str
+    start: str
+    end: str
+    buckets: list[RollupBucket]
+
+
+def build_rollup(granularity: str, start: str | None, end: str | None) -> dict:
+    """Hourly / daily / monthly roll-up of all jobs between two UTC instants (end excluded). Defaults: the last 48 hours / 7 days / 12 months.
+    Every bucket in the range is present (empty ones with zeros) so a chart has no holes."""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    step = {"hour": timedelta(hours=1), "day": timedelta(days=1)}.get(granularity)
+    default_span = {"hour": timedelta(hours=48), "day": timedelta(days=7), "month": timedelta(days=366)}[granularity]
+    def parse(value, fallback):
+        if not value:
+            return fallback
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    stop = parse(end, now + (step or timedelta(days=1)))
+    begin = parse(start, stop - default_span)
+    if begin >= stop:
+        raise ValueError("start must be before end")
+    width = BUCKETS[granularity]
+    def key(moment): return moment.astimezone(timezone.utc).isoformat()[:width]
+    labels, cursor = [], begin
+    while cursor < stop:
+        label = key(cursor)
+        if not labels or labels[-1] != label:
+            labels.append(label)
+        cursor = cursor + step if step else (cursor.replace(day=1) + timedelta(days=32)).replace(day=1)
+        if len(labels) > MAX_BUCKETS:
+            raise ValueError(f"at most {MAX_BUCKETS} buckets")
+    from app.dependencies import get_job_repository
+    rows = get_job_repository().ops_rollup_rows(begin.astimezone(timezone.utc).isoformat(), stop.astimezone(timezone.utc).isoformat(), width)
+    out = {label: {"bucket": label, "jobs": 0, "failed": 0, "estimated_cost_usd": 0.0} for label in labels}
+    for r in rows:
+        b = out.get(r["bucket"])
+        if b is None:
+            continue
+        failed = r["status"] == "failed"
+        billed = 0 if r["provider"] == cost_cap.MOCK_PROVIDER else (r["n"] if (not failed or cost_cap.bills_failed(r["provider"])) else 0)
+        b["failed" if failed else "jobs"] += r["n"]
+        b["estimated_cost_usd"] = round(b["estimated_cost_usd"] + billed * cost_cap.unit_cost(r["provider"]), 6)
+    return {"granularity": granularity, "start": begin.astimezone(timezone.utc).isoformat(), "end": stop.astimezone(timezone.utc).isoformat(),
+            "buckets": [out[label] for label in labels]}
+
+
+@router.get("/rollup", response_model=RollupResponse, operation_id="getOpsRollup")
+async def ops_rollup(granularity: str = Query(default="day", pattern="^(hour|day|month)$"), start: str | None = Query(default=None, max_length=40),
+                     end: str | None = Query(default=None, max_length=40), user_id: str = Depends(current_user)):
+    _require_operator(user_id)
+    try:
+        return build_rollup(granularity, start, end)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail={"code": "INVALID_RANGE", "message": str(exc)}) from exc

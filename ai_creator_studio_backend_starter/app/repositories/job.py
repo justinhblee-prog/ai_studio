@@ -225,6 +225,18 @@ class SQLiteJobRepository:
                 "SELECT job_id, workspace_id, provider, error_code, created_at, updated_at FROM generation_jobs WHERE status='failed' "
                 "ORDER BY updated_at DESC, job_id DESC LIMIT ?", (limit,)).fetchall()]
 
+    def ops_rollup_rows(self, start, end, width):
+        """Job counts per time bucket / provider / status for [start, end); the bucket is the first `width` characters of the ISO timestamp
+        (7 = month, 10 = day, 13 = hour). Metadata only (R-042 / R-043 roll-up)."""
+        if width not in (7, 10, 13):
+            raise ValueError("unsupported bucket width")
+        storage, path, _ = self._context()
+        self.initialize()
+        with storage.transaction(path) as conn:
+            return [dict(r) for r in conn.execute(
+                f"SELECT substr(created_at,1,{int(width)}) AS bucket, provider, status, COUNT(*) AS n FROM generation_jobs "
+                "WHERE created_at>=? AND created_at<? GROUP BY bucket, provider, status ORDER BY bucket", (start, end)).fetchall()]
+
     def get_idempotent(self, workspace_id, key):
         if self._impl is not None: return self._impl.get_idempotent_job(workspace_id, key)
         storage, path, _ = self._context()
