@@ -112,8 +112,9 @@ def test_me_gives_the_id_and_the_workspaces_with_roles_and_nothing_personal(team
 
 def test_adding_a_member_is_in_the_history_too_and_a_refused_add_is_not(team):
     ev = client.get("/v1/workspaces/wa/members-history", headers=auth("a")).json()
-    assert [(e["event"], e["member_id"], e["to_role"], e["actor_id"]) for e in ev][:4] == [("added", "user-d", "editor", "user-a"), ("added", "user-e", "admin", "user-a"),
+    assert [(e["event"], e["member_id"], e["to_role"], e["actor_id"]) for e in ev][1:5] == [("added", "user-d", "editor", "user-a"), ("added", "user-e", "admin", "user-a"),
                                                                                          ("added", "user-f", "admin", "user-a"), ("added", "user-g", "editor", "user-a")]
+    assert ev[0]["member_id"] == "user-c" and ev[0]["to_role"] == "viewer", "the workspace fixture added the viewer first"
     assert all(e["from_role"] is None for e in ev)
     n = len(ev)
     assert client.post(M, headers=auth("d"), json={"user_id": "user-x", "role": "viewer"}).status_code == 403, "an editor cannot add"
