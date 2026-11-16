@@ -554,6 +554,18 @@
             "title": "Asset Id",
             "type": "string"
           },
+          "attrs": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attrs"
+          },
           "kind": {
             "enum": [
               "model",
@@ -611,6 +623,18 @@
       },
       "Body_uploadWorkspaceLibraryItem": {
         "properties": {
+          "attrs": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attrs"
+          },
           "depicts_person": {
             "anyOf": [
               {
@@ -2675,6 +2699,11 @@
             "title": "Asset Id",
             "type": "string"
           },
+          "attrs": {
+            "additionalProperties": true,
+            "title": "Attrs",
+            "type": "object"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -4025,6 +4054,18 @@
       "PatchIn": {
         "additionalProperties": false,
         "properties": {
+          "attrs": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attrs"
+          },
           "name": {
             "anyOf": [
               {
@@ -15765,6 +15806,19 @@
           },
           {
             "in": "query",
+            "name": "attr",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10,
+              "title": "Attr",
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
@@ -15962,6 +16016,88 @@
           }
         },
         "summary": "Attach",
+        "tags": [
+          "workspace-library"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/library/facets": {
+      "get": {
+        "description": "For building filters: every attribute key in use (optionally within one kind) with its values and how many items carry each.",
+        "operationId": "listWorkspaceLibraryFacets",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "model",
+                    "garment",
+                    "prop",
+                    "bg",
+                    "pose",
+                    "3d",
+                    "render"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Facets",
         "tags": [
           "workspace-library"
         ]
