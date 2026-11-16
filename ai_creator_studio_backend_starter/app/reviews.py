@@ -197,7 +197,8 @@ async def list_reviews(workspace_id: str, status: Status | None = None, asset_id
         sql += " AND requested_by=?"; args.append(user_id)
     with store._connect() as db:
         _init(db)
-        rows = [r for r in db.execute(sql + " ORDER BY requested_at DESC, review_id", args).fetchall() if takedown.visible_to(r["asset_id"], user_id)]
+        hidden = takedown.hidden_ids(user_id)      # R-076: one query instead of one connection per review
+        rows = [r for r in db.execute(sql + " ORDER BY requested_at DESC, review_id", args).fetchall() if r["asset_id"] not in hidden]
     return {"items": [_public(r) for r in rows[offset:offset + limit]], "total": len(rows)}
 
 
