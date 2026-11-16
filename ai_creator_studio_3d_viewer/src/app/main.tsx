@@ -12,6 +12,7 @@ import LibraryWorkspace from '../LibraryWorkspace';
 import UsageWorkspace from '../UsageWorkspace';
 import CharacterWorkspace from '../CharacterWorkspace';
 import ThreeDWorkspace from '../ThreeDWorkspace';
+import PhotoStepsPanel from '../PhotoStepsPanel';
 import { installImageGuard } from './imageGuard.mjs';
 import { installUnauthorizedWatcher } from './sessionGuard.mjs';
 import SessionExpiredDialog from './SessionExpiredDialog';
@@ -306,7 +307,7 @@ function App() {
         {page === 'viewer' && <ThreeDWorkspace {...common}/>}
         {page === 'products' && <ProductCatalogWorkspace {...common}/ >}
         {page === 'assign' && <ProjectProductAssignmentWorkspace {...common}/ >}
-        {page === 'photo' && <PhotoDraftWorkspace {...common}/ >}
+        {page === 'photo' && <><PhotoStepsPanel {...common}/><PhotoDraftWorkspace {...common}/ ></>}
         {page === 'library' && <LibraryWorkspace {...common}/>}
         {page === 'character' && <CharacterWorkspace {...common}/>}
         {page === 'usage' && <UsageWorkspace {...common}/>}
