@@ -11,11 +11,11 @@ import JobResultsWorkspace from '../JobResultsWorkspace';
 import LibraryWorkspace from '../LibraryWorkspace';
 import UsageWorkspace from '../UsageWorkspace';
 import CharacterWorkspace from '../CharacterWorkspace';
+import ThreeDWorkspace from '../ThreeDWorkspace';
 import { installImageGuard } from './imageGuard.mjs';
 import { installUnauthorizedWatcher } from './sessionGuard.mjs';
 import SessionExpiredDialog from './SessionExpiredDialog';
 import OutputReviewWorkspace from '../OutputReviewWorkspace';
-import Studio3DViewer from '../Studio3DViewer';
 import { apiRequest, loadOrCreateWorkspace } from './apiClient.mjs';
 import { API_BASE_STORAGE_KEY, apiBaseConfigError, resolveApiBase } from './apiBaseUrl.mjs';
 
@@ -303,7 +303,7 @@ function App() {
       </> : <section className="module" key={`${page}-${reloadKey}`}><div className="module-head"><div><small>STUDIO MODULE</small><h1>{activePage}</h1><p>인증된 계정 · {workspace}</p></div><div><button className="outline" onClick={() => setReloadKey(k => k + 1)} title="이 화면의 내용을 다시 불러옵니다(입력 중인 내용은 지워집니다)">다시 불러오기</button> <button className="outline" onClick={() => setPage('overview')}>← 대시보드</button></div></div>
         {page === 'projects' && <ProjectWorkspace {...common}/ >}
         {page === 'assets' && <AssetWorkspace {...common}/ >}
-        {page === 'viewer' && <Studio3DViewer label="AI Creator Studio 3D Viewer" showGrid autoPlay/>}
+        {page === 'viewer' && <ThreeDWorkspace {...common}/>}
         {page === 'products' && <ProductCatalogWorkspace {...common}/ >}
         {page === 'assign' && <ProjectProductAssignmentWorkspace {...common}/ >}
         {page === 'photo' && <PhotoDraftWorkspace {...common}/ >}
