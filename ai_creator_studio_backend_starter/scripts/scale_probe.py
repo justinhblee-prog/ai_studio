@@ -105,7 +105,7 @@ def main(argv=None) -> int:
         from app.main import app
         client = TestClient(app)
         h = {"Authorization": "Bearer token-scale"}
-        assert client.get("/v1/workspaces", headers=h).status_code == 200
+        assert client.post("/v1/workspaces", headers=h, json={"workspace_id": WS}).status_code == 201     # through the application, so the tables exist afterwards
         client.post("/v1/workspaces/" + WS + "/work-items", headers=h, json={"kind": "x", "title": "warm"})   # creates the tables through the application's own code
         client.get(f"/v1/workspaces/{WS}/reviews", headers=h)
         client.get(f"/v1/workspaces/{WS}/library", headers=h)
