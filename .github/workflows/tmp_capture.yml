@@ -17,8 +17,15 @@ jobs:
       - working-directory: ai_creator_studio_3d_viewer
         run: |
           npm ci
+          npm install --no-save playwright@1.63.0
           npx playwright install --with-deps chromium
-          npm run build
+      - working-directory: ai_creator_studio_3d_viewer
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8768
+          VITE_ASSET_PUBLIC_BASE_URL: https://api.e2e.test
+          VITE_SUPABASE_URL: https://e2e-mock.supabase.test
+          VITE_SUPABASE_ANON_KEY: e2e-anon-not-a-secret
+        run: npm run build
       - working-directory: ai_creator_studio_3d_viewer
         run: node e2e/capture_screens.mjs "$GITHUB_WORKSPACE/captured"
       - uses: actions/upload-artifact@v4
