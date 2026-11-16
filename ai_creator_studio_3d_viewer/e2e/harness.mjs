@@ -151,7 +151,7 @@ export const apiCall = async (stack, token, path, init = {}) => {
 // Owner-side setup through the API: workspace with members, one image, a photo draft and one processed run.
 export async function seedSharedWorkspace(stack, { withRun = true } = {}) {
   const j = (token, path, init = {}) => apiCall(stack, token, path, { ...init, headers: { 'Content-Type': 'application/json', ...(init.headers || {}) } });
-  const workspace = 'ws_roles' + Math.random().toString(16).slice(2, 10);
+  const workspace = 'ws_roles' + (process.env.E2E_WS_SUFFIX || Math.random().toString(16).slice(2, 10));   // E2E_WS_SUFFIX pins the id (layout checks with the widest letters)
   let r = await j(USERS.owner.token, '/v1/workspaces', { method: 'POST', body: JSON.stringify({ workspace_id: workspace }) });
   if (r.status !== 201) throw new Error('workspace seed failed ' + r.status);
   for (const [who, role] of [[USERS.editor, 'editor'], [USERS.viewer, 'viewer']]) {

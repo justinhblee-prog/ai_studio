@@ -27,8 +27,14 @@ try {
         await page.evaluate(() => document.fonts?.ready);
         await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
         await page.waitForTimeout(250);
-        const m = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
-        if (m.scroll > m.inner + 1) wide.push(`${screen}: ${m.scroll}px > ${m.inner}px`);
+        const m = await page.evaluate(() => {
+          const inner = window.innerWidth;
+          const offenders = [...document.querySelectorAll('body *')].map(el => ({ el, r: el.getBoundingClientRect() }))
+            .filter(({ r }) => r.width > 0 && r.right > inner + 1).slice(0, 4)
+            .map(({ el, r }) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''} right=${Math.round(r.right)} text="${(el.textContent || '').trim().slice(0, 40)}"`);
+          return { scroll: document.documentElement.scrollWidth, inner, offenders };
+        });
+        if (m.scroll > m.inner + 1) wide.push(`${screen}: ${m.scroll}px > ${m.inner}px [${m.offenders.join(' | ')}]`);
       }
       assert.deepEqual(wide, [], 'horizontal overflow on: ' + wide.join('; '));
     });
