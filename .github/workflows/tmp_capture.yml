@@ -1,0 +1,27 @@
+name: tmp-capture
+on:
+  push:
+    branches: [r036-screen-captures]
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install -r ai_creator_studio_backend_starter/requirements.txt
+      - working-directory: ai_creator_studio_3d_viewer
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run build
+      - working-directory: ai_creator_studio_3d_viewer
+        run: node e2e/capture_screens.mjs "$GITHUB_WORKSPACE/captured"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screens
+          path: captured
