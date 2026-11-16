@@ -129,6 +129,8 @@ CODES: dict[str, tuple[str, str]] = {
     "MODEL_NAME_REQUIRED": ("모델 이름을 입력해 주세요.", "Please enter a model name."),
     "MODEL_PROVIDER_NOT_CONNECTED": ("외부 AI 서비스로 모델을 만드는 기능은 아직 연결되지 않았습니다.", "Model generation by an external AI service is not connected yet."),
     "VIDEO_PROVIDER_NOT_CONNECTED": ("외부 AI 서비스로 영상을 만드는 기능은 아직 연결되지 않았습니다.", "Video generation by an external AI service is not connected yet."),
+    "VIDEO_NOT_CANCELLABLE": ("이미 끝난 영상 작업이라 취소할 것이 없습니다.", "The video job has already finished, so there is nothing to cancel."),
+    "VIDEO_RETRY_NOT_FAILED": ("실패한 영상만 다시 시도할 수 있습니다.", "Only a failed video can be retried."),
     "VIDEO_INPUT_DUPLICATE": ("같은 그림을 두 번 넣을 수 없습니다.", "Each picture can be used once."),
     "VIDEO_INPUT_GONE": ("선택한 그림이 더는 없습니다.", "A selected picture no longer exists."),
     "VIDEO_INPUT_KIND": ("영상에는 그림 항목만 쓸 수 있습니다.", "Only picture items can be used for a video."),
