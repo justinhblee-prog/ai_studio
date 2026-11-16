@@ -84,6 +84,29 @@ try {
     await panel().getByRole('button', { name: /캔버스 맞춤/ }).click();   // leave one step for the next scenario
   });
 
+  await run('several images at once: rights must be ticked, non-images are listed with a reason, the rest are stored', async () => {
+    const before = (await images()).length;
+    const set = () => panel().getByLabel('이미지 여러 장 가져오기');
+    const png = (name, c) => ({ name, mimeType: 'image/png', buffer: makePng(20, 20, c) });
+    await set().setInputFiles([png('one.png', [10, 20, 30])]);
+    await panel().locator('[role=alert]').filter({ hasText: /권리 확인/ }).waitFor({ timeout: 10000 });
+    assert.equal((await images()).length, before, 'nothing stored without the rights tick');
+    await panel().getByRole('checkbox', { name: /사용할 권리가 있음/ }).check();
+    await set().setInputFiles([png('one.png', [10, 20, 30]), png('two.png', [30, 20, 10]), { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('x') }]);
+    const result = panel().getByRole('status', { name: '가져오기 결과' });
+    await result.getByText('2장을 가져왔습니다.').waitFor({ timeout: 15000 });
+    assert.ok((await result.innerText()).includes('notes.txt'), 'the skipped file is named');
+    assert.equal((await images()).length, before + 2);
+    const names = (await images()).map(a => a.original_filename);
+    assert.ok(names.includes('one.png') && names.includes('two.png'));
+  });
+
+  await run('steps that do not exist yet are listed as "개발 예정", not hidden', async () => {
+    const planned = panel().getByRole('region', { name: '개발 예정 단계' });
+    for (const name of ['배경 제거', '그림자', '업스케일']) assert.ok((await planned.innerText()).includes(name), name);
+    assert.ok((await planned.locator('li').count()) >= 8);
+  });
+
   await run('the same run against a deleted source reports an error in Korean and stores nothing', async () => {
     const [shoe] = (await images()).filter(a => a.original_filename === 'shoe.png');
     assert.equal((await apiCall(stack, USERS.owner.token, `/v1/assets/${shoe.asset_id}`, { method: 'DELETE' })).status, 204);

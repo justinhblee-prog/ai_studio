@@ -13,3 +13,7 @@ export function savePreset(api: string, token: string, workspaceId: string, name
 export function deletePreset(api: string, token: string, workspaceId: string, presetId: string): Promise<null>;
 export function stepsFromPreset(preset: Preset | null | undefined): Step[];
 export function validatePresetName(name: string, existing?: { name: string }[]): string;
+export const MAX_BULK_FILES: number;
+export const PLANNED_STEPS: readonly string[];
+export function planBulk(files: ArrayLike<{ name: string }> | null | undefined): { accepted: any[]; skipped: { name: string; reason: string }[] };
+export function uploadMany(api: string, token: string, workspaceId: string, files: any[], declaration: { rightsConfirmed: boolean; depictsPerson: boolean; likenessConsent: boolean }, upload?: (...args: any[]) => Promise<any>): Promise<{ done: { name: string; asset: any }[]; failed: { name: string; reason: string; status?: number }[] }>;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { STEP_DEFS, newStep, validateSteps, moveStep, summarizeRecords, runPhotoSteps, MAX_STEPS, stepsFromPreset, validatePresetName, savePreset } from './photoStepsClient.mjs';
+import { STEP_DEFS, newStep, validateSteps, moveStep, summarizeRecords, runPhotoSteps, MAX_STEPS, stepsFromPreset, validatePresetName, savePreset, planBulk, uploadMany, PLANNED_STEPS, MAX_BULK_FILES } from './photoStepsClient.mjs';
 
 test('a new step carries the defaults of its definition; an unknown one is refused', () => {
   assert.deepEqual(newStep('auto_crop'), { op: 'auto_crop', tolerance: 24, margin_pct: 5 });
@@ -59,3 +59,36 @@ test('saving a preset posts the trimmed name and the steps', async () => {
   await savePreset('http://127.0.0.1:9', 't', 'ws', '  기본 ', [newStep('auto_crop')]);
   assert.deepEqual(seen, { url: '/v1/workspaces/ws/photo-presets', body: { name: '기본', steps: [{ op: 'auto_crop', tolerance: 24, margin_pct: 5 }] } });
 });
+
+test('bulk plan keeps images, lists the rest with a reason, and caps the count', () => {
+  const files = [{ name: 'a.PNG' }, { name: 'b.jpeg' }, { name: 'notes.txt' }, { name: 'c.webp' }];
+  const plan = planBulk(files);
+  assert.deepEqual(plan.accepted.map((f) => f.name), ['a.PNG', 'b.jpeg', 'c.webp']);
+  assert.deepEqual(plan.skipped, [{ name: 'notes.txt', reason: 'png·jpg·webp 이미지가 아닙니다.' }]);
+  const many = planBulk(Array.from({ length: MAX_BULK_FILES + 2 }, (_, i) => ({ name: `i${i}.png` })));
+  assert.equal(many.accepted.length, MAX_BULK_FILES); assert.equal(many.skipped.length, 2); assert.match(many.skipped[0].reason, /최대 20장/);
+  assert.deepEqual(planBulk(null), { accepted: [], skipped: [] });
+});
+
+test('bulk upload goes one by one, a failure does not stop the rest, and each file is reported', async () => {
+  const seen = [];
+  const upload = async (api, token, ws, file, declaration) => {
+    seen.push([file.name, declaration.rightsConfirmed]);
+    if (file.name === 'bad.png') throw Object.assign(new Error('거부됨'), { status: 422 });
+    return { asset_id: `id-${file.name}` };
+  };
+  const result = await uploadMany('x', 't', 'ws', [{ name: 'a.png' }, { name: 'bad.png' }, { name: 'c.png' }], { rightsConfirmed: true, depictsPerson: false, likenessConsent: false }, upload);
+  assert.deepEqual(seen, [['a.png', true], ['bad.png', true], ['c.png', true]]);
+  assert.deepEqual(result.done.map((d) => d.asset.asset_id), ['id-a.png', 'id-c.png']);
+  assert.deepEqual(result.failed, [{ name: 'bad.png', reason: '거부됨', status: 422 }]);
+});
+
+test('the default upload sends the workspace, the file and the rights declaration with the token', async () => {
+  let seen;
+  globalThis.fetch = async (url, init) => { seen = { url: String(url), auth: init.headers.Authorization, rights: init.body.get('rights_confirmed'), ws: init.body.get('workspace_id') }; return new Response('{"asset_id":"a"}', { status: 201 }); };
+  const result = await uploadMany('http://127.0.0.1:9/', 't', 'ws-1', [new File([new Uint8Array(3)], 'x.png')], { rightsConfirmed: true, depictsPerson: false, likenessConsent: false });
+  assert.deepEqual(seen, { url: 'http://127.0.0.1:9/v1/assets/images', auth: 'Bearer t', rights: 'true', ws: 'ws-1' });
+  assert.equal(result.done.length, 1);
+});
+
+test('planned steps are listed in Korean', () => { assert.ok(PLANNED_STEPS.length >= 8 && PLANNED_STEPS.every((n) => /[가-힣]/.test(n))); });
