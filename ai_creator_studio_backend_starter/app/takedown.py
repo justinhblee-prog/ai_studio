@@ -35,6 +35,15 @@ def visible_to(asset_id: str, user_id: str | None) -> bool:
     return row["state"] == UNDER_REVIEW and row["owner_id"] == user_id
 
 
+def hidden_ids(user_id: str | None) -> set[str]:
+    """R-076: every asset id that is on hold AND hidden from this user (one query). The per-asset ``visible_to`` opens a connection each time; a list of thousands must use this instead."""
+    from app.assets.store import _connect, initialize
+    initialize()
+    with _connect() as db:
+        rows = db.execute("""SELECT t.asset_id, t.state, a.owner_id FROM asset_takedowns t JOIN assets a ON a.asset_id=t.asset_id""").fetchall()
+    return {r["asset_id"] for r in rows if not (r["state"] == UNDER_REVIEW and r["owner_id"] == user_id)}
+
+
 def filter_listing(items: list[dict[str, Any]], user_id: str) -> list[dict[str, Any]]:
     """Drop held assets the user may not see from a listing."""
     from app.assets.store import _connect, initialize

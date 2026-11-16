@@ -198,7 +198,8 @@ async def list_items(workspace_id: str, kind: Kind | None = None, origin: Litera
     with store._connect() as db:
         store.initialize()
         _init(db)
-        rows = [r for r in db.execute(sql + " ORDER BY i.created_at DESC, i.item_id", args).fetchall() if _visible(r, user_id) and _attrs_match(r, wanted)]
+        hidden = takedown.hidden_ids(user_id)      # one query, not one connection per row
+        rows = [r for r in db.execute(sql + " ORDER BY i.created_at DESC, i.item_id", args).fetchall() if r["asset_id"] not in hidden and _attrs_match(r, wanted)]
     return {"items": [_out(r) for r in rows[offset:offset + limit]], "total": len(rows)}
 
 
@@ -251,8 +252,9 @@ async def facets(workspace_id: str, kind: Kind | None = None, user_id: str = Dep
     with store._connect() as db:
         store.initialize()
         _init(db)
+        hidden = takedown.hidden_ids(user_id)
         for r in db.execute(sql, args).fetchall():
-            if not _visible(r, user_id):
+            if r["asset_id"] in hidden:
                 continue
             for key, v in json.loads(r["attrs_json"] or "{}").items():
                 for item in (v if isinstance(v, list) else [v]):
