@@ -124,6 +124,20 @@ try {
     assert.equal(listRequests, 0, 'no list request while nothing is waiting or running');
   });
 
+  await run('R-042: the usage screen shows this month\'s jobs, the member row, the month choice and a CSV button for the owner', async () => {
+    await gotoPage(page, '사용량');
+    const usage = page.locator('section[aria-label="사용량"]');
+    await usage.getByTestId('usage-jobs').waitFor({ timeout: 10000 });
+    assert.equal(await usage.getByTestId('usage-jobs').innerText(), '2', 'the two jobs created above');
+    const text = await usage.innerText();
+    assert.match(text, /작업공간 전체/); assert.match(text, /월 한도: 0\/\d+건/); assert.doesNotMatch(text, /USD|\$|비용|단가/);
+    assert.equal(await usage.locator('table[aria-label="구성원별 사용량"] tbody tr').count(), 1);
+    assert.equal(await usage.getByRole('button', { name: 'CSV 내보내기' }).isVisible(), true);
+    await usage.getByLabel('기간').selectOption({ index: 1 });
+    await usage.getByTestId('usage-jobs').waitFor({ timeout: 10000 });
+    assert.equal(await usage.getByTestId('usage-jobs').innerText(), '0', 'nothing last month');
+  });
+
   console.log(`SUMMARY ${results.filter(r => r.ok).length}/${results.length} generation steps passed`);
 } catch { failed = true; }
 finally { await browser.close(); await stack.stop(); }
