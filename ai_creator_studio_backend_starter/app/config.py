@@ -65,6 +65,7 @@ TRYON_INPUT_URL_TTL_SECONDS = int(os.getenv("TRYON_INPUT_URL_TTL_SECONDS", "600"
 ASSIST_INTERPRETER_MODE = os.getenv("ASSIST_INTERPRETER_MODE", "rules").strip().lower()
 ASSIST_PER_MINUTE = int(os.getenv("ASSIST_PER_MINUTE", "30"))            # per user, every interpreter
 ASSIST_LLM_DAILY_LIMIT = int(os.getenv("ASSIST_LLM_DAILY_LIMIT", "200"))  # per workspace, only external (llm) interpretations
+VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT", "20"))   # R-050: video jobs per workspace per 24h (proposal; also bounds mock storage)
 LIBRARY_PREVIEW_MAX_EDGE = int(os.getenv("LIBRARY_PREVIEW_MAX_EDGE", "1200"))  # library images are shown downscaled, never at original size
 # Package downloads per workspace per calendar month (UTC). 0 = no limit: the value is a product decision that has not been made yet.
 DOWNLOAD_MONTHLY_LIMIT = int(os.getenv("DOWNLOAD_MONTHLY_LIMIT", "0"))

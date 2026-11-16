@@ -28,7 +28,7 @@ router = APIRouter(prefix="/v1/workspaces/{workspace_id}/library", tags=["worksp
 Kind = Literal["model", "garment", "prop", "bg", "pose", "3d", "render"]
 KINDS = ("model", "garment", "prop", "bg", "pose", "3d", "render")
 AI_EVENTS = {"asset.generated_output_imported"}
-WORK_EVENTS = {"asset.photo_processed", "asset.photo_steps", "asset.model_candidate"}
+WORK_EVENTS = {"asset.photo_processed", "asset.photo_steps", "asset.model_candidate", "asset.video_output"}
 MAX_TAGS, MAX_TAG_LEN, MAX_NAME = 10, 30, 120
 DDL = """CREATE TABLE IF NOT EXISTS workspace_library_items (
     item_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, asset_id TEXT NOT NULL, kind TEXT NOT NULL, origin TEXT NOT NULL,
