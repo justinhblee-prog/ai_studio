@@ -352,6 +352,8 @@ async def publish_listing(listing_id: str, body: PublishIn, user_id: str = Depen
         row = _editable(db, listing_id, user_id)
         if not body.rights_confirmed:
             raise HTTPException(status_code=422, detail={"code": "MARKET_RIGHTS_REQUIRED", "message": "confirm that you may sell this"})
+        from app import reviews     # reply 40: a workspace that requires reviewed exports also requires a reviewed cover picture
+        reviews.require_approved(row["workspace_id"], [row["cover_asset_id"]])
         now = _now()
         db.execute("UPDATE market_listings SET visibility='public', published_at=?, rights_confirmed_by=?, rights_confirmed_at=?, updated_at=?, version=version+1 WHERE listing_id=?",
                    (row["published_at"] or now, user_id, now, now, listing_id))

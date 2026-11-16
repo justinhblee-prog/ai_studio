@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from app import takedown
 from app.assets import store
@@ -143,6 +143,8 @@ def _transition(workspace_id: str, review_id: str, action: str, body: DecideIn, 
             allowed = WRITERS
         if role not in allowed:
             raise HTTPException(status_code=403, detail="Insufficient workspace role")
+        if action == "approve" and row["requested_by"] == user_id and get_settings(db, workspace_id)["forbid_self_approval"]:
+            raise HTTPException(status_code=403, detail={"code": "REVIEW_SELF_APPROVAL_FORBIDDEN", "message": "this workspace does not allow approving your own request"})
         target = TRANSITIONS.get((row["status"], action))
         if target is None:
             raise HTTPException(status_code=409, detail={"code": "REVIEW_TRANSITION_INVALID", "message": f"a review that is {row['status']} cannot be '{action}'"})
@@ -234,3 +236,105 @@ async def review_events(workspace_id: str, review_id: str, user_id: str = Depend
             raise HTTPException(status_code=404, detail="Review not found")
         rows = db.execute("SELECT at, actor_id, actor_role, action, from_status, to_status, comment FROM asset_review_events WHERE review_id=? ORDER BY event_id", (review_id,)).fetchall()
     return [dict(r) for r in rows]
+
+
+# ------------------------------------------------------------------------------------------------------- workspace settings (reply 40)
+settings_router = APIRouter(prefix="/v1/workspaces/{workspace_id}/settings", tags=["workspace-settings"])
+SETTING_FIELDS = ("require_review_for_export", "forbid_self_approval")
+SETTINGS_ADMINS = {"owner", "admin"}
+
+
+def _init_settings(db) -> None:
+    db.execute("""CREATE TABLE IF NOT EXISTS workspace_settings (
+        workspace_id TEXT PRIMARY KEY, require_review_for_export INTEGER NOT NULL DEFAULT 0, forbid_self_approval INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT, updated_by TEXT)""")
+    db.execute("""CREATE TABLE IF NOT EXISTS workspace_settings_history (
+        event_id INTEGER PRIMARY KEY AUTOINCREMENT, workspace_id TEXT NOT NULL, at TEXT NOT NULL, actor_id TEXT NOT NULL, field TEXT NOT NULL, old_value INTEGER NOT NULL, new_value INTEGER NOT NULL)""")
+    for kind in ("UPDATE", "DELETE"):
+        db.execute(f"""CREATE TRIGGER IF NOT EXISTS trg_ws_settings_history_no_{kind.lower()} BEFORE {kind} ON workspace_settings_history
+            BEGIN SELECT RAISE(ABORT, 'workspace settings history is append-only'); END""")
+
+
+def get_settings(db, workspace_id: str) -> dict[str, Any]:
+    _init_settings(db)
+    row = db.execute("SELECT * FROM workspace_settings WHERE workspace_id=?", (workspace_id,)).fetchone()
+    return {"workspace_id": workspace_id, "require_review_for_export": bool(row["require_review_for_export"]) if row else False,
+            "forbid_self_approval": bool(row["forbid_self_approval"]) if row else False,
+            "updated_at": row["updated_at"] if row else None, "updated_by": row["updated_by"] if row else None}
+
+
+def require_approved(workspace_id: str, asset_ids: list[str | None]) -> None:
+    """The export gate (reply 40 point 2). With ``require_review_for_export`` OFF (the default) nothing changes. With it ON every listed asset must have an APPROVED latest
+    review, otherwise 409 ``REVIEW_NOT_APPROVED`` with the ids that are in the way. An asset that never had a review is refused too."""
+    ids = list(dict.fromkeys(a for a in asset_ids if a))
+    with store._connect() as db:
+        _init(db)
+        if not get_settings(db, workspace_id)["require_review_for_export"] or not ids:
+            return
+        blocked = []
+        for aid in ids:
+            row = db.execute("SELECT status FROM asset_reviews WHERE workspace_id=? AND asset_id=? ORDER BY requested_at DESC, rowid DESC LIMIT 1", (workspace_id, aid)).fetchone()
+            if row is None or row["status"] != "approved":
+                blocked.append(aid)
+    if blocked:
+        raise HTTPException(status_code=409, detail={"code": "REVIEW_NOT_APPROVED", "message": "these assets need an approved review before they can be exported", "asset_ids": blocked})
+
+
+class SettingsOut(BaseModel):
+    workspace_id: str
+    require_review_for_export: bool
+    forbid_self_approval: bool
+    updated_at: str | None
+    updated_by: str | None
+
+
+class SettingsPatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    require_review_for_export: StrictBool | None = None      # a real true / false (not "yes", not 1)
+    forbid_self_approval: StrictBool | None = None
+
+
+class SettingsEventOut(BaseModel):
+    at: str
+    actor_id: str
+    field: str
+    old_value: bool
+    new_value: bool
+
+
+@settings_router.get("", response_model=SettingsOut, operation_id="getWorkspaceSettings")
+async def read_settings(workspace_id: str, user_id: str = Depends(current_user)):
+    require_role(workspace_id, user_id, READERS)
+    with store._connect() as db:
+        _init(db)
+        return get_settings(db, workspace_id)
+
+
+@settings_router.patch("", response_model=SettingsOut, operation_id="updateWorkspaceSettings")
+async def update_settings(workspace_id: str, body: SettingsPatch, user_id: str = Depends(current_user)):
+    """Owner or admin only. Every change of a value is written to an append-only history."""
+    require_role(workspace_id, user_id, SETTINGS_ADMINS)
+    changes = {k: getattr(body, k) for k in SETTING_FIELDS if k in body.model_fields_set}
+    if not changes or any(v is None for v in changes.values()):
+        raise HTTPException(status_code=422, detail={"code": "SETTINGS_NOTHING_TO_CHANGE", "message": "send at least one setting as true or false"})
+    with store._connect() as db:
+        _init(db)
+        before = get_settings(db, workspace_id)
+        now = _now()
+        db.execute("INSERT OR IGNORE INTO workspace_settings(workspace_id) VALUES (?)", (workspace_id,))
+        for field, value in changes.items():
+            if bool(before[field]) != value:
+                db.execute("INSERT INTO workspace_settings_history(workspace_id, at, actor_id, field, old_value, new_value) VALUES (?,?,?,?,?,?)",
+                           (workspace_id, now, user_id, field, int(before[field]), int(value)))
+                db.execute(f"UPDATE workspace_settings SET {field}=?, updated_at=?, updated_by=? WHERE workspace_id=?", (int(value), now, user_id, workspace_id))
+        return get_settings(db, workspace_id)
+
+
+@settings_router.get("/history", response_model=list[SettingsEventOut], operation_id="listWorkspaceSettingsHistory")
+async def settings_history(workspace_id: str, user_id: str = Depends(current_user)):
+    require_role(workspace_id, user_id, SETTINGS_ADMINS)
+    with store._connect() as db:
+        _init(db)
+        _init_settings(db)
+        rows = db.execute("SELECT at, actor_id, field, old_value, new_value FROM workspace_settings_history WHERE workspace_id=? ORDER BY event_id", (workspace_id,)).fetchall()
+    return [{"at": r["at"], "actor_id": r["actor_id"], "field": r["field"], "old_value": bool(r["old_value"]), "new_value": bool(r["new_value"])} for r in rows]

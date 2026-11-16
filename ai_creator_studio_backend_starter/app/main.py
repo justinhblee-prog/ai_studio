@@ -46,7 +46,7 @@ from app.video_jobs import router as video_jobs_router
 from app.ops_usage import router as ops_usage_router
 from app.customers import router as customers_router
 from app.image_thumbs import router as image_thumbs_router
-from app.reviews import router as reviews_router
+from app.reviews import router as reviews_router, settings_router as review_settings_router
 from app.ops_audit import router as ops_audit_router
 from app.market import router as market_router
 from app.lookbook import router as lookbook_drafts_router
@@ -153,6 +153,7 @@ app.include_router(ops_usage_router)
 app.include_router(customers_router)
 app.include_router(image_thumbs_router)
 app.include_router(reviews_router)
+app.include_router(review_settings_router)
 app.include_router(ops_audit_router)
 app.include_router(market_router)
 app.include_router(lookbook_drafts_router)
@@ -497,6 +498,11 @@ async def create_job_output_export_manifest(job_id: str,
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     require_role(job["workspace_id"], user_id, {"owner", "admin", "editor"})
+    from app import reviews
+    try:    # reply 40: when the workspace requires an approved review for export, the result assets must have one
+        reviews.require_approved(job["workspace_id"], [o.get("asset_id") for o in repository.list_outputs(job_id).get("data", [])])
+    except NotImplementedError:
+        pass
     from app.repositories.output_review import build_output_review_repository
     try:
         result = build_output_review_repository().create_export_manifest(job_id, job["workspace_id"], user_id)

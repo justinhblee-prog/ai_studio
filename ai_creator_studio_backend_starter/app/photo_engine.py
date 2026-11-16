@@ -915,6 +915,13 @@ async def reject_photo_run_output(draft_id: str, run_id: str, body: PhotoOutputR
 async def export_photo_run_manifest(draft_id: str, run_id: str,
                                     workspace_id: str = Query(min_length=2, max_length=64),
                                     user_id: str = Depends(current_user)):
+    from app import reviews
+    from app.assets import store as _store
+    from app.assets.routes import require_role as _require_role
+    _require_role(workspace_id, user_id, {"owner", "admin", "editor"})
+    with _store._connect() as _db:   # reply 40: an approved review of the result asset when the workspace requires it
+        _row = _db.execute("SELECT output_asset_id FROM photo_processing_runs WHERE run_id=? AND workspace_id=?", (run_id, workspace_id)).fetchone()
+    reviews.require_approved(workspace_id, [_row["output_asset_id"]] if _row else [])
     try:
         return get_photo_draft_port().export_manifest(draft_id, run_id, workspace_id, user_id)
     except Exception as exc:  # noqa: BLE001
