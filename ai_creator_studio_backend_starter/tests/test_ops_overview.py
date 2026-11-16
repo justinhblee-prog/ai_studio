@@ -161,9 +161,9 @@ def test_deletion_requests_list_shows_the_grace_deadline_and_never_the_reason(en
     client.get("/v1/me/legal-status", headers=auth("a"))   # creates the legal / deletion tables
     now = datetime.now(timezone.utc)
     db = sqlite3.connect(config.ASSET_DATABASE_PATH)
-    for rid, status, days in (("del_old", "pending", 10), ("del_new", "pending", 2), ("del_done", "completed", 20)):
+    for rid, who, status, days in (("del_old", "user-a", "pending", 10), ("del_new", "user-b", "pending", 2), ("del_done", "user-c", "completed", 20)):
         db.execute("INSERT INTO deletion_requests(request_id,user_id,scope,workspace_id,status,reason,requested_at) VALUES(?,?,?,?,?,?,?)",
-                   (rid, "user-a", "workspace_content", "co-paid", status, "private reason text", (now - timedelta(days=days)).isoformat()))
+                   (rid, who, "workspace_content", "co-paid", status, "private reason text", (now - timedelta(days=days)).isoformat()))
     db.commit()
     assert client.get("/internal/ops/deletion-requests").status_code == 401
     assert client.get("/internal/ops/deletion-requests", headers=auth("a")).status_code == 403
