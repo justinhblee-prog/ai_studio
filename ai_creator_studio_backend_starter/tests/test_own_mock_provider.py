@@ -75,10 +75,10 @@ def test_the_memory_is_bounded(monkeypatch):
     assert run(P.status(ids[0]))["status"] == "failed" and run(P.status(ids[-1]))["status"] == "succeeded"
 
 
-def test_it_is_registered_only_as_research_not_production_and_not_selectable():
+def test_it_is_not_in_the_registry_and_cannot_be_selected_as_a_provider():
+    """The registry already holds the closed in-house slot 'own3d' (R-ENGINE-05); this mock adds NO second name there and can never be dispatched to."""
     assert P.describe_capabilities() == ["TRY_ON_3D"] and P.name == "own"
-    record = reg.find_capability("own", "own-3d-mock", "TRY_ON_3D")
-    assert record is not None and record.production_eligible is False and record.status == "NOT_INTEGRATED"
-    assert reg.find_capability("own", "own-3d-mock") is None, "it must not appear as a TRY_ON_IMAGE capability"
-    with pytest.raises(reg.ProviderPolicyError):
+    assert reg.find_capability("own", "own-3d-mock", "TRY_ON_3D") is None and reg.find_capability("own", "own-3d-mock") is None
+    with pytest.raises(reg.ProviderPolicyError) as exc:
         reg.resolve_manual("own", "own-3d-mock")
+    assert exc.value.code == "UNSUPPORTED_CAPABILITY"

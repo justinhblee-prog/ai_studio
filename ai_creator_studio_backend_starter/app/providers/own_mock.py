@@ -3,7 +3,7 @@
 What it does: builds a sample garment (``app/garments.py``), deforms it to the requested body measurements (``app/garment_deform.py``) and reports the result. It is the
 flow of the own 3D engine (track A) behind the provider contract, so the rest of the system can be wired and tested before any real engine exists.
 What it is NOT: no image, no photo, no GPU, no model weights, no paid call, no review score (the 5-item review of the plan is NOT run here: every score is ``None``).
-It is not selectable through ``PROVIDER_MODE`` (``main.py`` is unchanged) and its registry record is RESEARCH_ONLY / not production eligible.
+It is not selectable through ``PROVIDER_MODE`` (``main.py`` is unchanged) and it is deliberately NOT in ``provider_registry`` (the registry holds the closed in-house slot ``own3d``, R-ENGINE-05).
 A fitting that is refused (the garment would pass through the body) ends as ``failed`` with ``charged: False`` (the "no deduction on failure" rule of the plan).
 """
 from __future__ import annotations
