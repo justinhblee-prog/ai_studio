@@ -24,9 +24,9 @@ jobs:
           cache: pip
           cache-dependency-path: ai_creator_studio_backend_starter/requirements.txt
       - run: pip install -r requirements.txt coverage==7.6.10
-      - name: Install ffmpeg and the open Korean subtitle font (the video tests need them)
+      - name: "Install ffmpeg and the open Korean subtitle font (the video tests need them)"
         run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fonts-noto-cjk
-      - name: pytest under coverage (live PostgreSQL tests are skipped: no database service here)
+      - name: "pytest under coverage (live PostgreSQL tests are skipped, there is no database service here)"
         env:
           REQUIRE_FFMPEG: "1"
           REQUIRE_SUBTITLE_FONT: "1"
