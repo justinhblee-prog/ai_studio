@@ -28,9 +28,9 @@ TABLE = [
     ("GET", f"{W}/reviews", None, ALL4),
     ("GET", f"{W}/reviews/status", None, ALL4),
     ("POST", f"{W}/reviews", {"asset_id": "ast_nobody"}, WRITERS),
-    ("POST", f"{W}/reviews/{rev}/approve", {}, ADMINS),
-    ("POST", f"{W}/reviews/{rev}/reject", {"comment": "no"}, ADMINS),
-    ("POST", f"{W}/reviews/{rev}/request-changes", {"comment": "no"}, ADMINS),
+    ("POST", f"{W}/reviews/{{rev}}/approve", {}, ADMINS),
+    ("POST", f"{W}/reviews/{{rev}}/reject", {"comment": "no"}, ADMINS),
+    ("POST", f"{W}/reviews/{{rev}}/request-changes", {"comment": "no"}, ADMINS),
     ("GET", f"{W}/library", None, ALL4),
     ("GET", "/v1/assets?workspace_id=wa", None, ALL4),
 ]
