@@ -53,6 +53,9 @@ ffmpeg가 없으면 `FFMPEG_MISSING`으로 **실패**한다. 다른 형식(WebP 
 - 섞인 프레임 수는 `turntable_blended_frames(컷 수, 초, 바퀴)`로 미리 알 수 있고 결과 기록의 `blended_frames`에도 남는다. 5초 한 바퀴는 컷 120장이면 0, 24장이면 96이다. 10초는 240장, 15초는 360장이면 0이다(컷 상한 360).
 - CI e2e(b)가 합성 모델(구)을 **120컷**으로 렌더 → MP4(섞인 프레임 0) → Chrome 재생까지 한 번에 확인한다. 실제 작가 모델로는 **미확인**.
 
+## 자막 (E-08c)
+`make_mp4(..., subtitles=[{"text", "start", "end"}, ...])`는 자막(최대 20개, 글 120자 이내, 시간은 초)을 화면 아래쪽에 흰 글자·반투명 검은 상자로 **굽는다**(Pillow로 직접 그림, 글자를 ffmpeg에 넘기지 않음). 두 줄까지(넘치면 `SUBTITLE_TOO_LONG`), 시간이 겹치면 `SUBTITLE_OVERLAP`, 글꼴이 못 그리는 글자는 `SUBTITLE_GLYPH_MISSING`, 글꼴이 없으면 `SUBTITLE_FONT_MISSING`. 검사는 프레임을 그리기 전에 끝난다. 글꼴과 라이선스는 `docs/THIRD_PARTY_FONTS.md`. 영상 작업 API의 `subtitles` 필드는 아직 없다.
+
 ## 표지 그림
 `poster_image(content, at=0.0, max_side=None)`은 영상의 한 프레임을 RGB 그림으로 돌려준다(`at`은 0~1 위치, `max_side`는 긴 변 상한, 확대는 하지 않음). 목록·썸네일처럼 그림만 보일 수 있는 곳에 쓸 표지용이다. 어디에 저장할지는 API 연결 때 정한다.
 
