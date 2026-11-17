@@ -247,6 +247,15 @@ jobs:
           set -o pipefail
           node e2e/layout_flow.mjs | tee e2e_layout.txt
           grep -q "SUMMARY 13/13 layout checks passed" e2e_layout.txt
+      - name: A real browser plays the MP4 the video module makes (Lane 4)
+        if: matrix.group == 'b'
+        run: |
+          set -o pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg
+          (cd ai_creator_studio_backend_starter && python scripts/make_sample_mp4.py "$RUNNER_TEMP/sample.mp4")
+          cd ai_creator_studio_3d_viewer
+          node e2e/video_playback.mjs "$RUNNER_TEMP/sample.mp4" | tee e2e_video_playback.txt
+          grep -q "SUMMARY 4/4 video playback checks passed" e2e_video_playback.txt
       - name: Legal acceptance gate, AI-training consent and deletion requests in the browser
         if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer
