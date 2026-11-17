@@ -40,6 +40,10 @@ _RECORDS = (
         "DOCUMENTED", "PENDING_CONTRACT_TEST", True, True, False, True, "NOT_DOCUMENTED", False,
         ("https://docs.fashn.ai/api-overview/api-fundamentals",),
         "Official API docs reviewed; live/sandbox contract, rights and usage evidence pending."),
+    # R-ENGINE-04 (slot): the own 3D engine as a mock behind the provider contract. Geometry only: no image, no photo, no GPU, no model weights, no paid call; never production eligible.
+    CapabilityRecord("own", "own-3d-mock", "TRY_ON_3D", "try-on-3d.v1", "glb.v1",
+        "CONTRACT_TESTED", "NOT_INTEGRATED", True, True, False, False, "NONE", False,
+        ("repository:tests/test_own_mock_provider.py",), "Flow-only mock of the own 3D engine (track A): fits a sample garment to typed measurements; the 5-item review is NOT run."),
     # Lane 5: photo -> 3D candidates from the public research of R-075 (2026-11-17). RESEARCH_ONLY: nothing here is integrated, called, signed up for or priced reliably.
     CapabilityRecord("mock3d", "mock-image-to-3d", "IMAGE_TO_3D", "image-to-3d.v1", "glb.v1",
         "CONTRACT_TESTED", "ACTIVE", False, False, False, False, "NONE", False,
