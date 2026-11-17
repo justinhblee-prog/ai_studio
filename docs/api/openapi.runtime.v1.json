@@ -1588,6 +1588,36 @@
         "title": "CreateWorkspaceBody",
         "type": "object"
       },
+      "CueIn": {
+        "additionalProperties": false,
+        "properties": {
+          "end": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 15.0,
+            "title": "End",
+            "type": "number"
+          },
+          "start": {
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "number"
+          },
+          "text": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "start",
+          "end"
+        ],
+        "title": "CueIn",
+        "type": "object"
+      },
       "CustomersResponse": {
         "properties": {
           "by": {
@@ -7520,6 +7550,21 @@
               }
             ],
             "title": "Prompt"
+          },
+          "subtitles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CueIn"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitles"
           }
         },
         "required": [
@@ -7649,6 +7694,20 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "subtitles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CueIn"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitles"
           },
           "workspace_id": {
             "title": "Workspace Id",
