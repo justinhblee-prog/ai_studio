@@ -153,6 +153,11 @@
 | `STEP_PARAMETER_INVALID` | photo | error | 처리 단계의 값이 올바르지 않습니다. | A step value is not valid. |
 | `STEP_PARAMETER_UNKNOWN` | photo | error | 처리 단계에 없는 설정입니다. | That setting does not exist for this step. |
 | `STEP_UNKNOWN` | photo | error | 알 수 없는 처리 단계입니다. | Unknown processing step. |
+| `SUBTITLE_FONT_MISSING` | general | error | 이 서버에 자막용 글꼴이 설치되어 있지 않아 자막을 넣을 수 없습니다. | The subtitle font is not installed on this server, so subtitles are not available. |
+| `SUBTITLE_GLYPH_MISSING` | general | error | 자막에 이 서비스의 글꼴이 그릴 수 없는 글자가 있습니다. | A subtitle contains a character the service font cannot draw. |
+| `SUBTITLE_INVALID` | general | error | 자막은 글, 시작 시각, 끝 시각으로 이루어지며 영상 길이 안에 있어야 합니다. | A subtitle needs text, a start and an end time inside the video. |
+| `SUBTITLE_OVERLAP` | general | error | 자막의 시간이 서로 겹칩니다. | Subtitle times overlap. |
+| `SUBTITLE_TOO_LONG` | general | error | 자막이 너무 길어 두 줄에 들어가지 않습니다. | A subtitle is too long to fit in two lines. |
 | `SURVEY_SIZE_INVALID` | customers | error | 규모는 짧은 코드(예: 1-5, 50+)여야 합니다. | The size must be a short code such as 1-5 or 50+. |
 | `SURVEY_TOKEN_INVALID` | customers | error | 값에는 글자·숫자와 . _ ~ + - 만 쓸 수 있습니다. | Values may use letters, digits and . _ ~ + - only. |
 | `TAKEDOWN_ACTIVE` | legal | error | **[결정 필요: 법무]** | **[decision needed: legal]** |

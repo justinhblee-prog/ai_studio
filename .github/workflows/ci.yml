@@ -41,8 +41,12 @@ jobs:
           cache-dependency-path: ai_creator_studio_backend_starter/requirements.txt
       - run: pip install -r requirements.txt
       - run: python -m compileall -q app tests scripts
-      - name: Install ffmpeg (Lane 4 / E-08a real MP4 output; the tests fail, not skip, if it is missing)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg && ffmpeg -version | head -n 1
+      - name: Install ffmpeg and the open Korean subtitle font (Lane 4 / E-08a, E-08c; the tests fail, not skip, if it is missing)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fonts-noto-cjk && ffmpeg -version | head -n 1 && fc-list | grep -c NotoSansCJK
+      - name: Keep the font package's own licence text (copyright file) for docs/THIRD_PARTY_FONTS.md
+        run: |
+          cp /usr/share/doc/fonts-noto-cjk/copyright font_license_noto_cjk.txt
+          dpkg-query -W fonts-noto-cjk > font_package_version.txt
       - name: Prepare Supabase-compatible roles (stubs for the disposable CI database)
         run: >-
           psql -h localhost -U postgres -d acs_live -v ON_ERROR_STOP=1 -c
@@ -51,6 +55,7 @@ jobs:
       - name: pytest (unit + live PostgreSQL repository tests)
         env:
           REQUIRE_FFMPEG: "1"
+          REQUIRE_SUBTITLE_FONT: "1"
           VIDEO_MATRIX_OUT: video_matrix.md
         run: |
           set -o pipefail
@@ -71,6 +76,8 @@ jobs:
             ai_creator_studio_backend_starter/pytest.txt
             ai_creator_studio_backend_starter/live.txt
             ai_creator_studio_backend_starter/video_matrix.md
+            ai_creator_studio_backend_starter/font_license_noto_cjk.txt
+            ai_creator_studio_backend_starter/font_package_version.txt
           if-no-files-found: ignore
           retention-days: 14
 

@@ -159,6 +159,11 @@ CODES: dict[str, tuple[str, str]] = {
     "VIDEO_POSTER_POSITION": ("표지 그림을 뽑을 위치는 0부터 1 사이 숫자여야 합니다.", "The position of the cover picture must be a number from 0 to 1."),
     "VIDEO_TURNTABLE_INVALID": ("회전 영상에는 크기가 같은 회전 그림 8~360장과 1~3바퀴 설정이 필요합니다.", "A rotation video needs 8 to 360 rotation pictures of one size and 1 to 3 turns."),
     "VIDEO_POSTER_NOT_AVAILABLE": ("이 작업에는 표지를 뽑을 MP4 영상이 없습니다.", "This job has no MP4 video to take a cover from."),
+    "SUBTITLE_INVALID": ("자막은 글, 시작 시각, 끝 시각으로 이루어지며 영상 길이 안에 있어야 합니다.", "A subtitle needs text, a start and an end time inside the video."),
+    "SUBTITLE_OVERLAP": ("자막의 시간이 서로 겹칩니다.", "Subtitle times overlap."),
+    "SUBTITLE_TOO_LONG": ("자막이 너무 길어 두 줄에 들어가지 않습니다.", "A subtitle is too long to fit in two lines."),
+    "SUBTITLE_GLYPH_MISSING": ("자막에 이 서비스의 글꼴이 그릴 수 없는 글자가 있습니다.", "A subtitle contains a character the service font cannot draw."),
+    "SUBTITLE_FONT_MISSING": ("이 서버에 자막용 글꼴이 설치되어 있지 않아 자막을 넣을 수 없습니다.", "The subtitle font is not installed on this server, so subtitles are not available."),
     "VIDEO_COMMENT_INVALID": ("영상 파일에 넣을 설명 글이 비었거나 너무 길거나 여러 줄입니다.", "The text to put inside the video file is empty, too long or more than one line."),
     "ASSIST_TEXT_REQUIRED": ("요청할 내용을 글로 적어 주세요.", "Please type what you need."),
     # --- reviews

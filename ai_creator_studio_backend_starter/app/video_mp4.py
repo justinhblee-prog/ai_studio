@@ -222,13 +222,21 @@ def encode_mp4(frames: Iterable[Image.Image], size: tuple[int, int], fps: int = 
 
 
 def make_mp4(images: list[Image.Image], aspect: str, seconds: int, motion: str = "zoom", transition: str = "cut",
-             comment: str | None = None) -> tuple[bytes, dict[str, Any]]:
-    """Pictures -> MP4 bytes and a record of what was made. Local only (no AI model, no provider)."""
+             comment: str | None = None, subtitles: list[dict[str, Any]] | None = None) -> tuple[bytes, dict[str, Any]]:
+    """Pictures -> MP4 bytes and a record of what was made. Local only (no AI model, no provider). ``subtitles`` = cues ``{text, start, end}`` burned into
+    the picture (app/video_subtitles.py); the cues and the font are checked BEFORE any frame is drawn."""
     _require_ffmpeg()
     started = time.perf_counter()
-    content = encode_mp4(render_frames(images, aspect, seconds, motion, transition), SIZES[aspect], FPS, comment)
+    frames = render_frames(images, aspect, seconds, motion, transition)
+    cue_count = 0
+    if subtitles is not None:
+        from app import video_subtitles
+        cues = video_subtitles.parse_cues(subtitles, seconds)
+        frames = video_subtitles.overlay_frames(frames, video_subtitles.build_overlays(cues, SIZES[aspect]), FPS)
+        cue_count = len(cues)
+    content = encode_mp4(frames, SIZES[aspect], FPS, comment)
     return content, {"aspect": aspect, "size": list(SIZES[aspect]), "seconds": seconds, "fps": FPS, "frames": seconds * FPS, "motion": motion,
-                     "transition": transition, "inputs": len(images), "mode": "local", "ai": False, "encoder": "ffmpeg libx264", "comment": comment,
+                     "transition": transition, "inputs": len(images), "mode": "local", "ai": False, "encoder": "ffmpeg libx264", "comment": comment, "subtitle_cues": cue_count,
                      "bytes": len(content), "encode_ms": round((time.perf_counter() - started) * 1000)}
 
 
