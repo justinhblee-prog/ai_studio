@@ -8,17 +8,18 @@ read through GET. A result that fails the QC is NOT delivered (status ``failed``
 """
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from PIL import Image, ImageChops, ImageStat
 from pydantic import BaseModel, ConfigDict, Field
 
-from app import config, takedown
+from app import config, takedown, video_mp4
 from app.assets import store
 from app.assets.routes import current_user, require_role
 from app.assets.validation import ValidatedAsset
@@ -40,6 +41,8 @@ def _init(db) -> None:
         job_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, owner_id TEXT NOT NULL, status TEXT NOT NULL, provider TEXT NOT NULL,
         aspect TEXT NOT NULL, duration_seconds INTEGER NOT NULL, motion TEXT NOT NULL, instruction TEXT, input_item_ids_json TEXT NOT NULL,
         output_asset_id TEXT, qc_json TEXT, error_code TEXT, created_at TEXT NOT NULL, finished_at TEXT)""")
+    if "output_format" not in {r[1] for r in db.execute("PRAGMA table_info(video_jobs)").fetchall()}:     # a database made before MP4 output existed
+        db.execute("ALTER TABLE video_jobs ADD COLUMN output_format TEXT NOT NULL DEFAULT 'webp'")
 
 
 def _now() -> str:
@@ -107,6 +110,7 @@ class VideoIn(BaseModel):
     duration_seconds: int = Field(default=DEFAULT_SECONDS, ge=MIN_SECONDS, le=MAX_SECONDS)
     motion: Literal["slow_zoom", "pan", "crossfade"] = "slow_zoom"
     prompt: str | None = Field(default=None, max_length=500)
+    output_format: Literal["webp", "mp4"] = "webp"      # mp4 = a real H.264 file (needs ffmpeg on the server; 5, 10 or 15 seconds; 720x1280, 864x1080 or 1280x720)
 
 
 class QcOut(BaseModel):
@@ -125,6 +129,7 @@ class VideoOut(BaseModel):
     aspect: str
     duration_seconds: int
     motion: str
+    output_format: str = "webp"
     prompt: str | None
     input_item_ids: list[str]
     output_asset_id: str | None
@@ -140,7 +145,7 @@ class VideoListOut(BaseModel):
 
 def _public(row) -> dict[str, Any]:
     return {"job_id": row["job_id"], "workspace_id": row["workspace_id"], "owner_id": row["owner_id"], "status": row["status"], "provider": row["provider"],
-            "aspect": row["aspect"], "duration_seconds": row["duration_seconds"], "motion": row["motion"], "prompt": row["instruction"],
+            "aspect": row["aspect"], "duration_seconds": row["duration_seconds"], "motion": row["motion"], "output_format": row["output_format"], "prompt": row["instruction"],
             "input_item_ids": json.loads(row["input_item_ids_json"]), "output_asset_id": row["output_asset_id"],
             "qc": json.loads(row["qc_json"]) if row["qc_json"] else None, "error_code": row["error_code"],
             "created_at": row["created_at"], "finished_at": row["finished_at"]}
@@ -181,8 +186,15 @@ async def create_video_job(workspace_id: str, body: VideoIn, user_id: str = Depe
     if used >= limit:
         from app import rate_limit
         raise rate_limit.too_many("VIDEO_DAILY_LIMIT", "today's video limit is used up", 3600, estimated=True, limit=limit, used=used)
+    if body.output_format == "mp4":
+        if body.duration_seconds not in video_mp4.DURATIONS:
+            raise HTTPException(status_code=422, detail={"code": "VIDEO_DURATION_INVALID", "message": "an MP4 video is 5, 10 or 15 seconds long"})
+        if video_mp4.find_ffmpeg() is None:     # no silent fallback to another format
+            raise HTTPException(status_code=503, detail={"code": "FFMPEG_MISSING", "message": "MP4 output is not available on this server"})
     images = _load_inputs(workspace_id, user_id, body.input_item_ids)
     job_id, now = "vid_" + uuid.uuid4().hex, _now()
+    if body.output_format == "mp4":
+        return await _create_mp4(workspace_id, user_id, body, job_id, now, images)
     frames = make_frames(images, body.aspect, body.duration_seconds, body.motion)
     qc = qc_frames(frames, body.aspect, body.duration_seconds * FPS)
     output_asset_id, status, error = None, "failed", "QC_FAILED"
@@ -198,10 +210,51 @@ async def create_video_job(workspace_id: str, body: VideoIn, user_id: str = Depe
         output_asset_id, status, error = saved["asset_id"], "succeeded", None
     with store._connect() as db:
         _init(db)
-        db.execute("""INSERT INTO video_jobs(job_id, workspace_id, owner_id, status, provider, aspect, duration_seconds, motion, instruction, input_item_ids_json,
-            output_asset_id, qc_json, error_code, created_at, finished_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                   (job_id, workspace_id, user_id, status, "mock", body.aspect, body.duration_seconds, body.motion, (body.prompt or "").strip() or None,
-                    json.dumps(body.input_item_ids), output_asset_id, json.dumps(qc), error, now, _now()))
+        _insert_job(db, job_id, workspace_id, user_id, body, status, output_asset_id, qc, error, now)
+        return _public(db.execute("SELECT * FROM video_jobs WHERE job_id=?", (job_id,)).fetchone())
+
+
+def _insert_job(db, job_id, workspace_id, user_id, body, status, output_asset_id, qc, error, now) -> None:
+    db.execute("""INSERT INTO video_jobs(job_id, workspace_id, owner_id, status, provider, aspect, duration_seconds, motion, output_format, instruction, input_item_ids_json,
+        output_asset_id, qc_json, error_code, created_at, finished_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               (job_id, workspace_id, user_id, status, "mock", body.aspect, body.duration_seconds, body.motion, body.output_format, (body.prompt or "").strip() or None,
+                json.dumps(body.input_item_ids), output_asset_id, json.dumps(qc), error, now, _now()))
+
+
+# the three mock motions of this API -> the motion and transition of the MP4 module
+MP4_MOTION = {"slow_zoom": ("zoom", "cut"), "pan": ("pan", "cut"), "crossfade": ("zoom", "crossfade")}
+
+
+async def _create_mp4(workspace_id, user_id, body, job_id, now, images):
+    """A real MP4 (H.264) made locally by ffmpeg, checked by decoding it again; saved as a ``video`` asset. The picture work runs in a worker thread so the
+    server keeps answering while a 15 second video is encoded. A file that fails the QC is NOT delivered (``QC_FAILED``), like the picture version."""
+    motion, transition = MP4_MOTION[body.motion]
+    source_assets = []
+    for item_id in body.input_item_ids:
+        from app.tryon_inputs import _item
+        row = _item(workspace_id, item_id)
+        source_assets.append(row["asset_id"])
+    comment = f"job={job_id}; mode=mock; ai_generated=false; made by AI Creator Studio from {len(images)} picture(s); no AI model"
+    try:
+        content, info = await asyncio.to_thread(video_mp4.make_mp4, images, body.aspect, body.duration_seconds, motion, transition, comment)
+        qc = await asyncio.to_thread(video_mp4.qc_mp4, content, video_mp4.SIZES[body.aspect], body.duration_seconds)
+    except video_mp4.VideoEncodeError as exc:
+        status_code = 503 if exc.code == "FFMPEG_MISSING" else 500
+        raise HTTPException(status_code=status_code, detail={"code": exc.code, "message": "the video could not be made"}) from exc
+    qc_out = {"passed": qc["passed"], "frames": qc["decoded_frames"], "checks": qc["checks"], "max_brightness_jump": qc["max_brightness_jump"],
+              "static_ratio": qc["static_ratio"], "blank_frames": qc["blank_frames"]}
+    output_asset_id, status, error = None, "failed", "QC_FAILED"
+    if qc["passed"]:
+        saved = store.save_asset(owner_id=user_id, workspace_id=workspace_id, filename=f"video-{job_id[-6:]}.mp4", content=content,
+                                 validated=ValidatedAsset(media_type="video/mp4", size_bytes=len(content), gltf_version=None, embedded_binary=False),
+                                 provenance_event=EVENT,
+                                 provenance_extra={"job_id": job_id, "mode": "mock", "is_ai_generated": False, "aspect": body.aspect, "duration_seconds": body.duration_seconds,
+                                                   "motion": body.motion, "output_format": "mp4", "fps": video_mp4.FPS, "frames": info["frames"], "size": info["size"],
+                                                   "source_asset_ids": source_assets, "qc_passed": True})
+        output_asset_id, status, error = saved["asset_id"], "succeeded", None
+    with store._connect() as db:
+        _init(db)
+        _insert_job(db, job_id, workspace_id, user_id, body, status, output_asset_id, qc_out, error, now)
         return _public(db.execute("SELECT * FROM video_jobs WHERE job_id=?", (job_id,)).fetchone())
 
 
@@ -229,6 +282,28 @@ async def get_video_job(workspace_id: str, job_id: str, user_id: str = Depends(c
         return _public(_row(db, workspace_id, job_id))
 
 
+@router.get("/{job_id}/poster", operation_id="getVideoJobPoster", response_class=Response, responses={200: {"content": {"image/png": {}}, "description": "A frame of the MP4 as a PNG (the cover)."}})
+async def video_job_poster(workspace_id: str, job_id: str, at: float = Query(default=0.0, ge=0.0, le=1.0), max_side: int = Query(default=480, ge=16, le=1280),
+                           user_id: str = Depends(current_user)):
+    """The cover picture of a finished MP4 video: one frame at position ``at`` (0..1), shrunk so its longer side is at most ``max_side``. Pictures (WebP) need no cover."""
+    require_role(workspace_id, user_id, {"owner", "admin", "editor", "viewer"})
+    with store._connect() as db:
+        _init(db)
+        row = _row(db, workspace_id, job_id)
+    if row["output_format"] != "mp4" or not row["output_asset_id"] or not takedown.visible_to(row["output_asset_id"], user_id):
+        raise HTTPException(status_code=404, detail={"code": "VIDEO_POSTER_NOT_AVAILABLE", "message": "this job has no MP4 video to take a cover from"})
+    path = store.storage_path(row["output_asset_id"])
+    if path is None:
+        raise HTTPException(status_code=409, detail={"code": "VIDEO_INPUT_GONE", "message": "the video file is missing"})
+    try:
+        picture = await asyncio.to_thread(lambda: video_mp4.poster_image(path.read_bytes(), at, max_side))
+    except video_mp4.VideoEncodeError as exc:
+        raise HTTPException(status_code=503 if exc.code == "FFMPEG_MISSING" else 500, detail={"code": exc.code, "message": "the cover could not be made"}) from exc
+    buf = io.BytesIO()
+    picture.save(buf, format="PNG")
+    return Response(content=buf.getvalue(), media_type="image/png", headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
 @router.post("/{job_id}/cancel", operation_id="cancelVideoJob")
 async def cancel_video_job(workspace_id: str, job_id: str, user_id: str = Depends(current_user)):
     """The built-in mock makes a video inside the request, so a job is never waiting or running: it is always finished (succeeded or failed) and there is nothing to cancel.
@@ -249,7 +324,8 @@ async def retry_video_job(workspace_id: str, job_id: str, user_id: str = Depends
         row = _row(db, workspace_id, job_id)
     if row["status"] != "failed":
         raise HTTPException(status_code=409, detail={"code": "VIDEO_RETRY_NOT_FAILED", "message": "only a failed video can be retried"})
-    body = VideoIn(input_item_ids=json.loads(row["input_item_ids_json"]), aspect=row["aspect"], duration_seconds=row["duration_seconds"], motion=row["motion"], prompt=row["instruction"])
+    body = VideoIn(input_item_ids=json.loads(row["input_item_ids_json"]), aspect=row["aspect"], duration_seconds=row["duration_seconds"], motion=row["motion"],
+                   output_format=row["output_format"], prompt=row["instruction"])
     return await create_video_job(workspace_id, body, user_id)
 
 

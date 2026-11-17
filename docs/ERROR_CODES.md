@@ -181,6 +181,7 @@
 | `VIDEO_INPUT_NOT_FOUND` | video | error | 선택한 그림을 찾을 수 없습니다. | A selected picture was not found. |
 | `VIDEO_MOTION_INVALID` | video | error | 움직임은 줌, 팬, 회전 중에서 고를 수 있습니다. | The motion must be zoom, pan or rotate. |
 | `VIDEO_NOT_CANCELLABLE` | video | error | 이미 끝난 영상 작업이라 취소할 것이 없습니다. | The video job has already finished, so there is nothing to cancel. |
+| `VIDEO_POSTER_NOT_AVAILABLE` | video | error | 이 작업에는 표지를 뽑을 MP4 영상이 없습니다. | This job has no MP4 video to take a cover from. |
 | `VIDEO_POSTER_POSITION` | video | error | 표지 그림을 뽑을 위치는 0부터 1 사이 숫자여야 합니다. | The position of the cover picture must be a number from 0 to 1. |
 | `VIDEO_PROVIDER_NOT_CONNECTED` | video | error | 외부 AI 서비스로 영상을 만드는 기능은 아직 연결되지 않았습니다. | Video generation by an external AI service is not connected yet. |
 | `VIDEO_RETRY_NOT_FAILED` | video | error | 실패한 영상만 다시 시도할 수 있습니다. | Only a failed video can be retried. |

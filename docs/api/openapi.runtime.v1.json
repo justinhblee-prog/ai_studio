@@ -7500,6 +7500,15 @@
             "title": "Motion",
             "type": "string"
           },
+          "output_format": {
+            "default": "webp",
+            "enum": [
+              "webp",
+              "mp4"
+            ],
+            "title": "Output Format",
+            "type": "string"
+          },
           "prompt": {
             "anyOf": [
               {
@@ -7596,6 +7605,11 @@
               }
             ],
             "title": "Output Asset Id"
+          },
+          "output_format": {
+            "default": "webp",
+            "title": "Output Format",
+            "type": "string"
           },
           "owner_id": {
             "title": "Owner Id",
@@ -22752,6 +22766,94 @@
           }
         },
         "summary": "Cancel Video Job",
+        "tags": [
+          "video-jobs"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/video-jobs/{job_id}/poster": {
+      "get": {
+        "description": "The cover picture of a finished MP4 video: one frame at position ``at`` (0..1), shrunk so its longer side is at most ``max_side``. Pictures (WebP) need no cover.",
+        "operationId": "getVideoJobPoster",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "default": 0.0,
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "title": "At",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_side",
+            "required": false,
+            "schema": {
+              "default": 480,
+              "maximum": 1280,
+              "minimum": 16,
+              "title": "Max Side",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {}
+            },
+            "description": "A frame of the MP4 as a PNG (the cover)."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Video Job Poster",
         "tags": [
           "video-jobs"
         ]
