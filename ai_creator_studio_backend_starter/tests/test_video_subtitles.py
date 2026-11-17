@@ -108,7 +108,8 @@ def test_an_mp4_with_subtitles_shows_the_text_only_while_the_cue_runs(font):
         if os.environ.get("REQUIRE_FFMPEG") == "1":
             pytest.fail("REQUIRE_FFMPEG=1 but ffmpeg was not found")
         pytest.skip("ffmpeg is not installed on this machine")
-    picture = Image.new("RGB", (1200, 1200), (60, 60, 60))
+    shade = Image.linear_gradient("L").resize((1200, 1200)).point(lambda v: 30 + v // 5)        # dark with some variation: a flat picture would fail the blank-frame check
+    picture = Image.merge("RGB", (shade, shade, shade))
     content, info = vm.make_mp4([picture], "9:16", 5, "pan", "cut", subtitles=[cue(KOREAN, 1.0, 3.0)])
     assert info["subtitle_cues"] == 1 and vm.qc_mp4(content, vm.SIZES["9:16"], 5)["passed"] is True
     def lower_band_brightness(at):
