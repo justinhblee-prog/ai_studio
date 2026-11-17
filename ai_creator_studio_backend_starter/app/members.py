@@ -24,6 +24,8 @@ def _init(db) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS workspace_member_events (
         event_id INTEGER PRIMARY KEY AUTOINCREMENT, workspace_id TEXT NOT NULL, at TEXT NOT NULL, actor_id TEXT NOT NULL, member_id TEXT NOT NULL, event TEXT NOT NULL,
         from_role TEXT, to_role TEXT)""")
+    # B-11: listing one workspace's rows must not scan the whole table
+    db.execute("CREATE INDEX IF NOT EXISTS idx_workspace_member_events_ws ON workspace_member_events(workspace_id, event_id)")
     for kind in ("UPDATE", "DELETE"):
         db.execute(f"""CREATE TRIGGER IF NOT EXISTS trg_member_events_no_{kind.lower()} BEFORE {kind} ON workspace_member_events
             BEGIN SELECT RAISE(ABORT, 'member history is append-only'); END""")

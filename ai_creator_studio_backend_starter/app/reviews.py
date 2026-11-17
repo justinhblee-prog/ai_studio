@@ -259,6 +259,8 @@ def _init_settings(db) -> None:
         updated_at TEXT, updated_by TEXT)""")
     db.execute("""CREATE TABLE IF NOT EXISTS workspace_settings_history (
         event_id INTEGER PRIMARY KEY AUTOINCREMENT, workspace_id TEXT NOT NULL, at TEXT NOT NULL, actor_id TEXT NOT NULL, field TEXT NOT NULL, old_value INTEGER NOT NULL, new_value INTEGER NOT NULL)""")
+    # B-11: listing one workspace's rows must not scan the whole table
+    db.execute("CREATE INDEX IF NOT EXISTS idx_workspace_settings_history_ws ON workspace_settings_history(workspace_id, event_id)")
     for kind in ("UPDATE", "DELETE"):
         db.execute(f"""CREATE TRIGGER IF NOT EXISTS trg_ws_settings_history_no_{kind.lower()} BEFORE {kind} ON workspace_settings_history
             BEGIN SELECT RAISE(ABORT, 'workspace settings history is append-only'); END""")

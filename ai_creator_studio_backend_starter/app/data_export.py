@@ -41,6 +41,8 @@ def _init(db) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS data_exports (
         export_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, requested_by TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('ready','expired','deleted')),
         size_bytes INTEGER NOT NULL, checksum_sha256 TEXT NOT NULL, storage_key TEXT, summary_json TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, downloaded_count INTEGER NOT NULL DEFAULT 0)""")
+    # B-11: listing one workspace's rows must not scan the whole table
+    db.execute("CREATE INDEX IF NOT EXISTS idx_data_exports_ws ON data_exports(workspace_id, created_at)")
     db.execute("""CREATE TABLE IF NOT EXISTS account_exports (
         export_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('ready','expired','deleted')),
         size_bytes INTEGER NOT NULL, checksum_sha256 TEXT NOT NULL, storage_key TEXT, summary_json TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, downloaded_count INTEGER NOT NULL DEFAULT 0)""")

@@ -95,6 +95,8 @@ def initialize() -> None:
             event_type TEXT NOT NULL, actor_id TEXT NOT NULL,
             details_json TEXT NOT NULL, created_at TEXT NOT NULL
         )""")
+        # B-11: listing one workspace's rows must not scan the whole table
+        db.execute("CREATE INDEX IF NOT EXISTS idx_asset_provenance_ws ON asset_provenance(workspace_id, event_type, created_at)")
         db.execute("CREATE INDEX IF NOT EXISTS idx_asset_provenance_asset ON asset_provenance(asset_id, created_at DESC)")
         # L-08: reports of rights infringement and the temporary hold they put on an asset (see app/takedown.py).
         db.execute("""CREATE TABLE IF NOT EXISTS content_reports (

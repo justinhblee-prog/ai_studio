@@ -28,6 +28,8 @@ def _init(db) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS three_d_jobs (
         job_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, owner_id TEXT NOT NULL, status TEXT NOT NULL, provider TEXT NOT NULL, input_item_id TEXT NOT NULL,
         input_asset_id TEXT NOT NULL, instruction TEXT, output_asset_id TEXT, library_item_id TEXT, error_code TEXT, created_at TEXT NOT NULL, finished_at TEXT)""")
+    # B-11: listing one workspace's rows must not scan the whole table
+    db.execute("CREATE INDEX IF NOT EXISTS idx_three_d_jobs_ws ON three_d_jobs(workspace_id, created_at)")
 
 
 def _now() -> str:

@@ -51,6 +51,8 @@ def _init(db) -> None:
         draft_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, owner_id TEXT NOT NULL, design_json TEXT NOT NULL, instruction TEXT,
         provider TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('ready','selected')), selected_index INTEGER, character_id TEXT,
         created_at TEXT NOT NULL, selected_at TEXT)""")
+    # B-11: listing one workspace's rows must not scan the whole table
+    db.execute("CREATE INDEX IF NOT EXISTS idx_model_drafts_ws ON model_drafts(workspace_id, created_at)")
     db.execute("""CREATE TABLE IF NOT EXISTS model_draft_candidates (
         draft_id TEXT NOT NULL REFERENCES model_drafts(draft_id) ON DELETE CASCADE, workspace_id TEXT NOT NULL, rank INTEGER NOT NULL,
         asset_id TEXT NOT NULL, score INTEGER NOT NULL, PRIMARY KEY(draft_id, rank))""")
