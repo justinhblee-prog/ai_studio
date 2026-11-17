@@ -46,6 +46,7 @@ def test_every_api_route_is_authenticated_or_explicitly_public():
         ("GET", "/health"),
         ("GET", "/v1/engines/capabilities"),
         ("GET", "/v1/engines/models"),
+        ("GET", "/v1/base-models"), ("GET", "/v1/base-models/{sex}/glb"),   # lane 2: generated placeholder figures, no user data
         ("GET", "/v1/legal/documents"), ("GET", "/v1/error-catalog"),  # R-072: public text table  # public: lists legal document names and versions only
         ("GET", "/v1/assets/{asset_id}/preview"),
         ("GET", "/v1/assets/{asset_id}/thumb/{size}"),   # R-061: signed, short-lived display picture
