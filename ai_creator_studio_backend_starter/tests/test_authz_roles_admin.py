@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from app import config
 from app.main import app
 from tests.test_authz_matrix import _body
-from tests.test_authz_roles import ADMINS, WHO, auth
+from tests.test_authz_roles import ADMINS, ALL4, WHO, auth
 from tests.test_members import team  # noqa: F401
 from tests.test_photo_steps_api import env  # noqa: F401
 
@@ -17,7 +17,9 @@ JOB_BODY = {"workspace_id": "wa", "model_image_url": "https://example.com/model.
 TABLE = [
     ("GET", "/v1/workspaces/wa/exports", ADMINS),
     ("GET", "/v1/generation-jobs/{job}/outputs/out_none/asset-link-events", ADMINS),
-    ("GET", "/v1/generation-jobs/{job}/outputs/out_none/review", ADMINS),
+    ("GET", "/v1/generation-jobs/{job}/outputs/out_none/review", ALL4),          # reading the review state is for every member
+    ("POST", "/v1/generation-jobs/{job}/outputs/out_none/review/approve", ADMINS),
+    ("POST", "/v1/generation-jobs/{job}/outputs/out_none/review/request-changes", ADMINS),
     ("POST", "/v1/generation-jobs/{job}/outputs/out_none/asset-link-retry", ADMINS),
     ("POST", "/v1/generation-jobs/{job}/reconciliation", ADMINS),
     ("GET", "/internal/ops/poll-tasks?workspace_id=wa", ADMINS),
