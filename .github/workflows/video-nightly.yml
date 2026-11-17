@@ -1,0 +1,43 @@
+# Nightly: the full video matrix, including the two slow 15 s rows that the pull-request run skips (B-14). Local tools only: no secret, no provider, no deploy.
+name: video-nightly
+on:
+  schedule:
+    - cron: "17 18 * * *"      # 03:17 in Seoul
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  video-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ai_creator_studio_backend_starter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: ai_creator_studio_backend_starter/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Install ffmpeg and the open Korean subtitle font
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fonts-noto-cjk
+      - name: The whole video matrix, nothing skipped
+        env:
+          RUN_SLOW_VIDEO: "1"
+          REQUIRE_FFMPEG: "1"
+          REQUIRE_SUBTITLE_FONT: "1"
+          VIDEO_MATRIX_OUT: video_matrix.md
+        run: |
+          set -o pipefail
+          python -m pytest -q --no-header -p no:cacheprovider -rs tests/test_video_mp4.py tests/test_video_subtitles.py tests/test_video_audio.py | tee video_nightly.txt
+          ! grep -qE "[0-9]+ (skipped|failed)" video_nightly.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: video-nightly
+          path: |
+            ai_creator_studio_backend_starter/video_nightly.txt
+            ai_creator_studio_backend_starter/video_matrix.md
+          retention-days: 14
