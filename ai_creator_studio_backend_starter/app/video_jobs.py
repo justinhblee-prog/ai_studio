@@ -41,7 +41,7 @@ def _init(db) -> None:
         job_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, owner_id TEXT NOT NULL, status TEXT NOT NULL, provider TEXT NOT NULL,
         aspect TEXT NOT NULL, duration_seconds INTEGER NOT NULL, motion TEXT NOT NULL, instruction TEXT, input_item_ids_json TEXT NOT NULL,
         output_asset_id TEXT, qc_json TEXT, error_code TEXT, created_at TEXT NOT NULL, finished_at TEXT)""")
-    if "output_format" not in {r["name"] for r in db.execute("PRAGMA table_info(video_jobs)").fetchall()}:     # a database made before MP4 output existed
+    if "output_format" not in {r[1] for r in db.execute("PRAGMA table_info(video_jobs)").fetchall()}:     # a database made before MP4 output existed
         db.execute("ALTER TABLE video_jobs ADD COLUMN output_format TEXT NOT NULL DEFAULT 'webp'")
 
 

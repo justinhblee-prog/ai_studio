@@ -100,12 +100,11 @@ def test_the_finished_mp4_can_be_filed_in_the_library_as_a_render(env, ffmpeg):
 
 
 def test_a_job_table_made_before_mp4_output_gets_its_new_column_and_keeps_its_rows():
-    db = sqlite3.connect(":memory:")
-    db.row_factory = sqlite3.Row
+    db = sqlite3.connect(":memory:")            # a plain connection (tuples), as other modules' tests use it
     db.execute("""CREATE TABLE video_jobs (job_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, owner_id TEXT NOT NULL, status TEXT NOT NULL, provider TEXT NOT NULL,
         aspect TEXT NOT NULL, duration_seconds INTEGER NOT NULL, motion TEXT NOT NULL, instruction TEXT, input_item_ids_json TEXT NOT NULL,
         output_asset_id TEXT, qc_json TEXT, error_code TEXT, created_at TEXT NOT NULL, finished_at TEXT)""")
     db.execute("INSERT INTO video_jobs VALUES ('vid_old','wa','u','succeeded','mock','9:16',6,'pan',NULL,'[]',NULL,NULL,NULL,'2026-01-01',NULL)")
     video_jobs._init(db)
     video_jobs._init(db)          # and a second start does nothing
-    assert db.execute("SELECT output_format FROM video_jobs WHERE job_id='vid_old'").fetchone()["output_format"] == "webp"
+    assert db.execute("SELECT output_format FROM video_jobs WHERE job_id='vid_old'").fetchone()[0] == "webp"
