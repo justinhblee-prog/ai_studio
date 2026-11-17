@@ -193,10 +193,11 @@ def kind_for_job(job: dict[str, Any]) -> str | None:
 
 
 def serve(path: str | Path, *, media_type: str, kind: str | None, filename: str | None = None, expected_size: int | None = None,
-          expected_sha256: str | None = None, inline: bool = True):
+          expected_sha256: str | None = None, inline: bool = True, range_header: str | None = None):
     """The same response as ``open_private_file_response`` (same integrity checks and headers) but with the mark inserted when ``kind`` is set."""
     if not media_type.startswith("image/"):
-        return open_private_file_response(path, media_type=media_type, filename=filename, expected_size=expected_size, expected_sha256=expected_sha256, inline=inline)
+        return open_private_file_response(path, media_type=media_type, filename=filename, expected_size=expected_size, expected_sha256=expected_sha256, inline=inline,
+                                          range_header=range_header, ranges=True)     # a video is played in pieces (Safari will not play one without Range)
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
         fd = os.open(os.fspath(path), flags)
