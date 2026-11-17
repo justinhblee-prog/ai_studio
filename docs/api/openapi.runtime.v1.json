@@ -11605,6 +11605,78 @@
             }
           },
           {
+            "in": "query",
+            "name": "height_cm",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 220,
+                  "minimum": 120,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Height Cm"
+            }
+          },
+          {
+            "in": "query",
+            "name": "chest_cm",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 160,
+                  "minimum": 60,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Chest Cm"
+            }
+          },
+          {
+            "in": "query",
+            "name": "waist_cm",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 150,
+                  "minimum": 50,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Waist Cm"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hips_cm",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 170,
+                  "minimum": 70,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hips Cm"
+            }
+          },
+          {
             "in": "header",
             "name": "if-none-match",
             "required": false,
