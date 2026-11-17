@@ -32,7 +32,7 @@ def _leading_columns(con, table):
     return lead
 
 
-FIRST_CONDITION = re.compile(r'FROM\s+"?(\w+)"?(?:\s+\w+)?\s+WHERE\s+(?:\w+\.)?workspace_id\s*=', re.I)
+FIRST_CONDITION = re.compile(r'FROM\s+"?(\w+)"?(?:\s+\w+)?\s+WHERE\s+(?:\w+\.)?workspace_id\s*=', re.I)
 
 
 def tables_read_by_workspace() -> set[str]:
