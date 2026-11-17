@@ -264,6 +264,9 @@ jobs:
           node ai_creator_studio_3d_viewer/scripts/render_glb.mjs --glb "$RUNNER_TEMP/glb/sphere_lo.glb" --out "$RUNNER_TEMP/turn" --size 512 --angles 1 --turntable 120 | tail -n 1
           python ai_creator_studio_backend_starter/scripts/turntable_mp4.py "$RUNNER_TEMP/turn" "$RUNNER_TEMP/turn.mp4" 9:16 5 | tee ai_creator_studio_3d_viewer/turntable_report.txt
           grep -q '"cuts": 120' ai_creator_studio_3d_viewer/turntable_report.txt && grep -q '"blended_frames": 0' ai_creator_studio_3d_viewer/turntable_report.txt
+          node ai_creator_studio_3d_viewer/scripts/render_glb.mjs --glb "$RUNNER_TEMP/glb/sphere_lo.glb" --out "$RUNNER_TEMP/turn360" --size 512 --angles 1 --turntable 360 | tail -n 1
+          /usr/bin/time -f "turntable_15s wall=%es max_rss_kb=%M" python ai_creator_studio_backend_starter/scripts/turntable_mp4.py "$RUNNER_TEMP/turn360" "$RUNNER_TEMP/turn360.mp4" 9:16 15 2>&1 | tee ai_creator_studio_3d_viewer/turntable360_report.txt
+          grep -q '"cuts": 360' ai_creator_studio_3d_viewer/turntable360_report.txt && grep -q '"blended_frames": 0' ai_creator_studio_3d_viewer/turntable360_report.txt && grep -q '"qc_passed": true' ai_creator_studio_3d_viewer/turntable360_report.txt
           cd ai_creator_studio_3d_viewer
           node e2e/video_playback.mjs "$RUNNER_TEMP/turn.mp4" 720 1280 5 | tee e2e_turntable_playback.txt
           grep -q "SUMMARY 4/4 video playback checks passed" e2e_turntable_playback.txt

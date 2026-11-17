@@ -249,7 +249,7 @@ def test_the_whole_cut_is_shown_on_a_tall_or_wide_frame_with_the_renders_backgro
     assert wide.getpixel((5, 360)) == (242, 242, 242) and wide.getpixel((1275, 360)) == (242, 242, 242), "background left and right"
 
 
-@pytest.mark.parametrize("bad", [lambda: cuts(7), lambda: cuts(121, 16), lambda: cuts(8) + [Image.new("RGB", (64, 64))], lambda: tuple(cuts(8))])
+@pytest.mark.parametrize("bad", [lambda: cuts(7), lambda: cuts(361, 16), lambda: cuts(8) + [Image.new("RGB", (64, 64))], lambda: tuple(cuts(8))])
 def test_a_rotation_set_that_is_too_small_too_large_or_of_mixed_sizes_is_refused(bad):
     with pytest.raises(vm.VideoEncodeError) as err:
         vm.render_turntable_frames(bad(), "9:16", 5)
@@ -283,6 +283,7 @@ def ring(n, side=128):
 def test_with_as_many_cuts_as_frames_no_frame_is_a_blend():
     assert vm.turntable_blended_frames(120, 5) == 0 and vm.turntable_blended_frames(60, 5, turns=2) == 0 and vm.turntable_blended_frames(120, 10) == 120
     assert vm.turntable_blended_frames(24, 5) == 96 and vm.turntable_blended_frames(12, 5) == 108, "24 cuts: only every 5th frame is a rendered cut"
+    assert vm.turntable_blended_frames(240, 10) == 0 and vm.turntable_blended_frames(360, 15) == 0 and vm.turntable_blended_frames(360, 5, turns=3) == 0
     source = ring(120)
     prepared = {vm._contain(c, (720, 1280)).tobytes() for c in source}
     assert len(prepared) == 120, "the test set itself has 120 different cuts"
@@ -292,3 +293,9 @@ def test_with_as_many_cuts_as_frames_no_frame_is_a_blend():
     few_prepared = {vm._contain(c, (720, 1280)).tobytes() for c in few}
     blended = [f for f in vm.render_turntable_frames(few, "9:16", 5) if f.tobytes() not in few_prepared]
     assert len(few_prepared) == 24 and len(blended) == vm.turntable_blended_frames(24, 5) == 96
+
+
+def test_a_fifteen_second_turn_from_360_cuts_uses_each_cut_once_without_keeping_them_all_fitted():
+    source = [Image.new("RGB", (32, 32), (k % 256, (k * 7) % 256, 200)) for k in range(360)]     # 360 different flat cuts
+    seen = [f.getpixel((360, 640)) for f in vm.render_turntable_frames(source, "9:16", 15)]
+    assert len(seen) == 360 and seen == [(k % 256, (k * 7) % 256, 200) for k in range(360)], "frame k is cut k, in order, none blended"
