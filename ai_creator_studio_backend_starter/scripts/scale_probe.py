@@ -49,6 +49,13 @@ def insert_many(db, table: str, rows: list[dict]) -> None:
     db.executemany(f'INSERT INTO "{table}" ({", ".join(chr(34) + c + chr(34) for c in cols)}) VALUES ({", ".join("?" * len(cols))})', [[r[c] for c in cols] for r in rows])
 
 
+def status_of(i: int, n_assets: int, reviews: int) -> str:
+    """Like real data (and the one-open-review-per-asset index of B-08): only an asset's LATEST review may still be open, older ones are final."""
+    status = REVIEW[(i // n_assets + i) % 5]
+    is_latest = i + n_assets >= reviews
+    return status if is_latest or status not in ("requested", "changes_requested") else "approved"
+
+
 def build(db, items: int, work: int, reviews: int) -> dict:
     rnd = random.Random(7)
     now = datetime.now(timezone.utc)
@@ -68,7 +75,7 @@ def build(db, items: int, work: int, reviews: int) -> dict:
         "asset_ids_json": json.dumps([asset_ids[i % n_assets]] + ([asset_ids[(i * 7) % n_assets]] if i % 2 else [])), "created_by": OWNER, "created_at": t(i), "updated_at": t(i)}) for i in range(work)])
     review_rows = []
     for i in range(reviews):
-        review_rows.append(fill(db, "asset_reviews", {"review_id": f"rev_{i:08d}", "workspace_id": WS, "asset_id": asset_ids[i % n_assets], "status": REVIEW[(i // n_assets + i) % 5],
+        review_rows.append(fill(db, "asset_reviews", {"review_id": f"rev_{i:08d}", "workspace_id": WS, "asset_id": asset_ids[i % n_assets], "status": status_of(i, n_assets, reviews),
                                                     "requested_by": OWNER, "requested_at": t(reviews - i), "updated_at": t(reviews - i)}))
     insert_many(db, "asset_reviews", review_rows)
     return {"assets": n_assets, "library_items": items, "work_items": work, "reviews": reviews}
