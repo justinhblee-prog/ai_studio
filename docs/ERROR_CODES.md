@@ -52,6 +52,8 @@
 | `EXPORT_LIMIT` | export | limit | 내보내기는 하루에 정해진 횟수까지만 할 수 있습니다. | Exports are limited per day. |
 | `EXPORT_TOO_LARGE` | export | limit | 내보낼 파일이 너무 큽니다. 지원팀에 나눠서 내보내기를 요청해 주세요. | The files are too large to export at once. Ask support for a split export. |
 | `EXTERNAL_NOTICE_REQUIRED` | legal | error | **[결정 필요: 법무]** | **[decision needed: legal]** |
+| `FFMPEG_FAILED` | general | error | 영상 파일을 만드는 중 오류가 났습니다. 잠시 뒤 다시 시도해 주세요. | The video file could not be encoded. Please try again shortly. |
+| `FFMPEG_MISSING` | general | error | 이 서버에 영상 변환 도구가 설치되어 있지 않아 MP4를 만들 수 없습니다. | The video encoder is not installed on this server, so MP4 output is not available. |
 | `GLB_INVALID` | general | error | 만들어진 3D 파일이 검사를 통과하지 못했습니다. | The generated 3D file did not pass the check. |
 | `GLOBAL_MONTHLY_LIMIT` | general | limit | 이번 달 서비스 전체 작업 한도에 도달했습니다. | The service-wide job limit for this month has been reached. |
 | `IMAGE_ANIMATION_UNSUPPORTED` | file | error | 움직이는 그림은 올릴 수 없습니다. | Animated pictures cannot be uploaded. |
@@ -116,6 +118,7 @@
 | `MODEL_PROVIDER_NOT_CONNECTED` | model | error | 외부 AI 서비스로 모델을 만드는 기능은 아직 연결되지 않았습니다. | Model generation by an external AI service is not connected yet. |
 | `MODEL_REAL_PERSON_BLOCKED` | model | error | 실존 인물을 닮게 만드는 요청은 받을 수 없습니다. 표현을 바꿔 다시 적어 주세요. | Requests to look like a real person are not accepted. Please rephrase. |
 | `MODEL_UNREADABLE` | model | error | 3D 모델 파일을 읽을 수 없습니다. | The 3D model file cannot be read. |
+| `MP4_INVALID` | general | error | 영상 파일이 온전하지 않습니다. | The video file is not a complete MP4. |
 | `OUTPUT_NOT_APPROVED` | tryon | error | 결과를 승인한 뒤에 사용할 수 있습니다. | The result can be used after it is approved. |
 | `OUTPUT_NOT_LINKED` | tryon | error | 결과가 아직 저장되지 않았습니다. 잠시 뒤 다시 시도해 주세요. | The result is not saved yet. Please try again shortly. |
 | `OUTPUT_SAVE_REQUIRES_REVIEW` | tryon | error | 결과는 검수를 거친 뒤에 저장됩니다. | Results are saved after review. |
@@ -165,14 +168,21 @@
 | `UNSUPPORTED_CAPABILITY` | provider | error | 이 AI 서비스가 지원하지 않는 기능입니다. | This AI service does not support that. |
 | `UNSUPPORTED_PROVIDER` | provider | error | 지원하지 않는 AI 서비스입니다. | This AI service is not supported. |
 | `VALIDATION_ERROR` | general | error | 입력한 값이 올바르지 않습니다. 내용을 확인해 주세요. | Some of the values are not valid. Please check them. |
+| `VIDEO_ASPECT_INVALID` | video | error | 영상 비율은 9:16, 4:5, 16:9 중에서 고를 수 있습니다. | The video aspect must be 9:16, 4:5 or 16:9. |
 | `VIDEO_DAILY_LIMIT` | video | limit | 오늘 만들 수 있는 영상 수를 모두 썼습니다. | Today's video limit has been used up. |
+| `VIDEO_DURATION_INVALID` | video | error | 영상 길이는 5초, 10초, 15초 중에서 고를 수 있습니다. | The video length must be 5, 10 or 15 seconds. |
+| `VIDEO_FRAME_SIZE` | video | error | 프레임 크기가 영상 크기와 다릅니다. | A frame does not have the size of the video. |
+| `VIDEO_INPUT_COUNT` | video | error | 그림은 1장부터 8장까지 넣을 수 있습니다. | Use between 1 and 8 pictures. |
 | `VIDEO_INPUT_DUPLICATE` | video | error | 같은 그림을 두 번 넣을 수 없습니다. | Each picture can be used once. |
 | `VIDEO_INPUT_GONE` | video | limit | 선택한 그림이 더는 없습니다. | A selected picture no longer exists. |
 | `VIDEO_INPUT_KIND` | video | error | 영상에는 그림 항목만 쓸 수 있습니다. | Only picture items can be used for a video. |
 | `VIDEO_INPUT_NOT_FOUND` | video | error | 선택한 그림을 찾을 수 없습니다. | A selected picture was not found. |
+| `VIDEO_MOTION_INVALID` | video | error | 움직임은 줌, 팬, 회전 중에서 고를 수 있습니다. | The motion must be zoom, pan or rotate. |
 | `VIDEO_NOT_CANCELLABLE` | video | error | 이미 끝난 영상 작업이라 취소할 것이 없습니다. | The video job has already finished, so there is nothing to cancel. |
 | `VIDEO_PROVIDER_NOT_CONNECTED` | video | error | 외부 AI 서비스로 영상을 만드는 기능은 아직 연결되지 않았습니다. | Video generation by an external AI service is not connected yet. |
 | `VIDEO_RETRY_NOT_FAILED` | video | error | 실패한 영상만 다시 시도할 수 있습니다. | Only a failed video can be retried. |
+| `VIDEO_SIZE_INVALID` | video | error | 영상의 가로·세로는 짝수여야 합니다. | The video width and height must be even numbers. |
+| `VIDEO_TRANSITION_INVALID` | video | error | 장면 전환은 컷 또는 크로스페이드만 쓸 수 있습니다. | The transition must be cut or crossfade. |
 | `WINDOW_TOO_DEEP` | general | limit | 너무 뒤쪽까지 요청했습니다. 기간을 좁혀 주세요. | That reaches too far back. Narrow the time range. |
 | `WORKSPACE_MONTHLY_LIMIT` | general | limit | 이번 달 작업공간의 작업 한도를 모두 썼습니다. | This workspace has used its job limit for the month. |
 | `WORK_ASSET_INVALID` | work | error | 연결한 파일은 이 작업공간의 파일이어야 합니다. | Linked files must belong to this workspace. |

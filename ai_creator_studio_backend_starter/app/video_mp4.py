@@ -81,8 +81,11 @@ def _frame(base: Image.Image, size: tuple[int, int], motion: str, t: float) -> I
         if spare_x >= spare_y:
             return _window(base, size, w, h, left=spare_x * t)
         return _window(base, size, w, h, top=spare_y * t)
-    turned = base.rotate(-ROTATE_DEGREES + 2 * ROTATE_DEGREES * t, resample=Image.BICUBIC)      # rotate: the window stays inside the turned picture
-    return _window(turned, size, w * 1.1, h * 1.1)
+    # rotate: one affine pass straight to the frame (a window 1.1x the frame, turned about the picture's centre; it stays inside the picture)
+    angle = math.radians(-ROTATE_DEGREES + 2 * ROTATE_DEGREES * t)
+    a, b = 1.1 * math.cos(angle), -1.1 * math.sin(angle)
+    return base.transform(size, Image.AFFINE, (a, b, base.width / 2 - a * w / 2 - b * h / 2, -b, a, base.height / 2 + b * w / 2 - a * h / 2),
+                          resample=Image.BILINEAR)
 
 
 def check_request(image_count: int, aspect: str, seconds: int, motion: str, transition: str) -> None:
