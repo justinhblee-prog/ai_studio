@@ -17,6 +17,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schema_util import add_column
 from app import config, image_thumbs, takedown
 from app.assets import store
 from app.assets.rights import build_upload_confirmation
@@ -45,7 +46,7 @@ THUMB_MAX_BYTES, THUMB_MAX_EDGE = 2 * 1024 * 1024, 1024
 def _init(db) -> None:
     db.execute(DDL)
     if not any(r["name"] == "attrs_json" for r in db.execute("PRAGMA table_info(workspace_library_items)").fetchall()):
-        db.execute("ALTER TABLE workspace_library_items ADD COLUMN attrs_json TEXT NOT NULL DEFAULT '{}'")
+        add_column(db, "ALTER TABLE workspace_library_items ADD COLUMN attrs_json TEXT NOT NULL DEFAULT '{}'")
     db.execute(THUMB_DDL)
     db.execute("CREATE INDEX IF NOT EXISTS idx_wli_ws ON workspace_library_items(workspace_id, kind, created_at)")
 

@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from app.schema_util import add_column
 from app.viewer_responses import (LookbookDraftListResponse, LookbookDraftResponse, LookbookOutputListResponse, LookbookAssemblyReviewResponse, LookbookPackageExportListResponse, LookbookPackageExportResponse, ManifestExportResponse, LookbookOutputResponse, EventListResponse, LookbookPlanManifestResponse)
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.private_file_response import PrivateFileError, open_private_file_response
@@ -132,7 +133,7 @@ def initialize() -> None:
             ("reviewed_at", "TEXT"), ("reviewed_by", "TEXT"), ("review_comment", "TEXT"),
         ):
             if column not in draft_columns:
-                db.execute(f"ALTER TABLE lookbook_drafts ADD COLUMN {column} {definition}")
+                add_column(db, f"ALTER TABLE lookbook_drafts ADD COLUMN {column} {definition}")
         db.execute("CREATE INDEX IF NOT EXISTS idx_lookbook_drafts_workspace ON lookbook_drafts(workspace_id, archived_at, updated_at)")
         db.execute("CREATE INDEX IF NOT EXISTS idx_lookbook_drafts_review ON lookbook_drafts(workspace_id,workflow_status,updated_at)")
         db.execute("""CREATE TABLE IF NOT EXISTS lookbook_draft_assets (

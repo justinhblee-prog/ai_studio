@@ -6,6 +6,7 @@ PostgreSQL migration runner.
 """
 from __future__ import annotations
 import sqlite3
+from app.schema_util import add_column
 
 CORE_SCHEMA = r"""
         CREATE TABLE IF NOT EXISTS generation_jobs (
@@ -248,9 +249,9 @@ def initialize_schema(connection: sqlite3.Connection) -> None:
         connection.executescript(script)
     delivery_columns = {row[1] for row in connection.execute("PRAGMA table_info(generation_ops_alert_deliveries)").fetchall()}
     if "claimed_by" not in delivery_columns:
-        connection.execute("ALTER TABLE generation_ops_alert_deliveries ADD COLUMN claimed_by TEXT")
+        add_column(connection, "ALTER TABLE generation_ops_alert_deliveries ADD COLUMN claimed_by TEXT")
     if "lease_expires_at" not in delivery_columns:
-        connection.execute("ALTER TABLE generation_ops_alert_deliveries ADD COLUMN lease_expires_at TEXT")
+        add_column(connection, "ALTER TABLE generation_ops_alert_deliveries ADD COLUMN lease_expires_at TEXT")
     lease_migration_done = connection.execute("SELECT 1 FROM generation_schema_migrations WHERE version=10").fetchone()
     if lease_migration_done is None:
         # Preserve in-flight legacy deliveries while assigning a bounded lease.
@@ -262,7 +263,7 @@ def initialize_schema(connection: sqlite3.Connection) -> None:
         connection.execute("INSERT OR IGNORE INTO generation_schema_migrations(version,applied_at) VALUES(10,CURRENT_TIMESTAMP)")
     output_columns = {row[1] for row in connection.execute("PRAGMA table_info(generation_outputs)").fetchall()}
     if "checksum_sha256" not in output_columns:
-        connection.execute("ALTER TABLE generation_outputs ADD COLUMN checksum_sha256 TEXT")
+        add_column(connection, "ALTER TABLE generation_outputs ADD COLUMN checksum_sha256 TEXT")
     # Backfill only legacy Output records whose attempt-scoped private filename
     # follows the current safe resolver convention. Unsupported legacy names are
     # intentionally left unqueued for explicit operator reconciliation.

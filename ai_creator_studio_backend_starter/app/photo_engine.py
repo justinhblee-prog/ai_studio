@@ -10,6 +10,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Literal
 
+from app.schema_util import add_column
 from app.viewer_responses import PhotoDraftListResponse, PhotoDraftResponse, PhotoRunListResponse, PhotoRunResponse, PhotoOutputReviewResponse, EventListResponse, PhotoLocalProcessingResponse, ManifestExportResponse
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -105,9 +106,9 @@ def initialize() -> None:
         )""")
         run_columns = {row["name"] for row in db.execute("PRAGMA table_info(photo_processing_runs)").fetchall()}
         if "source_version_id" not in run_columns:
-            db.execute("ALTER TABLE photo_processing_runs ADD COLUMN source_version_id TEXT")
+            add_column(db, "ALTER TABLE photo_processing_runs ADD COLUMN source_version_id TEXT")
         if "source_checksum_sha256" not in run_columns:
-            db.execute("ALTER TABLE photo_processing_runs ADD COLUMN source_checksum_sha256 TEXT")
+            add_column(db, "ALTER TABLE photo_processing_runs ADD COLUMN source_checksum_sha256 TEXT")
         db.execute("CREATE INDEX IF NOT EXISTS idx_photo_runs_draft ON photo_processing_runs(draft_id,created_at DESC)")
         db.execute("""CREATE TABLE IF NOT EXISTS photo_processing_events (
             event_id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES photo_processing_runs(run_id),

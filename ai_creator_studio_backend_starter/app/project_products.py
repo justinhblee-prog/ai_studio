@@ -6,6 +6,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 
+from app.schema_util import add_column
 from app.viewer_responses import ProjectProductListResponse, EventListResponse
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -51,7 +52,7 @@ def initialize() -> None:
         )""")
         columns = {row["name"] for row in db.execute("PRAGMA table_info(project_product_assignments)").fetchall()}
         if "sort_order" not in columns:
-            db.execute("ALTER TABLE project_product_assignments ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0")
+            add_column(db, "ALTER TABLE project_product_assignments ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0")
         db.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_project_product_active ON project_product_assignments(project_id,product_id) WHERE removed_at IS NULL")
         db.execute("CREATE INDEX IF NOT EXISTS idx_project_product_workspace ON project_product_assignments(workspace_id,project_id,removed_at,assigned_at)")
         db.execute("""CREATE TABLE IF NOT EXISTS project_product_events (
