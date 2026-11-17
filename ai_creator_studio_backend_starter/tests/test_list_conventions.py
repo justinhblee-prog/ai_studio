@@ -6,7 +6,7 @@ The table is printed (pytest -s) so the survey can be copied into docs.
 """
 from app.main import app
 
-CURSOR_LISTS: set[str] = set()   # filled in after the first survey run
+CURSOR_LISTS = {"/v1/library/items", "/v1/generation-jobs/{job_id}/executions"}
 MAX_LIMIT_CEILING = 500
 
 
@@ -46,4 +46,4 @@ def test_every_list_has_bounded_limit():
 def test_offset_lists_have_non_negative_offset_and_cursor_lists_are_declared():
     rows = _survey()
     assert [r["path"] for r in rows if r["paging"] == "offset" and r["offset_min"] != 0] == []
-    assert {r["path"] for r in rows if r["paging"] == "cursor"} <= CURSOR_LISTS | {r["path"] for r in rows if r["paging"] == "cursor" and r["path"] in CURSOR_LISTS}
+    assert {r["path"] for r in rows if r["paging"] == "cursor"} == CURSOR_LISTS
