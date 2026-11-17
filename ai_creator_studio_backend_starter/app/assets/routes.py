@@ -396,7 +396,7 @@ async def create_asset_version_preview_url(asset_id: str, version_id: str,
 
 
 @router.get("/{asset_id}/versions/{version_id}/preview-content", response_class=StreamingResponse, responses={200: {"description": "Authenticated immutable AssetVersion bytes", "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}})
-async def preview_asset_version_content(asset_id: str, version_id: str, user_id: str = Depends(current_user)):
+async def preview_asset_version_content(request: Request, asset_id: str, version_id: str, user_id: str = Depends(current_user)):
     """Stream an immutable AssetVersion only while the caller remains a workspace member."""
     workspace_id = get_asset_bytes_port().workspace_of(asset_id)
     if not workspace_id:
@@ -408,7 +408,8 @@ async def preview_asset_version_content(asset_id: str, version_id: str, user_id:
     try:
         from app import ai_marking    # R-062
         return ai_marking.serve(path, media_type=version["media_type"], kind=ai_marking.kind_for_asset(asset_id),
-            expected_size=int(version["size_bytes"]), expected_sha256=version["checksum_sha256"], inline=True)
+            expected_size=int(version["size_bytes"]), expected_sha256=version["checksum_sha256"], inline=True,
+            range_header=request.headers.get("range"))
     except PrivateFileError as exc:
         raise HTTPException(status_code=409, detail="Asset version file failed descriptor integrity validation") from exc
 
@@ -429,7 +430,8 @@ async def preview_asset_version(request: Request, asset_id: str, version_id: str
     try:
         from app import ai_marking    # R-062
         return ai_marking.serve(path, media_type=version["media_type"], kind=ai_marking.kind_for_asset(asset_id),
-            expected_size=int(version["size_bytes"]), expected_sha256=version["checksum_sha256"], inline=True)
+            expected_size=int(version["size_bytes"]), expected_sha256=version["checksum_sha256"], inline=True,
+            range_header=request.headers.get("range"))
     except PrivateFileError as exc:
         raise HTTPException(status_code=409, detail="Asset version file failed descriptor integrity validation") from exc
 
@@ -453,7 +455,8 @@ async def preview_asset(request: Request, asset_id: str, expires: int, signature
         raise HTTPException(status_code=415, detail="Unsupported stored asset media type")
     try:
         from app import ai_marking    # R-062
-        return ai_marking.serve(path, media_type=media, kind=ai_marking.kind_for_asset(asset_id), filename=path.name, inline=True)
+        return ai_marking.serve(path, media_type=media, kind=ai_marking.kind_for_asset(asset_id), filename=path.name, inline=True,
+                                 range_header=request.headers.get("range"))
     except PrivateFileError as exc:
         raise HTTPException(status_code=409, detail="Asset preview file is not safely readable") from exc
 
