@@ -280,6 +280,19 @@ jobs:
           cd ai_creator_studio_3d_viewer
           node e2e/video_playback.mjs "$RUNNER_TEMP/turn.mp4" 720 1280 5 | tee e2e_turntable_playback.txt
           grep -q "SUMMARY 4/4 video playback checks passed" e2e_turntable_playback.txt
+      - name: The fitted garment shell on the mannequin renders from all sides and becomes a rotating MP4 (R-ENGINE-04)
+        if: matrix.group == 'b'
+        run: |
+          set -o pipefail
+          python ai_creator_studio_backend_starter/scripts/make_fitted_glb.py "$RUNNER_TEMP/fit" M | tee ai_creator_studio_3d_viewer/fitted_glb.txt
+          node ai_creator_studio_3d_viewer/scripts/render_glb.mjs --glb "$RUNNER_TEMP/fit/fitted_M.glb" --out "$RUNNER_TEMP/fitturn" --size 512 --angles 1 --turntable 120 | tail -n 1
+          python ai_creator_studio_backend_starter/scripts/check_fitted_render.py "$RUNNER_TEMP/fitturn" 120 | tee ai_creator_studio_3d_viewer/fitted_render_check.txt
+          grep -q '"ok": true' ai_creator_studio_3d_viewer/fitted_render_check.txt
+          python ai_creator_studio_backend_starter/scripts/turntable_mp4.py "$RUNNER_TEMP/fitturn" "$RUNNER_TEMP/fitturn.mp4" 9:16 5 | tee ai_creator_studio_3d_viewer/fitted_turntable_report.txt
+          grep -q '"cuts": 120' ai_creator_studio_3d_viewer/fitted_turntable_report.txt && grep -q '"blended_frames": 0' ai_creator_studio_3d_viewer/fitted_turntable_report.txt && grep -q '"qc_passed": true' ai_creator_studio_3d_viewer/fitted_turntable_report.txt
+          cd ai_creator_studio_3d_viewer
+          node e2e/video_playback.mjs "$RUNNER_TEMP/fitturn.mp4" 720 1280 5 | tee e2e_fitted_playback.txt
+          grep -q "SUMMARY 4/4 video playback checks passed" e2e_fitted_playback.txt
       - name: Legal acceptance gate, AI-training consent and deletion requests in the browser
         if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer
