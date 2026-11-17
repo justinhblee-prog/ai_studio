@@ -164,6 +164,8 @@ CODES: dict[str, tuple[str, str]] = {
     "SUBTITLE_TOO_LONG": ("자막이 너무 길어 두 줄에 들어가지 않습니다.", "A subtitle is too long to fit in two lines."),
     "SUBTITLE_GLYPH_MISSING": ("자막에 이 서비스의 글꼴이 그릴 수 없는 글자가 있습니다.", "A subtitle contains a character the service font cannot draw."),
     "SUBTITLE_FONT_MISSING": ("이 서버에 자막용 글꼴이 설치되어 있지 않아 자막을 넣을 수 없습니다.", "The subtitle font is not installed on this server, so subtitles are not available."),
+    "AUDIO_INVALID": ("소리 파일은 16비트 WAV(최대 50MB·10분)여야 하고, 영상에 이미 소리가 없어야 합니다.", "The sound must be a 16-bit WAV (up to 50 MB and 10 minutes) and the video must have no sound yet."),
+    "AUDIO_ENCODER_MISSING": ("이 서버의 영상 도구에 소리를 넣는 기능이 없습니다.", "This server's video tool cannot encode sound."),
     "VIDEO_COMMENT_INVALID": ("영상 파일에 넣을 설명 글이 비었거나 너무 길거나 여러 줄입니다.", "The text to put inside the video file is empty, too long or more than one line."),
     "ASSIST_TEXT_REQUIRED": ("요청할 내용을 글로 적어 주세요.", "Please type what you need."),
     # --- reviews
