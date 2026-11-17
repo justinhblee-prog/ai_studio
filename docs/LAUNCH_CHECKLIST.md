@@ -7,10 +7,10 @@
 | 상태 | 개수 |
 |---|---|
 | 완료 | 7 |
-| 부분 | 16 |
+| 부분 | 27 |
 | 미완료 | 7 |
 | 차단 | 2 |
-(표의 행을 센 값, 합계 32. 이 개수는 표를 고칠 때 다시 세어야 한다.)
+(표의 행을 센 값, 합계 43. 이 개수는 표를 고칠 때 다시 세어야 한다.)
 
 **출시 준비가 끝났다고 말할 수 없다.** 완료는 7개뿐이고, 남은 항목은 입력·결정이 필요하거나 실제 환경에서 확인해야 한다. 실제 Supabase 로그인과 실제 AI Provider는 한 번도 실행하지 않았다.
 
@@ -69,3 +69,19 @@
 | 30 | 모바일·태블릿 폭 | 부분 | `layout_flow.mjs` 11/11: 7개 화면 × 10개 폭(360~1280px)에서 가로 넘침 없음, **이 시험으로 태블릿 폭(768px)의 실제 넘침 4건을 찾아 수정**(변이 3/3 적발) | 3D 스튜디오·검수 화면 미포함, 터치 크기·가독성 미확인, 헤드리스 Chromium만 |
 | 31 | 브라우저 호환·접근성 | 미완료 | 헤드리스 Chromium만 | 다른 브라우저, 접근성 점검 없음 |
 | 32 | PostgreSQL 전환 게이트 | 부분 | PR #6: 레지스트리 증거 게이트, 5개 집계 live_verified, 시험 12종 추가 | 4개 집계 미충족으로 `postgresql` 선택은 거부됨(런타임은 SQLite, 파일럿 범위 밖) |
+
+## G. 11월 중순 이후 추가 항목 (2026-11-17, 레인 1·5·6·7·8)
+> 이 절의 행은 **저장소 안의 시험·문서가 증거**다(CI 통과는 각 PR의 머지 기록). 실제 서버·실제 Supabase·실제 Provider로 확인한 것은 없다. `scripts/check_launch_evidence.py`가 이 표의 파일 이름과 개수를 저장소와 대조한다.
+| # | 항목 | 상태 | 증거 | 남은 공백 |
+|---|---|---|---|---|
+| 32 | 요청 속도 제한(업로드·생성·다운로드·신고) | 부분 | `tests/test_rate_limits.py`, `docs/RATE_LIMITS.md` | 기본값은 임시, 운영 값은 결정 전 |
+| 33 | 데이터 내보내기와 삭제 이력 | 부분 | `tests/test_data_export.py`, `tests/test_data_lifecycle.py`, `docs/DATA_LIFECYCLE.md` | 보관·유예 기간(7일·24시간)은 임시, 법무 결정 전 |
+| 34 | 복구 훈련 자동화 | 부분 | `scripts/restore_drill.py`, `tests/test_restore_drill.py`, `docs/RESTORE_DRILL.md` | 합성 데이터 기준 시간(운영 RTO 아님), 누가 언제 백업하는지 미결정 |
+| 35 | 규모 점검(라이브러리·작업·검수 대량) | 부분 | `scripts/scale_probe.py`, `tests/test_scale_probe.py` | CI 러너 수치, 운영 서버 수치 아님 |
+| 36 | 오류 코드 목록과 한·영 문구 | 부분 | `tests/test_error_catalog.py`, `docs/ERROR_CODES.md` | 문구 법무·UX 검토 전 |
+| 37 | AI 생성 표시와 위치 정보 제거 | 부분 | `tests/test_ai_marking.py`, `tests/test_gps_strip.py` | 이미지 위 눈에 보이는 표시는 없음(법무 검토) |
+| 38 | 자산 검수·승인 흐름과 내보내기 게이트 | 부분 | `tests/test_asset_reviews.py`, `tests/test_review_settings.py` | 기본값 꺼짐, 운영자 2FA·역할 미결정 |
+| 39 | 마켓(결제 없음) | 부분 | `tests/test_market.py`, `docs/MARKET_CONTRACT.md` | 가격 단위·이용 범위 선택지는 법무 결정 |
+| 40 | 멤버 관리(목록·역할 변경·탈퇴·이력) | 부분 | `tests/test_members.py` | 이메일 초대는 Supabase 결정 필요 |
+| 41 | 사진→3D 작업(mock) | 부분 | `tests/test_three_d_jobs.py`, `tests/test_image_to_3d_slot.py` | 실제 공급자 없음(키·예산 결정 전), mock은 재구성이 아님 |
+| 42 | GLB 검사·정규화 | 부분 | `tests/test_glb_tools.py`, `scripts/glb_normalize.py` | 메시·텍스처 압축 미구현, 실제 모델 절감률 미측정 |
