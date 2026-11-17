@@ -34,6 +34,8 @@ ROTATE_DEGREES = 4.0        # rotate: from -4 to +4 degrees
 ENCODE_TIMEOUT = 300
 BLANK_STDDEV, FLICKER_JUMP, STATIC_DIFF, STATIC_RATIO = 1.5, 25.0, 0.02, 0.6
 QC_SCALE = 4                # the QC decodes at a quarter of the size
+TURNTABLE_CUTS = (8, 120)   # how many pictures a 360-degree set may have
+MAX_TURNS = 3
 MAX_COMMENT = 500           # the text written into the file (for example the AI disclosure line)
 
 
@@ -120,6 +122,52 @@ def render_frames(images: list[Image.Image], aspect: str, seconds: int, motion: 
                 frame = Image.blend(frame, _frame(bases[seg + 1], size, motion, 0.0), 1.0 - remaining / fade)
             yield frame
     return generate()
+
+
+# ---------------------------------------------------------------------------------------------------------------- 3D rotation cuts (E-08b)
+def _contain(cut: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """The whole cut, scaled to fit (never cropped), centred on a canvas of the cut's own corner colour (the render's background)."""
+    rgb = cut.convert("RGB")
+    scale = min(size[0] / rgb.width, size[1] / rgb.height)
+    fitted = rgb.resize((max(1, round(rgb.width * scale)), max(1, round(rgb.height * scale))), Image.LANCZOS)
+    canvas = Image.new("RGB", size, rgb.getpixel((0, 0)))
+    canvas.paste(fitted, ((size[0] - fitted.width) // 2, (size[1] - fitted.height) // 2))
+    return canvas
+
+
+def render_turntable_frames(cuts: list[Image.Image], aspect: str, seconds: int, turns: int = 1) -> Iterator[Image.Image]:
+    """A rotating-object video from a 360-degree set of pictures (the server-side render's ``turn_000.png ...``, equal steps, same size).
+    The object turns ``turns`` full circles; between two neighbouring cuts the frame is a BLEND of both (a crossfade, not a new render): with
+    few cuts a fast-turning object shows a faint double edge. The last frame leads back into the first, so the video loops."""
+    check_request(1, aspect, seconds, "zoom", "cut")
+    low, high = TURNTABLE_CUTS
+    if not isinstance(cuts, list) or not (low <= len(cuts) <= high) or len({c.size for c in cuts}) != 1:
+        raise VideoEncodeError("VIDEO_TURNTABLE_INVALID", f"give {low}..{high} rotation pictures of one size")
+    if isinstance(turns, bool) or not isinstance(turns, int) or not (1 <= turns <= MAX_TURNS):
+        raise VideoEncodeError("VIDEO_TURNTABLE_INVALID", f"turns must be an integer 1..{MAX_TURNS}")
+    size, total, n = SIZES[aspect], seconds * FPS, len(cuts)
+    prepared = [_contain(cut, size) for cut in cuts]
+
+    def generate() -> Iterator[Image.Image]:
+        for index in range(total):
+            position = index * n * turns / total
+            first = int(position)
+            part = position - first
+            if part < 1e-9:
+                yield prepared[first % n].copy()
+            else:
+                yield Image.blend(prepared[first % n], prepared[(first + 1) % n], part)
+    return generate()
+
+
+def make_turntable_mp4(cuts: list[Image.Image], aspect: str, seconds: int, turns: int = 1, comment: str | None = None) -> tuple[bytes, dict[str, Any]]:
+    """360-degree pictures -> rotating-object MP4 and a record of what was made. Local only (no AI model, no provider)."""
+    _require_ffmpeg()
+    started = time.perf_counter()
+    content = encode_mp4(render_turntable_frames(cuts, aspect, seconds, turns), SIZES[aspect], FPS, comment)
+    return content, {"aspect": aspect, "size": list(SIZES[aspect]), "seconds": seconds, "fps": FPS, "frames": seconds * FPS, "motion": "turntable",
+                     "turns": turns, "inputs": len(cuts), "interpolation": "blend of neighbouring cuts", "mode": "local", "ai": False,
+                     "encoder": "ffmpeg libx264", "comment": comment, "bytes": len(content), "encode_ms": round((time.perf_counter() - started) * 1000)}
 
 
 # ---------------------------------------------------------------------------------------------------------------- encode
