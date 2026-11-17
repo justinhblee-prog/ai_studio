@@ -41,15 +41,22 @@ jobs:
           cache-dependency-path: ai_creator_studio_backend_starter/requirements.txt
       - run: pip install -r requirements.txt
       - run: python -m compileall -q app tests scripts
+      - name: Install ffmpeg (Lane 4 / E-08a real MP4 output; the tests fail, not skip, if it is missing)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg && ffmpeg -version | head -n 1
       - name: Prepare Supabase-compatible roles (stubs for the disposable CI database)
         run: >-
           psql -h localhost -U postgres -d acs_live -v ON_ERROR_STOP=1 -c
           "create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
           create schema auth; create function auth.uid() returns uuid language sql stable as 'select null::uuid';"
       - name: pytest (unit + live PostgreSQL repository tests)
+        env:
+          REQUIRE_FFMPEG: "1"
+          VIDEO_MATRIX_OUT: video_matrix.md
         run: |
           set -o pipefail
           python -m pytest -q --no-header -p no:cacheprovider | tee pytest.txt
+      - name: MP4 matrix measured in this run (Lane 4 / E-08a)
+        run: cat video_matrix.md
       - name: Live tests must not be silently skipped
         run: |
           set -o pipefail
@@ -63,6 +70,7 @@ jobs:
           path: |
             ai_creator_studio_backend_starter/pytest.txt
             ai_creator_studio_backend_starter/live.txt
+            ai_creator_studio_backend_starter/video_matrix.md
           if-no-files-found: ignore
           retention-days: 14
 

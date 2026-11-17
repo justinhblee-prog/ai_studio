@@ -144,6 +144,17 @@ CODES: dict[str, tuple[str, str]] = {
     "VIDEO_INPUT_GONE": ("선택한 그림이 더는 없습니다.", "A selected picture no longer exists."),
     "VIDEO_INPUT_KIND": ("영상에는 그림 항목만 쓸 수 있습니다.", "Only picture items can be used for a video."),
     "VIDEO_INPUT_NOT_FOUND": ("선택한 그림을 찾을 수 없습니다.", "A selected picture was not found."),
+    # Lane 4 / E-08a: real MP4 output (app/video_mp4.py)
+    "FFMPEG_MISSING": ("이 서버에 영상 변환 도구가 설치되어 있지 않아 MP4를 만들 수 없습니다.", "The video encoder is not installed on this server, so MP4 output is not available."),
+    "FFMPEG_FAILED": ("영상 파일을 만드는 중 오류가 났습니다. 잠시 뒤 다시 시도해 주세요.", "The video file could not be encoded. Please try again shortly."),
+    "MP4_INVALID": ("영상 파일이 온전하지 않습니다.", "The video file is not a complete MP4."),
+    "VIDEO_ASPECT_INVALID": ("영상 비율은 9:16, 4:5, 16:9 중에서 고를 수 있습니다.", "The video aspect must be 9:16, 4:5 or 16:9."),
+    "VIDEO_DURATION_INVALID": ("영상 길이는 5초, 10초, 15초 중에서 고를 수 있습니다.", "The video length must be 5, 10 or 15 seconds."),
+    "VIDEO_MOTION_INVALID": ("움직임은 줌, 팬, 회전 중에서 고를 수 있습니다.", "The motion must be zoom, pan or rotate."),
+    "VIDEO_TRANSITION_INVALID": ("장면 전환은 컷 또는 크로스페이드만 쓸 수 있습니다.", "The transition must be cut or crossfade."),
+    "VIDEO_INPUT_COUNT": ("그림은 1장부터 8장까지 넣을 수 있습니다.", "Use between 1 and 8 pictures."),
+    "VIDEO_SIZE_INVALID": ("영상의 가로·세로는 짝수여야 합니다.", "The video width and height must be even numbers."),
+    "VIDEO_FRAME_SIZE": ("프레임 크기가 영상 크기와 다릅니다.", "A frame does not have the size of the video."),
     "ASSIST_TEXT_REQUIRED": ("요청할 내용을 글로 적어 주세요.", "Please type what you need."),
     # --- reviews
     "REVIEW_ALREADY_OPEN": ("이 파일은 이미 검수 중입니다.", "This file is already under review."),
