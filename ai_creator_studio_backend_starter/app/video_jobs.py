@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from PIL import Image, ImageChops, ImageStat
 from pydantic import BaseModel, ConfigDict, Field
 
-from app import config, takedown, video_mp4
+from app import config, takedown, video_mp4, video_subtitles
 from app.assets import store
 from app.assets.routes import current_user, require_role
 from app.assets.validation import ValidatedAsset
@@ -43,6 +43,8 @@ def _init(db) -> None:
         output_asset_id TEXT, qc_json TEXT, error_code TEXT, created_at TEXT NOT NULL, finished_at TEXT)""")
     if "output_format" not in {r[1] for r in db.execute("PRAGMA table_info(video_jobs)").fetchall()}:     # a database made before MP4 output existed
         db.execute("ALTER TABLE video_jobs ADD COLUMN output_format TEXT NOT NULL DEFAULT 'webp'")
+    if "subtitles_json" not in {r[1] for r in db.execute("PRAGMA table_info(video_jobs)").fetchall()}:
+        db.execute("ALTER TABLE video_jobs ADD COLUMN subtitles_json TEXT")
 
 
 def _now() -> str:
@@ -103,6 +105,13 @@ def qc_frames(frames: list[Image.Image], aspect: str, expected_count: int) -> di
 
 
 # ------------------------------------------------------------------------------------------------------------------ API
+class CueIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: str = Field(min_length=1, max_length=120)
+    start: float = Field(ge=0, le=MAX_SECONDS)       # seconds from the start of the video
+    end: float = Field(gt=0, le=MAX_SECONDS)
+
+
 class VideoIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     input_item_ids: list[str] = Field(min_length=1, max_length=MAX_INPUTS)
@@ -110,6 +119,7 @@ class VideoIn(BaseModel):
     duration_seconds: int = Field(default=DEFAULT_SECONDS, ge=MIN_SECONDS, le=MAX_SECONDS)
     motion: Literal["slow_zoom", "pan", "crossfade"] = "slow_zoom"
     prompt: str | None = Field(default=None, max_length=500)
+    subtitles: list[CueIn] | None = Field(default=None, max_length=20)     # mp4 only: burned into the picture (app/video_subtitles.py)
     output_format: Literal["webp", "mp4"] = "webp"      # mp4 = a real H.264 file (needs ffmpeg on the server; 5, 10 or 15 seconds; 720x1280, 864x1080 or 1280x720)
 
 
@@ -130,6 +140,7 @@ class VideoOut(BaseModel):
     duration_seconds: int
     motion: str
     output_format: str = "webp"
+    subtitles: list[CueIn] | None = None
     prompt: str | None
     input_item_ids: list[str]
     output_asset_id: str | None
@@ -145,7 +156,7 @@ class VideoListOut(BaseModel):
 
 def _public(row) -> dict[str, Any]:
     return {"job_id": row["job_id"], "workspace_id": row["workspace_id"], "owner_id": row["owner_id"], "status": row["status"], "provider": row["provider"],
-            "aspect": row["aspect"], "duration_seconds": row["duration_seconds"], "motion": row["motion"], "output_format": row["output_format"], "prompt": row["instruction"],
+            "aspect": row["aspect"], "duration_seconds": row["duration_seconds"], "motion": row["motion"], "output_format": row["output_format"], "subtitles": json.loads(row["subtitles_json"]) if row["subtitles_json"] else None, "prompt": row["instruction"],
             "input_item_ids": json.loads(row["input_item_ids_json"]), "output_asset_id": row["output_asset_id"],
             "qc": json.loads(row["qc_json"]) if row["qc_json"] else None, "error_code": row["error_code"],
             "created_at": row["created_at"], "finished_at": row["finished_at"]}
@@ -186,7 +197,16 @@ async def create_video_job(workspace_id: str, body: VideoIn, user_id: str = Depe
     if used >= limit:
         from app import rate_limit
         raise rate_limit.too_many("VIDEO_DAILY_LIMIT", "today's video limit is used up", 3600, estimated=True, limit=limit, used=used)
+    if body.subtitles is not None and body.output_format != "mp4":
+        raise HTTPException(status_code=422, detail={"code": "SUBTITLE_INVALID", "message": "subtitles need output_format mp4"})
     if body.output_format == "mp4":
+        if body.subtitles is not None:          # the cue checks and the font run before anything is made or stored
+            try:
+                video_subtitles.parse_cues([c.model_dump() for c in body.subtitles], body.duration_seconds)
+            except video_mp4.VideoEncodeError as exc:
+                raise HTTPException(status_code=422, detail={"code": exc.code, "message": str(exc)}) from exc
+            if video_subtitles.find_subtitle_font() is None:
+                raise HTTPException(status_code=503, detail={"code": "SUBTITLE_FONT_MISSING", "message": "subtitles are not available on this server"})
         if body.duration_seconds not in video_mp4.DURATIONS:
             raise HTTPException(status_code=422, detail={"code": "VIDEO_DURATION_INVALID", "message": "an MP4 video is 5, 10 or 15 seconds long"})
         if video_mp4.find_ffmpeg() is None:     # no silent fallback to another format
@@ -215,10 +235,11 @@ async def create_video_job(workspace_id: str, body: VideoIn, user_id: str = Depe
 
 
 def _insert_job(db, job_id, workspace_id, user_id, body, status, output_asset_id, qc, error, now) -> None:
+    cues = json.dumps([c.model_dump() for c in body.subtitles], ensure_ascii=False) if body.subtitles else None
     db.execute("""INSERT INTO video_jobs(job_id, workspace_id, owner_id, status, provider, aspect, duration_seconds, motion, output_format, instruction, input_item_ids_json,
-        output_asset_id, qc_json, error_code, created_at, finished_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        output_asset_id, qc_json, error_code, created_at, finished_at, subtitles_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                (job_id, workspace_id, user_id, status, "mock", body.aspect, body.duration_seconds, body.motion, body.output_format, (body.prompt or "").strip() or None,
-                json.dumps(body.input_item_ids), output_asset_id, json.dumps(qc), error, now, _now()))
+                json.dumps(body.input_item_ids), output_asset_id, json.dumps(qc), error, now, _now(), cues))
 
 
 # the three mock motions of this API -> the motion and transition of the MP4 module
@@ -236,11 +257,12 @@ async def _create_mp4(workspace_id, user_id, body, job_id, now, images):
         source_assets.append(row["asset_id"])
     comment = f"job={job_id}; mode=mock; ai_generated=false; made by AI Creator Studio from {len(images)} picture(s); no AI model"
     try:
-        content, info = await asyncio.to_thread(video_mp4.make_mp4, images, body.aspect, body.duration_seconds, motion, transition, comment)
+        cues = [c.model_dump() for c in body.subtitles] if body.subtitles else None
+        content, info = await asyncio.to_thread(video_mp4.make_mp4, images, body.aspect, body.duration_seconds, motion, transition, comment, cues)
         qc = await asyncio.to_thread(video_mp4.qc_mp4, content, video_mp4.SIZES[body.aspect], body.duration_seconds)
     except video_mp4.VideoEncodeError as exc:
-        status_code = 503 if exc.code == "FFMPEG_MISSING" else 500
-        raise HTTPException(status_code=status_code, detail={"code": exc.code, "message": "the video could not be made"}) from exc
+        status_code = 503 if exc.code in ("FFMPEG_MISSING", "SUBTITLE_FONT_MISSING") else 422 if exc.code.startswith("SUBTITLE_") else 500
+        raise HTTPException(status_code=status_code, detail={"code": exc.code, "message": str(exc) if status_code == 422 else "the video could not be made"}) from exc
     qc_out = {"passed": qc["passed"], "frames": qc["decoded_frames"], "checks": qc["checks"], "max_brightness_jump": qc["max_brightness_jump"],
               "static_ratio": qc["static_ratio"], "blank_frames": qc["blank_frames"]}
     output_asset_id, status, error = None, "failed", "QC_FAILED"
@@ -250,7 +272,7 @@ async def _create_mp4(workspace_id, user_id, body, job_id, now, images):
                                  provenance_event=EVENT,
                                  provenance_extra={"job_id": job_id, "mode": "mock", "is_ai_generated": False, "aspect": body.aspect, "duration_seconds": body.duration_seconds,
                                                    "motion": body.motion, "output_format": "mp4", "fps": video_mp4.FPS, "frames": info["frames"], "size": info["size"],
-                                                   "source_asset_ids": source_assets, "qc_passed": True})
+                                                   "source_asset_ids": source_assets, "subtitle_cues": len(body.subtitles or []), "qc_passed": True})
         output_asset_id, status, error = saved["asset_id"], "succeeded", None
     with store._connect() as db:
         _init(db)
@@ -325,7 +347,7 @@ async def retry_video_job(workspace_id: str, job_id: str, user_id: str = Depends
     if row["status"] != "failed":
         raise HTTPException(status_code=409, detail={"code": "VIDEO_RETRY_NOT_FAILED", "message": "only a failed video can be retried"})
     body = VideoIn(input_item_ids=json.loads(row["input_item_ids_json"]), aspect=row["aspect"], duration_seconds=row["duration_seconds"], motion=row["motion"],
-                   output_format=row["output_format"], prompt=row["instruction"])
+                   output_format=row["output_format"], subtitles=json.loads(row["subtitles_json"]) if row["subtitles_json"] else None, prompt=row["instruction"])
     return await create_video_job(workspace_id, body, user_id)
 
 
