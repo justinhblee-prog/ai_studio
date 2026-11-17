@@ -20,6 +20,8 @@ def picture(seed: int, size: tuple[int, int] = (1600, 1000)) -> Image.Image:
     draw = ImageDraw.Draw(img)
     draw.ellipse((300 + 200 * seed, 200, 900 + 200 * seed, 800), fill=(230, 60 + 80 * seed, 40))
     draw.rectangle((100, 820, 1500, 940), fill=(20, 40, 160))
+    draw.rectangle((0, 0, 400, 1000), fill=(0, 0, 0))            # a black and a white band: the playback check looks for a wide brightness range
+    draw.rectangle((1200, 0, 1600, 1000), fill=(255, 255, 255))
     return img
 
 

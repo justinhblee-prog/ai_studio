@@ -256,6 +256,16 @@ jobs:
           cd ai_creator_studio_3d_viewer
           node e2e/video_playback.mjs "$RUNNER_TEMP/sample.mp4" | tee e2e_video_playback.txt
           grep -q "SUMMARY 4/4 video playback checks passed" e2e_video_playback.txt
+      - name: 3D rotation cuts become a rotating-object MP4 that a real browser plays (Lane 4 / E-08b)
+        if: matrix.group == 'b'
+        run: |
+          set -o pipefail
+          python ai_creator_studio_backend_starter/scripts/make_sample_glb.py "$RUNNER_TEMP/glb"
+          node ai_creator_studio_3d_viewer/scripts/render_glb.mjs --glb "$RUNNER_TEMP/glb/sphere_lo.glb" --out "$RUNNER_TEMP/turn" --size 512 --angles 1 --turntable 24 | tail -n 1
+          python ai_creator_studio_backend_starter/scripts/turntable_mp4.py "$RUNNER_TEMP/turn" "$RUNNER_TEMP/turn.mp4" 9:16 5 | tee ai_creator_studio_3d_viewer/turntable_report.txt
+          cd ai_creator_studio_3d_viewer
+          node e2e/video_playback.mjs "$RUNNER_TEMP/turn.mp4" 720 1280 5 | tee e2e_turntable_playback.txt
+          grep -q "SUMMARY 4/4 video playback checks passed" e2e_turntable_playback.txt
       - name: Legal acceptance gate, AI-training consent and deletion requests in the browser
         if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer

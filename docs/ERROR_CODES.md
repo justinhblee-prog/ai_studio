@@ -185,6 +185,7 @@
 | `VIDEO_RETRY_NOT_FAILED` | video | error | 실패한 영상만 다시 시도할 수 있습니다. | Only a failed video can be retried. |
 | `VIDEO_SIZE_INVALID` | video | error | 영상의 가로·세로는 짝수여야 합니다. | The video width and height must be even numbers. |
 | `VIDEO_TRANSITION_INVALID` | video | error | 장면 전환은 컷 또는 크로스페이드만 쓸 수 있습니다. | The transition must be cut or crossfade. |
+| `VIDEO_TURNTABLE_INVALID` | video | error | 회전 영상에는 크기가 같은 회전 그림 8~120장과 1~3바퀴 설정이 필요합니다. | A rotation video needs 8 to 120 rotation pictures of one size and 1 to 3 turns. |
 | `WINDOW_TOO_DEEP` | general | limit | 너무 뒤쪽까지 요청했습니다. 기간을 좁혀 주세요. | That reaches too far back. Narrow the time range. |
 | `WORKSPACE_MONTHLY_LIMIT` | general | limit | 이번 달 작업공간의 작업 한도를 모두 썼습니다. | This workspace has used its job limit for the month. |
 | `WORK_ASSET_INVALID` | work | error | 연결한 파일은 이 작업공간의 파일이어야 합니다. | Linked files must belong to this workspace. |

@@ -212,3 +212,58 @@ def test_the_cover_picture_refuses_a_bad_position_and_a_file_that_is_not_mp4(ffm
     with pytest.raises(vm.VideoEncodeError) as err:
         vm.poster_image(b"not an mp4 at all")
     assert err.value.code == "MP4_INVALID"
+
+
+# ------------------------------------------------------------------------------------------------ E-08b: 3D rotation cuts
+def cuts(n=12, side=256):
+    """A drawn 360-degree set: a bar whose place and colour depend on the angle, on the render's light background."""
+    out = []
+    for k in range(n):
+        img = Image.new("RGB", (side, side), (242, 242, 242))
+        x = 40 + round(150 * k / n)
+        ImageDraw.Draw(img).rectangle((x, 60, x + 30, 200), fill=(30 + 15 * k, 60, 200 - 12 * k))
+        out.append(img)
+    return out
+
+
+def test_a_rotation_set_becomes_frames_that_pass_through_every_cut_and_blend_in_between():
+    source = cuts()
+    before = [c.tobytes() for c in source]
+    frames = list(vm.render_turntable_frames(source, "4:5", 5))
+    assert len(frames) == 120 and all(f.size == (864, 1080) for f in frames) and [c.tobytes() for c in source] == before
+    def diff(x, y):
+        return ImageStat.Stat(ImageChops.difference(x, y).convert("L")).mean[0]
+    for k in (0, 1, 7, 11):                       # 120 frames / 12 cuts: every 10th frame is exactly one cut
+        assert frames[10 * k].tobytes() == vm._contain(source[k], (864, 1080)).tobytes(), k
+    assert 0 < diff(frames[5], frames[0]) and 0 < diff(frames[5], frames[10]) and diff(frames[5], frames[0]) < diff(frames[10], frames[0])
+    assert diff(frames[119], frames[0]) < diff(frames[110], frames[0]), "the last frame leads back to the first: the video loops"
+    two_turns = list(vm.render_turntable_frames(source, "4:5", 5, turns=2))
+    assert two_turns[5].tobytes() == frames[10].tobytes() and two_turns[60].tobytes() == frames[0].tobytes()
+
+
+def test_the_whole_cut_is_shown_on_a_tall_or_wide_frame_with_the_renders_background_around_it():
+    tall = list(vm.render_turntable_frames(cuts(), "9:16", 5))[0]
+    assert tall.getpixel((5, 5)) == (242, 242, 242) and tall.getpixel((360, 1270)) == (242, 242, 242), "background above and below"
+    assert tall.getpixel((157, 640)) != (242, 242, 242), "the bar of cut 0 (x 40..70 of 256, scaled by 720/256) is there"
+    wide = list(vm.render_turntable_frames(cuts(), "16:9", 5))[0]
+    assert wide.getpixel((5, 360)) == (242, 242, 242) and wide.getpixel((1275, 360)) == (242, 242, 242), "background left and right"
+
+
+@pytest.mark.parametrize("bad", [lambda: cuts(7), lambda: cuts(121, 16), lambda: cuts(8) + [Image.new("RGB", (64, 64))], lambda: tuple(cuts(8))])
+def test_a_rotation_set_that_is_too_small_too_large_or_of_mixed_sizes_is_refused(bad):
+    with pytest.raises(vm.VideoEncodeError) as err:
+        vm.render_turntable_frames(bad(), "9:16", 5)
+    assert err.value.code == "VIDEO_TURNTABLE_INVALID"
+    for turns in (0, 4, True, 1.5):
+        with pytest.raises(vm.VideoEncodeError) as err:
+            vm.render_turntable_frames(cuts(8), "9:16", 5, turns=turns)
+        assert err.value.code == "VIDEO_TURNTABLE_INVALID"
+
+
+def test_a_rotation_set_encodes_to_a_playable_mp4_that_moves(ffmpeg):
+    content, info = vm.make_turntable_mp4(cuts(24), "9:16", 5, comment="source=3d_rotation_cuts")
+    qc = vm.qc_mp4(content, vm.SIZES["9:16"], 5)
+    levels = {c["check"]: c["level"] for c in qc["checks"]}
+    assert qc["passed"] is True and qc["decoded_frames"] == 120 and levels["static_picture"] == "ok", qc["checks"]
+    assert info["motion"] == "turntable" and info["inputs"] == 24 and info["turns"] == 1 and info["ai"] is False
+    assert qc["probe"]["comment"] == "source=3d_rotation_cuts" and (qc["probe"]["width"], qc["probe"]["height"]) == (720, 1280)
