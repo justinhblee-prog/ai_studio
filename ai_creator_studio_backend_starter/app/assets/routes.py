@@ -21,7 +21,7 @@ from app.repo_errors import raise_http
 from app import config
 from app.assets.store import (AssetVersionIntegrityError, audit_workspace_assets, create_asset_relation, create_asset_version, delete_asset, get_asset, list_asset_provenance, list_asset_relations, list_asset_versions, list_assets, restore_asset_version, save_asset, storage_path, workspace_for_asset, workspace_role, get_asset_version_record)
 from app.assets.rights import build_upload_confirmation
-from app.assets.validation import AssetValidationError, validate_asset_upload, validate_gltf_upload, validate_image_upload
+from app.assets.validation import AssetValidationError, asset_kind_of, validate_asset_upload, validate_gltf_upload, validate_image_upload
 
 router = APIRouter(prefix="/v1/assets", tags=["assets"])
 
@@ -227,7 +227,7 @@ async def upload_image_asset(workspace_id: str = Form(min_length=2, max_length=6
 
 @router.get("", response_model=AssetListResponse)
 async def assets(workspace_id: str = Query(min_length=2, max_length=64),
-                 kind: str = Query(default="all", pattern="^(all|model|image)$"),
+                 kind: str = Query(default="all", pattern="^(all|model|image|video)$"),
                  user_id: str = Depends(current_user)):
     try:
         listing = get_asset_metadata_port().list(workspace_id, user_id, kind)
@@ -288,7 +288,7 @@ async def upload_asset_version(asset_id: str, file: UploadFile = File(...), user
         raise HTTPException(status_code=413, detail="Asset exceeds upload size limit")
     try:
         validated = validate_asset_upload(filename, content, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)
-        if (validated.media_type.startswith("image/")) != (current_asset["asset_kind"] == "image"):
+        if asset_kind_of(validated.media_type) != current_asset["asset_kind"]:
             raise AssetValidationError("ASSET_KIND_MISMATCH", "A new version must keep the original asset kind.")
         confirmation = (build_upload_confirmation(rights_confirmed, depicts_person, likeness_consent)
                         if validated.media_type.startswith("image/") else None)
@@ -448,7 +448,7 @@ async def preview_asset(request: Request, asset_id: str, expires: int, signature
         raise HTTPException(status_code=404, detail="Asset not found")
     media = {".glb": "model/gltf-binary", ".gltf": "model/gltf+json",
              ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-             ".webp": "image/webp"}.get(path.suffix.lower())
+             ".webp": "image/webp", ".mp4": "video/mp4"}.get(path.suffix.lower())
     if media is None:
         raise HTTPException(status_code=415, detail="Unsupported stored asset media type")
     try:

@@ -105,8 +105,9 @@ def _plain(value: Any) -> Any:
 def _public_asset(row: dict[str, Any]) -> dict[str, Any]:
     value = {k: v for k, v in row.items() if k not in _PUBLIC_DROP}
     value["embedded_binary"] = bool(value.get("embedded_binary"))
-    value["asset_kind"] = "image" if str(value["media_type"]).startswith("image/") else "model"
-    if value["asset_kind"] == "image":
+    from app.assets.validation import asset_kind_of
+    value["asset_kind"] = asset_kind_of(value["media_type"])
+    if value["asset_kind"] != "model":
         value["gltf_version"] = None
     return _plain(value)
 

@@ -333,8 +333,9 @@ def _public(row: sqlite3.Row) -> dict[str, Any]:
     value = dict(row)
     value.pop("storage_key", None)
     value["embedded_binary"] = bool(value["embedded_binary"])
-    value["asset_kind"] = "image" if str(value["media_type"]).startswith("image/") else "model"
-    if value["asset_kind"] == "image":
+    from app.assets.validation import asset_kind_of
+    value["asset_kind"] = asset_kind_of(value["media_type"])
+    if value["asset_kind"] != "model":
         value["gltf_version"] = None
     return value
 
@@ -363,13 +364,15 @@ def get_rights_confirmation(asset_id: str, workspace_id: str) -> dict[str, Any] 
 
 def list_assets(workspace_id: str, *, kind: str = "all") -> list[dict[str, Any]]:
     initialize()
-    if kind not in {"all", "model", "image"}:
+    if kind not in {"all", "model", "image", "video"}:
         raise ValueError("Unsupported asset kind")
     with _connect() as db:
         if kind == "image":
             rows = db.execute("SELECT * FROM assets WHERE workspace_id=? AND deleted_at IS NULL AND media_type LIKE 'image/%' ORDER BY created_at DESC", (workspace_id,)).fetchall()
         elif kind == "model":
             rows = db.execute("SELECT * FROM assets WHERE workspace_id=? AND deleted_at IS NULL AND media_type LIKE 'model/%' ORDER BY created_at DESC", (workspace_id,)).fetchall()
+        elif kind == "video":
+            rows = db.execute("SELECT * FROM assets WHERE workspace_id=? AND deleted_at IS NULL AND media_type LIKE 'video/%' ORDER BY created_at DESC", (workspace_id,)).fetchall()
         else:
             rows = db.execute("SELECT * FROM assets WHERE workspace_id=? AND deleted_at IS NULL ORDER BY created_at DESC", (workspace_id,)).fetchall()
     return [_public(row) for row in rows]
@@ -594,6 +597,9 @@ def restore_asset_version(*, asset_id: str, workspace_id: str, version_id: str,
     try:
         if str(source["media_type"]).startswith("image/"):
             validated = validate_image_upload(filename, content, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)
+        elif str(source["media_type"]).startswith("video/"):
+            from app.assets.validation import validate_video_asset
+            validated = validate_video_asset(filename, content, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)
         else:
             validated = validate_gltf_upload(filename, content, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)
     except AssetValidationError as exc:

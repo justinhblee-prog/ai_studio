@@ -138,9 +138,10 @@ class PostgreSQLAssetMetadataRepository:
         return dict(row) if row else None
 
     def list_assets(self, workspace_id: str, *, kind: str = "all") -> list[dict[str, Any]]:
-        if kind not in {"all", "image", "model"}:
-            raise ValueError("Asset kind must be all, image, or model")
-        predicate = "" if kind == "all" else (" AND media_type LIKE 'image/%%'" if kind == "image" else " AND media_type LIKE 'model/%%'")
+        if kind not in {"all", "image", "model", "video"}:
+            raise ValueError("Asset kind must be all, image, model, or video")
+        predicate = "" if kind == "all" else {"image": " AND media_type LIKE 'image/%%'", "model": " AND media_type LIKE 'model/%%'",
+                                              "video": " AND media_type LIKE 'video/%%'"}[kind]
         with connect() as conn:
             rows = conn.execute("SELECT * FROM assets WHERE workspace_id=%s AND deleted_at IS NULL" + predicate +
                                 " ORDER BY created_at DESC,asset_id", (workspace_id,)).fetchall()
