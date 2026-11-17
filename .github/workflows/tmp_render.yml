@@ -1,0 +1,31 @@
+name: tmp-render
+on:
+  push:
+    branches: [l1-e02-server-render]
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python ai_creator_studio_backend_starter/scripts/make_sample_glb.py /tmp/samples
+      - working-directory: tools/gltf_compress
+        run: |
+          npm ci
+          npx --no-install gltf-transform optimize /tmp/samples/sphere_hi.glb /tmp/samples/sphere_hi_mw.glb --simplify false --compress meshopt --texture-compress webp
+      - working-directory: ai_creator_studio_3d_viewer
+        run: |
+          npm ci
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+          for f in sphere_lo sphere_hi sphere_hi_mw; do echo "== $f"; node scripts/render_glb.mjs --glb /tmp/samples/$f.glb --out /tmp/render/$f --size 768 --angles 8 --turntable 24; done
+          cp -r /tmp/render /tmp/render_artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: render
+          path: /tmp/render
