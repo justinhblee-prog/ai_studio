@@ -11498,6 +11498,152 @@
         "summary": "Authenticated Identity"
       }
     },
+    "/v1/base-models": {
+      "get": {
+        "operationId": "listBaseModels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Listbasemodels",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Base Models",
+        "tags": [
+          "base-models"
+        ]
+      }
+    },
+    "/v1/base-models/{sex}/glb": {
+      "get": {
+        "operationId": "getBaseModelGlb",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sex",
+            "required": true,
+            "schema": {
+              "enum": [
+                "male",
+                "female"
+              ],
+              "title": "Sex",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top_style",
+            "required": false,
+            "schema": {
+              "default": "tshirt",
+              "enum": [
+                "tank",
+                "tshirt",
+                "longsleeve"
+              ],
+              "title": "Top Style",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bottom_style",
+            "required": false,
+            "schema": {
+              "default": "pants",
+              "enum": [
+                "shorts",
+                "pants"
+              ],
+              "title": "Bottom Style",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skin",
+            "required": false,
+            "schema": {
+              "default": "e0ac69",
+              "pattern": "^[0-9a-fA-F]{6}$",
+              "title": "Skin",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": "3c5aa0",
+              "pattern": "^[0-9a-fA-F]{6}$",
+              "title": "Top",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bottom",
+            "required": false,
+            "schema": {
+              "default": "32323c",
+              "pattern": "^[0-9a-fA-F]{6}$",
+              "title": "Bottom",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "if-none-match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "model/gltf-binary": {}
+            },
+            "description": "Successful Response"
+          },
+          "304": {
+            "description": "unchanged"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Base Model Glb",
+        "tags": [
+          "base-models"
+        ]
+      }
+    },
     "/v1/content-reports": {
       "post": {
         "description": "File a report. The answer is the same whether or not the asset exists or the report changed anything, so the\nendpoint cannot be used to find out which asset ids exist.",
