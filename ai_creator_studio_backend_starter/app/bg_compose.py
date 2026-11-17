@@ -47,11 +47,11 @@ def make_background(kind: str, size: tuple[int, int], color: Color = (255, 255, 
     return _cover(scene, size)
 
 
-def _place(product: Image.Image, size: tuple[int, int], fit: bool) -> Image.Image:
+def _place(product: Image.Image, size: tuple[int, int], fit: bool, ratio: float = 0.9) -> Image.Image:
     """The product on a transparent canvas of the output size: unchanged position when the size is the input's, otherwise scaled to fit 90% and centred."""
     if not fit:
         return product
-    scale = min(0.9 * size[0] / product.width, 0.9 * size[1] / product.height)
+    scale = min(ratio * size[0] / product.width, ratio * size[1] / product.height)
     scaled = product.resize((max(1, round(product.width * scale)), max(1, round(product.height * scale))), Image.LANCZOS)
     canvas = Image.new("RGBA", size, (0, 0, 0, 0))
     canvas.paste(scaled, ((size[0] - scaled.width) // 2, (size[1] - scaled.height) // 2), scaled)
@@ -98,7 +98,7 @@ def _reflection_layer(placed: Image.Image, strength: float, reach: float) -> Ima
 
 def compose(product: Image.Image, background: str = "white", *, color: Color = (255, 255, 255), color2: Color | None = None, scene: Image.Image | None = None,
             size: tuple[int, int] | None = None, shadow: str = "drop", shadow_opacity: float = 0.35, shadow_blur: float = 6.0, shadow_offset: tuple[int, int] = (6, 10),
-            reflection: bool = False, reflection_strength: float = 0.35, reflection_reach: float = 0.35) -> Image.Image:
+            reflection: bool = False, reflection_strength: float = 0.35, reflection_reach: float = 0.35, fit_ratio: float | None = None) -> Image.Image:
     if product.mode != "RGBA":
         raise ValueError("the product must be an RGBA cut-out (use bg_removal.remove_background first)")
     if shadow not in SHADOWS:
@@ -109,7 +109,9 @@ def compose(product: Image.Image, background: str = "white", *, color: Color = (
     if not (1 <= out_size[0] <= MAX_SIDE and 1 <= out_size[1] <= MAX_SIDE):
         raise ValueError(f"the output size must be between 1 and {MAX_SIDE} pixels per side")
     canvas = make_background(background, out_size, color, color2, scene).convert("RGBA")
-    placed = _place(product, out_size, fit=out_size != product.size)
+    if fit_ratio is not None and not 0.05 <= fit_ratio <= 1.0:
+        raise ValueError("fit_ratio must be between 0.05 and 1")
+    placed = _place(product, out_size, fit=out_size != product.size or fit_ratio is not None, ratio=0.9 if fit_ratio is None else fit_ratio)
     for layer in (_shadow_layer(placed, shadow, shadow_opacity, shadow_blur, shadow_offset), _reflection_layer(placed, reflection_strength, reflection_reach) if reflection else None):
         if layer is not None:
             canvas = Image.alpha_composite(canvas, layer)
