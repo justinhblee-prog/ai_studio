@@ -6,6 +6,8 @@
 - Backend API version: 0.7.0
 - Status: Local operational monitoring slice implemented; external monitoring and production alert routing remain unconfigured.
 
+> **2026-11-17 갱신 메모 (B-03 점검)**: 아래 시험 수치(pytest 99, OpenAPI 22 paths 등)는 **2026-11-02 기준의 옛 값**이며 현재 저장소와 다릅니다(현재 수치는 각 PR의 CI 기록 참조). 경보 규칙은 아래 5개뿐이고 5xx·429·백업·파기 실패 경보는 **없음**(확장 예정). 외부 수신처·업타임 감시는 **미설정(NEED_USER)**, 실서버 `/internal/ops/metrics` 동작은 **미확인**. 증상별 대응은 `docs/RUNBOOK.md` 5-1.
+
 ## 1. Delivered
 
 1. Added schema migration v5 with durable `generation_ops_alerts` and `generation_ops_alert_deliveries` tables.
