@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from PIL import Image, ImageChops, ImageStat
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schema_util import add_column
 from app import config, takedown, video_mp4, video_subtitles
 from app.assets import store
 from app.assets.routes import current_user, require_role
@@ -44,9 +45,9 @@ def _init(db) -> None:
     # B-11: listing one workspace's rows must not scan the whole table
     db.execute("CREATE INDEX IF NOT EXISTS idx_video_jobs_ws ON video_jobs(workspace_id, created_at)")
     if "output_format" not in {r[1] for r in db.execute("PRAGMA table_info(video_jobs)").fetchall()}:     # a database made before MP4 output existed
-        db.execute("ALTER TABLE video_jobs ADD COLUMN output_format TEXT NOT NULL DEFAULT 'webp'")
+        add_column(db, "ALTER TABLE video_jobs ADD COLUMN output_format TEXT NOT NULL DEFAULT 'webp'")
     if "subtitles_json" not in {r[1] for r in db.execute("PRAGMA table_info(video_jobs)").fetchall()}:
-        db.execute("ALTER TABLE video_jobs ADD COLUMN subtitles_json TEXT")
+        add_column(db, "ALTER TABLE video_jobs ADD COLUMN subtitles_json TEXT")
 
 
 def _now() -> str:

@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.schema_util import add_column
 from app import config
 from app.storage import get_storage
 
@@ -75,9 +76,9 @@ def initialize() -> None:
         for table in ("assets", "asset_versions"):
             columns = {row["name"] for row in db.execute(f"PRAGMA table_info({table})").fetchall()}
             if "storage_backend" not in columns:
-                db.execute(f"ALTER TABLE {table} ADD COLUMN storage_backend TEXT NOT NULL DEFAULT 'local'")
+                add_column(db, f"ALTER TABLE {table} ADD COLUMN storage_backend TEXT NOT NULL DEFAULT 'local'")
             if "storage_bucket" not in columns:
-                db.execute(f"ALTER TABLE {table} ADD COLUMN storage_bucket TEXT NOT NULL DEFAULT 'private_assets'")
+                add_column(db, f"ALTER TABLE {table} ADD COLUMN storage_bucket TEXT NOT NULL DEFAULT 'private_assets'")
         db.execute("CREATE INDEX IF NOT EXISTS idx_asset_versions_asset ON asset_versions(asset_id, version_number DESC)")
         db.execute("""CREATE TABLE IF NOT EXISTS asset_relations (
             relation_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL,
