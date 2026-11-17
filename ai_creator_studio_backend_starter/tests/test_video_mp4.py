@@ -93,7 +93,8 @@ def test_bad_requests_are_refused_before_anything_is_drawn(args, code):
 
 def test_without_ffmpeg_the_call_fails_instead_of_delivering_something_else(monkeypatch):
     monkeypatch.setattr(vm, "find_ffmpeg", lambda: None)
-    for call in (lambda: vm.make_mp4([picture(0)], "9:16", 5), lambda: vm.encode_mp4([], (160, 90)), lambda: vm.qc_mp4(b"", (160, 90), 5)):
+    for call in (lambda: vm.make_mp4([picture(0)], "9:16", 5), lambda: vm.encode_mp4([], (160, 90)), lambda: vm.qc_mp4(b"", (160, 90), 5),
+                 lambda: vm.poster_image(b"")):
         with pytest.raises(vm.VideoEncodeError) as err:
             call()
         assert err.value.code == "FFMPEG_MISSING"
@@ -182,3 +183,32 @@ def test_a_comment_that_is_empty_too_long_or_not_one_line_is_refused(ffmpeg, com
     with pytest.raises(vm.VideoEncodeError) as err:
         vm.encode_mp4([Image.new("RGB", (160, 96))], (160, 96), comment=comment)
     assert err.value.code == "VIDEO_COMMENT_INVALID"
+
+
+def test_the_cover_picture_is_a_frame_of_the_video_at_the_asked_position(ffmpeg):
+    size = (320, 192)
+    shade = Image.linear_gradient("L").resize(size)
+    red = Image.merge("RGB", (Image.new("L", size, 220), shade.point(lambda v: v // 4), Image.new("L", size, 20)))
+    blue = Image.merge("RGB", (Image.new("L", size, 20), shade.point(lambda v: v // 4), Image.new("L", size, 220)))
+    video = vm.encode_mp4([red] * 24 + [blue] * 24, size)
+    def red_minus_blue(picture):
+        r, _, b = ImageStat.Stat(picture).mean
+        return r - b
+    first = vm.poster_image(video)
+    assert first.size == size and first.mode == "RGB" and red_minus_blue(first) > 100, "position 0 is the first picture"
+    assert red_minus_blue(vm.poster_image(video, at=0.25)) > 100
+    assert red_minus_blue(vm.poster_image(video, at=0.75)) < -100, "three quarters in is the second picture"
+    assert red_minus_blue(vm.poster_image(video, at=1.0)) < -100, "position 1 is still a real frame (the end), not an error"
+    small = vm.poster_image(video, at=0.75, max_side=80)
+    assert small.size == (80, 48) and red_minus_blue(small) < -100
+    assert vm.poster_image(video, max_side=4000).size == size, "a cover is never enlarged"
+
+
+def test_the_cover_picture_refuses_a_bad_position_and_a_file_that_is_not_mp4(ffmpeg):
+    for at in (-0.1, 1.5, True, "0.5"):
+        with pytest.raises(vm.VideoEncodeError) as err:
+            vm.poster_image(b"", at=at)
+        assert err.value.code == "VIDEO_POSTER_POSITION"
+    with pytest.raises(vm.VideoEncodeError) as err:
+        vm.poster_image(b"not an mp4 at all")
+    assert err.value.code == "MP4_INVALID"

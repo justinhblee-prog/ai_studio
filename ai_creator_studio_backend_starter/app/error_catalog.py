@@ -155,6 +155,7 @@ CODES: dict[str, tuple[str, str]] = {
     "VIDEO_INPUT_COUNT": ("그림은 1장부터 8장까지 넣을 수 있습니다.", "Use between 1 and 8 pictures."),
     "VIDEO_SIZE_INVALID": ("영상의 가로·세로는 짝수여야 합니다.", "The video width and height must be even numbers."),
     "VIDEO_FRAME_SIZE": ("프레임 크기가 영상 크기와 다릅니다.", "A frame does not have the size of the video."),
+    "VIDEO_POSTER_POSITION": ("표지 그림을 뽑을 위치는 0부터 1 사이 숫자여야 합니다.", "The position of the cover picture must be a number from 0 to 1."),
     "VIDEO_COMMENT_INVALID": ("영상 파일에 넣을 설명 글이 비었거나 너무 길거나 여러 줄입니다.", "The text to put inside the video file is empty, too long or more than one line."),
     "ASSIST_TEXT_REQUIRED": ("요청할 내용을 글로 적어 주세요.", "Please type what you need."),
     # --- reviews
