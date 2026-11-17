@@ -44,6 +44,8 @@ def _init(db) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS account_exports (
         export_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('ready','expired','deleted')),
         size_bytes INTEGER NOT NULL, checksum_sha256 TEXT NOT NULL, storage_key TEXT, summary_json TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, downloaded_count INTEGER NOT NULL DEFAULT 0)""")
+    db.execute("CREATE TABLE IF NOT EXISTS export_reservations (export_id TEXT PRIMARY KEY, scope_key TEXT NOT NULL, created_at TEXT NOT NULL)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_export_reservations_scope ON export_reservations(scope_key, created_at)")
     data_lifecycle.init(db)
 
 
@@ -124,6 +126,33 @@ def _finish(db, table: str, export_id: str, tmp: Path, summary: dict[str, Any], 
     return _out(db, table, export_id)
 
 
+def _reserve(scope_key: str, table: str, scope_col: str, limit: int, message: str) -> str:
+    """B-08: take one slot of the daily allowance BEFORE the (slow) ZIP is built, in a short write transaction (BEGIN IMMEDIATE), so a burst of simultaneous requests
+    cannot all pass the check. Returns the reserved export id. Rows made before this table existed are still counted (those without a reservation)."""
+    prefix = "exp_" if table == "data_exports" else "acx_"
+    since = (_now() - timedelta(days=1)).isoformat()
+    with store._connect() as db:
+        db.execute("BEGIN IMMEDIATE")      # tables exist: the callers ran _init first
+        used = db.execute("SELECT COUNT(*) AS n FROM export_reservations WHERE scope_key=? AND created_at>=?", (scope_key, since)).fetchone()["n"]
+        used += db.execute(f"SELECT COUNT(*) AS n FROM {table} WHERE {scope_col}=? AND created_at>=? AND export_id NOT IN (SELECT export_id FROM export_reservations)", (scope_key, since)).fetchone()["n"]
+        if used >= limit:
+            oldest = db.execute(f"SELECT MIN(t) AS t FROM (SELECT MIN(created_at) AS t FROM export_reservations WHERE scope_key=? AND created_at>=? UNION ALL SELECT MIN(created_at) FROM {table} WHERE {scope_col}=? AND created_at>=?)",
+                                (scope_key, since, scope_key, since)).fetchone()["t"]
+            from app import rate_limit
+            wait, est = rate_limit.seconds_until_window_frees(oldest, 86400)
+            raise rate_limit.too_many("EXPORT_LIMIT", message, wait, estimated=est)
+        export_id = prefix + uuid.uuid4().hex
+        db.execute("INSERT INTO export_reservations(export_id, scope_key, created_at) VALUES (?,?,?)", (export_id, scope_key, _now().isoformat()))
+    return export_id
+
+
+def _release(export_id: str) -> None:
+    """Give the slot back when the export could not be made (a failed attempt does not use up the allowance)."""
+    with store._connect() as db:
+        _init(db)
+        db.execute("DELETE FROM export_reservations WHERE export_id=?", (export_id,))
+
+
 class ExportOut(BaseModel):
     export_id: str
     scope: str
@@ -151,16 +180,20 @@ def _out(db, table: str, export_id: str) -> dict[str, Any]:
 def create_workspace_export(workspace_id: str, user_id: str = Depends(current_user)):
     require_role(workspace_id, user_id, ADMINS)
     store.initialize()
+    with store._connect() as db0:
+        _init(db0)
+    export_id = _reserve(workspace_id, "data_exports", "workspace_id", config.EXPORT_DAILY_LIMIT_PER_WORKSPACE, f"at most {config.EXPORT_DAILY_LIMIT_PER_WORKSPACE} exports per workspace per day")
+    try:
+        return _build_workspace_export(workspace_id, user_id, export_id)
+    except BaseException:
+        _release(export_id)       # a refused or failed attempt gives the slot back
+        raise
+
+
+def _build_workspace_export(workspace_id: str, user_id: str, export_id: str) -> dict[str, Any]:
     with store._connect() as db:
         _init(db)
         _expire_due(db)
-        since = (_now() - timedelta(days=1)).isoformat()
-        used = db.execute("SELECT COUNT(*) AS n FROM data_exports WHERE workspace_id=? AND created_at>=?", (workspace_id, since)).fetchone()["n"]
-        if used >= config.EXPORT_DAILY_LIMIT_PER_WORKSPACE:
-            from app import rate_limit
-            oldest = db.execute("SELECT MIN(created_at) AS t FROM data_exports WHERE workspace_id=? AND created_at>=?", (workspace_id, since)).fetchone()["t"]
-            wait, est = rate_limit.seconds_until_window_frees(oldest, 86400)
-            raise rate_limit.too_many("EXPORT_LIMIT", f"at most {config.EXPORT_DAILY_LIMIT_PER_WORKSPACE} exports per workspace per day", wait, estimated=est)
         data, skipped = _dump_workspace(db, workspace_id)
         assets, held, total = [], [], 0
         for row in db.execute("SELECT asset_id, original_filename, media_type, size_bytes FROM assets WHERE workspace_id=? AND deleted_at IS NULL ORDER BY created_at, asset_id", (workspace_id,)).fetchall():
@@ -174,7 +207,6 @@ def create_workspace_export(workspace_id: str, user_id: str = Depends(current_us
             total += path.stat().st_size
         if total > config.EXPORT_MAX_BYTES:
             raise HTTPException(status_code=413, detail={"code": "EXPORT_TOO_LARGE", "message": f"the files are {total} bytes, the limit is {config.EXPORT_MAX_BYTES}; ask support for a split export"})
-        export_id = "exp_" + uuid.uuid4().hex
         tmp = _root() / f"{export_id}.partial"
         files_meta = []
         try:
@@ -223,15 +255,20 @@ def _user_rows(db, table: str, column: str, user_id: str, drop: set[str] = froze
 @router.post("/v1/me/exports", status_code=201, response_model=ExportOut, operation_id="createAccountExport")
 def create_account_export(user_id: str = Depends(current_user)):
     store.initialize()
+    with store._connect() as db0:
+        _init(db0)
+    export_id = _reserve(user_id, "account_exports", "user_id", config.EXPORT_DAILY_LIMIT_PER_WORKSPACE, f"at most {config.EXPORT_DAILY_LIMIT_PER_WORKSPACE} exports per day")
+    try:
+        return _build_account_export(user_id, export_id)
+    except BaseException:
+        _release(export_id)
+        raise
+
+
+def _build_account_export(user_id: str, export_id: str) -> dict[str, Any]:
     with store._connect() as db:
         _init(db)
         _expire_due(db)
-        since = (_now() - timedelta(days=1)).isoformat()
-        if db.execute("SELECT COUNT(*) AS n FROM account_exports WHERE user_id=? AND created_at>=?", (user_id, since)).fetchone()["n"] >= config.EXPORT_DAILY_LIMIT_PER_WORKSPACE:
-            from app import rate_limit
-            oldest = db.execute("SELECT MIN(created_at) AS t FROM account_exports WHERE user_id=? AND created_at>=?", (user_id, since)).fetchone()["t"]
-            wait, est = rate_limit.seconds_until_window_frees(oldest, 86400)
-            raise rate_limit.too_many("EXPORT_LIMIT", f"at most {config.EXPORT_DAILY_LIMIT_PER_WORKSPACE} exports per day", wait, estimated=est)
         data = {
             "memberships": _user_rows(db, "workspace_members", "user_id", user_id), "consents": _user_rows(db, "consents", "user_id", user_id),
             "legal_acceptances": _user_rows(db, "legal_acceptances", "user_id", user_id), "deletion_requests": _user_rows(db, "deletion_requests", "user_id", user_id),
@@ -240,7 +277,6 @@ def create_account_export(user_id: str = Depends(current_user)):
             "market_reports_filed": _user_rows(db, "market_reports", "reporter_id", user_id)}
         data = {k: v for k, v in data.items() if v}
         owned = [m["workspace_id"] for m in data.get("memberships", []) if m.get("role") == "owner"]
-        export_id = "acx_" + uuid.uuid4().hex
         tmp = _root() / f"{export_id}.partial"
         with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zf:
             for table, rows in data.items():
