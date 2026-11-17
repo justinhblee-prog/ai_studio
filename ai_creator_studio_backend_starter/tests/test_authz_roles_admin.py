@@ -25,9 +25,14 @@ TABLE = [
 ]
 
 
-def _op(method, template):
-    path = template.split("?")[0]
-    return app.openapi()["paths"][path][method.lower()]
+def _op(method, url):
+    """The OpenAPI operation whose path template matches this concrete URL."""
+    import re
+    concrete = url.split("?")[0]
+    for template, item in app.openapi()["paths"].items():
+        if method.lower() in item and re.fullmatch(re.sub(r"\{[^}]+\}", "[^/]+", template), concrete):
+            return item[method.lower()]
+    raise AssertionError(f"no OpenAPI operation for {method} {concrete}")
 
 
 @pytest.mark.parametrize("method,template,allowed", TABLE, ids=[f"{m} {t.split('?')[0]}" for m, t, _ in TABLE])
@@ -36,7 +41,7 @@ def test_admin_only_operations_are_closed_to_editors_viewers_strangers_and_nobod
     created = client.post("/v1/generation-jobs", headers=auth("a"), json=JOB_BODY)
     assert created.status_code in (200, 201, 202), created.text[:200]
     url = template.replace("{job}", created.json()["job_id"])
-    op = _op(method, template.replace("{job}", "{job_id}").replace("task_none", "{task_id}"))
+    op = _op(method, url)
     body = None
     if "requestBody" in op:
         body = _body(op, {"workspace_id": "wa"})
