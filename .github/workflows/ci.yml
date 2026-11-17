@@ -59,7 +59,7 @@ jobs:
           VIDEO_MATRIX_OUT: video_matrix.md
         run: |
           set -o pipefail
-          python -m pytest -q --no-header -p no:cacheprovider | tee pytest.txt
+          python -m pytest -q --no-header -p no:cacheprovider --durations=25 | tee pytest.txt
       - name: MP4 matrix measured in this run (Lane 4 / E-08a)
         run: cat video_matrix.md
       - name: Live tests must not be silently skipped
