@@ -22,8 +22,8 @@ jobs:
           echo "=== inspect meshopt_webp"; npx --no-install gltf-transform inspect /tmp/out/sphere_hi__meshopt_webp.glb | head -40
           echo "=== validate"; npx --no-install gltf-transform validate /tmp/out/sphere_hi__meshopt_webp.glb | head -20
           cd ../../ai_creator_studio_backend_starter && python - <<'PY'
+          import glob, os
           from app.glb_tools import inspect_glb
-          for n in ("sphere_hi", "sphere_hi__meshopt_webp", "sphere_hi__prune_dedup"):
-              p = "/tmp/samples/%s.glb" % n if n == "sphere_hi" else "/tmp/out/%s.glb" % n
-              i = inspect_glb(open(p, "rb").read()); print("INSPECT", n, i["file_bytes"], i["triangles"], i["images"])
+          for p in sorted(glob.glob("/tmp/samples/*.glb") + glob.glob("/tmp/out/*.glb")):
+              i = inspect_glb(open(p, "rb").read()); print("TRI", os.path.basename(p), i["file_bytes"], i["triangles"], i["images"], i["size"])
           PY

@@ -18,10 +18,12 @@ for f in "$in"/*.glb; do
       echo "| $name | $label | FAILED | - | - |"; tail -3 "$out/${name}__${label}.log" | sed 's/^/    log: /' >&2
     fi
   }
-  run prune_dedup  optimize --compress false --texture-compress false
-  run meshopt      optimize --compress meshopt --texture-compress false
-  run meshopt_webp optimize --compress meshopt --texture-compress webp
-  run draco        optimize --compress draco --texture-compress false
-  run quantize     optimize --compress quantize --texture-compress false
-  run webp_only    optimize --compress false --texture-compress webp
+  # NOTE: `optimize` simplifies (drops triangles) BY DEFAULT; every row below except *_simplify passes --simplify false so the geometry is not reduced.
+  run prune_dedup  optimize --simplify false --compress false --texture-compress false
+  run meshopt      optimize --simplify false --compress meshopt --texture-compress false
+  run meshopt_webp optimize --simplify false --compress meshopt --texture-compress webp
+  run draco        optimize --simplify false --compress draco --texture-compress false
+  run quantize     optimize --simplify false --compress quantize --texture-compress false
+  run webp_only    optimize --simplify false --compress false --texture-compress webp
+  run meshopt_webp_simplify optimize --compress meshopt --texture-compress webp
 done
