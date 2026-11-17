@@ -9,6 +9,7 @@ This module is NOT yet connected to the video job route (app/video_jobs.py still
 """
 from __future__ import annotations
 
+import io
 import math
 import os
 import shutil
@@ -249,6 +250,32 @@ def probe_mp4(content: bytes) -> dict[str, Any]:
     audio_tracks = sum(1 for kind, body, stop in _boxes(content, moov_start, moov_end) if kind == "trak" and _handler(content, body, stop) == b"soun")
     return {"brand": brand, **video, "duration_seconds": round(duration / timescale, 3) if timescale else 0.0, "audio_tracks": audio_tracks,
             "faststart": names.index("moov") < names.index("mdat"), "comment": _comment(content, moov_start, moov_end), "bytes": len(content)}
+
+
+# ---------------------------------------------------------------------------------------------------------------- cover picture
+def poster_image(content: bytes, at: float = 0.0, max_side: int | None = None) -> Image.Image:
+    """One frame of the video as an RGB picture (the cover shown in lists, where only pictures can be shown). ``at`` is the position 0..1
+    along the video; ``max_side`` (16 or more) shrinks the picture so its longer side is at most that many pixels."""
+    ffmpeg = _require_ffmpeg()
+    if isinstance(at, bool) or not isinstance(at, (int, float)) or not (0 <= at <= 1):
+        raise VideoEncodeError("VIDEO_POSTER_POSITION", "the position must be a number from 0 to 1")
+    probe = probe_mp4(content)
+    duration, frames = probe["duration_seconds"], max(1, probe["frames"])
+    moment = max(0.0, min(at * duration, duration - 2 * duration / frames))        # never past the last frames
+    scale = []
+    if max_side is not None and max(probe["width"], probe["height"]) > max(16, int(max_side)):
+        ratio = max(16, int(max_side)) / max(probe["width"], probe["height"])
+        scale = ["-vf", f"scale={max(1, round(probe['width'] * ratio))}:{max(1, round(probe['height'] * ratio))}"]
+    with tempfile.TemporaryDirectory(prefix="acs_mp4poster_") as folder:
+        in_path = Path(folder) / "in.mp4"
+        in_path.write_bytes(content)
+        done = subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-ss", f"{moment:.3f}", "-i", str(in_path), "-frames:v", "1", *scale,
+                               "-f", "image2pipe", "-vcodec", "png", "-"], stdin=subprocess.DEVNULL, capture_output=True, timeout=ENCODE_TIMEOUT)
+    if done.returncode != 0 or not done.stdout:
+        raise VideoEncodeError("FFMPEG_FAILED", f"ffmpeg could not read a frame: {done.stderr.decode(errors='replace')[-200:].strip()}")
+    picture = Image.open(io.BytesIO(done.stdout))
+    picture.load()
+    return picture.convert("RGB")
 
 
 # ---------------------------------------------------------------------------------------------------------------- QC by decoding
