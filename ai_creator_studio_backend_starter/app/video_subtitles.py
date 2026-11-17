@@ -66,10 +66,18 @@ def parse_cues(raw: Any, seconds: float) -> list[dict[str, Any]]:
     return cues
 
 
+def _glyph_picture(font: ImageFont.FreeTypeFont, ch: str) -> bytes:
+    """The drawn picture of one character, as bytes (to compare with the picture of the font's missing-glyph box)."""
+    canvas = Image.new("L", (font.size * 2, font.size * 2), 0)
+    ImageDraw.Draw(canvas).text((font.size // 2, font.size // 4), ch, font=font, fill=255)
+    return canvas.tobytes()
+
+
 def unsupported_characters(text: str, font: ImageFont.FreeTypeFont) -> list[str]:
     """Characters the font cannot draw (its picture equals the picture of an unmapped code point)."""
-    missing_box = font.getmask(_PROBE).tobytes()
-    return sorted({c for c in text if c not in " \n" and font.getmask(c).tobytes() == missing_box})
+    missing_box = _glyph_picture(font, _PROBE)
+    skip = set(chr(32) + chr(10))
+    return sorted({c for c in text if c not in skip and _glyph_picture(font, c) == missing_box})
 
 
 def _wrap(text: str, font: ImageFont.FreeTypeFont, max_width: float) -> list[str]:
