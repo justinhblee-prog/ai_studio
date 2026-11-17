@@ -3,7 +3,7 @@ import json
 import uuid
 from typing import Any
 from app.viewer_responses import ManifestExportResponse
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from app.private_file_response import PrivateFileError, open_private_file_response
@@ -343,8 +343,8 @@ async def create_job(body: CreateTryOnJob, idempotency_key: str | None = Header(
 @app.get("/v1/generation-jobs", response_model=list[JobResponse])
 async def list_generation_jobs(
     workspace_id: str,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     user_id: str = Depends(current_user),
     repository: JobRepository = Depends(get_job_repository),
 ):
@@ -388,7 +388,7 @@ async def get_job(job_id: str, user_id: str = Depends(current_user), repository:
     return public_job(job)
 
 @app.get("/v1/generation-jobs/{job_id}/executions", operation_id="listGenerationJobExecutions")
-async def get_job_executions(job_id: str, limit: int = 20, cursor: str | None = None,
+async def get_job_executions(job_id: str, limit: int = Query(default=20, ge=1, le=100), cursor: str | None = None,
                              user_id: str = Depends(current_user), repository: JobRepository = Depends(get_job_repository)):
     job = repository.get(job_id)
     if not job: raise HTTPException(status_code=404, detail="Job not found")
@@ -557,7 +557,7 @@ async def reconcile_provider_submission(job_id: str, body: ReconcileProviderSubm
 
 @app.get("/internal/ops/poll-tasks")
 async def list_workspace_poll_tasks(workspace_id: str, status: str | None = None,
-                                    limit: int = 100, user_id: str = Depends(current_user), repository = Depends(get_poll_task_admin_repository)):
+                                    limit: int = Query(default=100, ge=1, le=500), user_id: str = Depends(current_user), repository = Depends(get_poll_task_admin_repository)):
     require_role(workspace_id, user_id, {"owner", "admin"})
     allowed_statuses = {"pending", "processing", "completed", "needs_reconciliation"}
     if status is not None and status not in allowed_statuses:
@@ -593,7 +593,7 @@ async def get_operational_metrics(user_id: str = Depends(current_user), reposito
 
 
 @app.get("/internal/ops/alerts")
-async def get_operational_alerts(status: str = "active", limit: int = 100,
+async def get_operational_alerts(status: str = "active", limit: int = Query(default=100, ge=1, le=500),
                                 user_id: str = Depends(current_user),
                                 monitoring = Depends(get_operations_monitoring_repository),
                                 alerts = Depends(get_operations_alert_read_repository)):
