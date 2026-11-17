@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from tests.test_members import team  # noqa: F401  (wa: owner a, viewer c, editor d, admin e, admin f, editor g; wb: owner b)
-from tests.test_photo_steps_api import auth
+from tests.test_photo_steps_api import auth, env  # noqa: F401  (the fixture `team` builds on `env`)
 
 client = TestClient(app)
 W = "/v1/workspaces/wa"
