@@ -135,6 +135,8 @@ CODES: dict[str, tuple[str, str]] = {
     "THREED_INPUT_KIND": ("3D로 바꿀 수 있는 것은 그림 항목뿐입니다(너무 큰 그림도 안 됩니다).", "Only picture items can be turned into 3D (and not very large ones)."),
     "THREED_INPUT_GONE": ("선택한 그림의 파일이 더는 없습니다.", "The selected picture's file no longer exists."),
     "THREED_DAILY_LIMIT": ("오늘 만들 수 있는 3D 작업 수를 모두 썼습니다.", "Today's 3D job limit has been used up."),
+    "FIT_REFUSED": ("입력한 몸 치수에 옷을 맞출 수 없습니다. 치수를 확인해 주세요.", "The garment cannot be fitted to the measurements entered. Please check them."),
+    "UNKNOWN_REQUEST": ("해당 요청을 찾을 수 없습니다.", "That request was not found."),
     "GLB_INVALID": ("만들어진 3D 파일이 검사를 통과하지 못했습니다.", "The generated 3D file did not pass the check."),
     "MODEL_NAME_REQUIRED": ("모델 이름을 입력해 주세요.", "Please enter a model name."),
     "MODEL_PROVIDER_NOT_CONNECTED": ("외부 AI 서비스로 모델을 만드는 기능은 아직 연결되지 않았습니다.", "Model generation by an external AI service is not connected yet."),
