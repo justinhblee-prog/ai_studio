@@ -162,6 +162,27 @@ def validate_asset_upload(filename: str, content: bytes, *, max_bytes: int = MAX
     return validate_gltf_upload(filename, content, max_bytes=max_bytes)
 
 
+def validate_video_asset(filename: str, content: bytes, *, max_bytes: int = MAX_ASSET_BYTES) -> ValidatedAsset:
+    """Re-check a SERVER-MADE MP4 (for example when a stored version is restored). Deliberately NOT part of ``validate_asset_upload``:
+    people cannot upload videos. Reads the file structure only (pure Python, no ffmpeg): the file must be a complete H.264 MP4."""
+    if len(content) > max_bytes:
+        raise AssetValidationError("ASSET_TOO_LARGE", "Asset exceeds the allowed size.")
+    from app import video_mp4
+    try:
+        probe = video_mp4.probe_mp4(content)
+    except video_mp4.VideoEncodeError as exc:
+        raise AssetValidationError("ASSET_VIDEO_INVALID", "The video file is not a complete MP4.") from exc
+    if probe["codec"] != "avc1" or probe["frames"] < 1:
+        raise AssetValidationError("ASSET_VIDEO_INVALID", "The video file is not an H.264 MP4 with frames.")
+    return ValidatedAsset(media_type="video/mp4", size_bytes=len(content), gltf_version=None, embedded_binary=False)
+
+
+def asset_kind_of(media_type: str) -> str:
+    """'image', 'video' or 'model' (a 3D file): the one rule every listing, upload check and library filing uses."""
+    media_type = str(media_type)
+    return "image" if media_type.startswith("image/") else "video" if media_type.startswith("video/") else "model"
+
+
 def storage_suffix(media_type: str) -> str:
     mapping = {
         "model/gltf-binary": ".glb",
@@ -169,6 +190,7 @@ def storage_suffix(media_type: str) -> str:
         "image/png": ".png",
         "image/jpeg": ".jpg",
         "image/webp": ".webp",
+        "video/mp4": ".mp4",      # server-made only (app/video_mp4.py): an upload of .mp4 is still refused by validate_asset_upload
     }
     try:
         return mapping[media_type]

@@ -43,6 +43,7 @@ CODES: dict[str, tuple[str, str]] = {
     "ASSET_JSON_TOO_LARGE": ("3D 파일의 설명 부분이 너무 큽니다.", "The description part of the 3D file is too large."),
     "ASSET_DATA_URI_TOO_LARGE": ("3D 파일에 포함된 내장 데이터가 너무 큽니다.", "The embedded data in the 3D file is too large."),
     "ASSET_EXTERNAL_URI_BLOCKED": ("3D 파일이 바깥 주소를 참조합니다. 자체 포함 파일만 올릴 수 있습니다.", "The 3D file points to outside addresses. Only self-contained files can be uploaded."),
+    "ASSET_VIDEO_INVALID": ("영상 파일이 온전한 MP4가 아닙니다.", "The video file is not a complete MP4."),
     "ASSET_KIND_MISMATCH": ("이 종류의 파일을 여기에 쓸 수 없습니다.", "This kind of file cannot be used here."),
     "ASSET_IN_USE": ("다른 곳에서 쓰고 있어 지울 수 없습니다.", "It is in use elsewhere and cannot be deleted."),
     "ASSET_VERSION_INTEGRITY_FAILED": ("저장된 파일이 손상되었습니다. 지원팀에 문의해 주세요.", "The stored file is damaged. Please contact support."),

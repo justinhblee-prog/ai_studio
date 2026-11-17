@@ -14,7 +14,7 @@ type AssetRecord = {
   checksum_sha256: string;
   gltf_version: string | null;
   embedded_binary: boolean;
-  asset_kind: 'model' | 'image';
+  asset_kind: 'model' | 'image' | 'video';
   created_at: string;
 };
 

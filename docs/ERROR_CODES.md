@@ -28,6 +28,7 @@
 | `ASSET_TOO_LARGE` | file | error | 파일이 너무 큽니다. | The file is too large. |
 | `ASSET_UNDER_REVIEW` | file | error | **[결정 필요: 법무]** | **[decision needed: legal]** |
 | `ASSET_VERSION_INTEGRITY_FAILED` | file | error | 저장된 파일이 손상되었습니다. 지원팀에 문의해 주세요. | The stored file is damaged. Please contact support. |
+| `ASSET_VIDEO_INVALID` | file | error | 영상 파일이 온전한 MP4가 아닙니다. | The video file is not a complete MP4. |
 | `ASSIST_LIMIT` | assist | limit | 오늘 쓸 수 있는 AI 해석 횟수를 모두 썼습니다. | Today's AI interpretation limit has been used up. |
 | `ASSIST_RATE_LIMITED` | assist | limit | 도움말 요청이 너무 잦습니다. 잠시 뒤 다시 시도해 주세요. | Too many assistant requests. Please try again shortly. |
 | `ASSIST_TEXT_REQUIRED` | assist | error | 요청할 내용을 글로 적어 주세요. | Please type what you need. |

@@ -282,8 +282,9 @@ async def attach(workspace_id: str, body: AttachIn, user_id: str = Depends(curre
     asset = store.get_asset(body.asset_id, workspace_id)
     if asset is None or not takedown.visible_to(body.asset_id, user_id):
         raise HTTPException(status_code=404, detail="Asset not found")
-    if (body.kind == "3d") != (asset["asset_kind"] == "model"):
-        raise HTTPException(status_code=422, detail={"code": "LIBRARY_KIND_MISMATCH", "message": "kind 3d needs a 3D model asset; every other kind needs an image"})
+    allowed = {"model"} if body.kind == "3d" else {"image", "video"} if body.kind == "render" else {"image"}
+    if asset["asset_kind"] not in allowed:
+        raise HTTPException(status_code=422, detail={"code": "LIBRARY_KIND_MISMATCH", "message": "kind 3d needs a 3D model asset; render takes an image or a video; every other kind needs an image"})
     name, tags, attrs = _clean_name(body.name, Path(asset["original_filename"]).stem), _clean_tags(body.tags), _clean_attrs(body.attrs)
     with store._connect() as db:
         _init(db)

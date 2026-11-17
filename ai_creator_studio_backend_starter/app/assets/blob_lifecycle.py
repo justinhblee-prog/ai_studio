@@ -87,7 +87,7 @@ def storage_suffix_from_filename(filename: str) -> str:
     # The filename is already generated from validated media type by callers;
     # keep only a conservative extension rather than trusting path components.
     suffix = Path(filename).suffix.lower()
-    if suffix not in {".glb", ".gltf", ".jpg", ".jpeg", ".png", ".webp"}:
+    if suffix not in {".glb", ".gltf", ".jpg", ".jpeg", ".png", ".webp", ".mp4"}:
         raise ValueError("Asset filename extension is not supported")
     return suffix
 

@@ -186,7 +186,9 @@ class PostgreSQLAssetBytesPort:
         suffix = storage_suffix(source["media_type"])
         filename = Path(str(source["original_filename"] or "restored.glb")).stem + suffix
         try:
-            check = validate_image_upload if str(source["media_type"]).startswith("image/") else validate_gltf_upload
+            from app.assets.validation import validate_video_asset
+            media = str(source["media_type"])
+            check = validate_image_upload if media.startswith("image/") else validate_video_asset if media.startswith("video/") else validate_gltf_upload
             validated = check(filename, content, max_bytes=config.ASSET_MAX_UPLOAD_BYTES)
         except AssetValidationError as exc:
             raise store.AssetVersionIntegrityError("Historical version no longer passes its media validation") from exc
