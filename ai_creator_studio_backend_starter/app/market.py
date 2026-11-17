@@ -398,6 +398,7 @@ async def report_listing(listing_id: str, body: ReportIn, user_id: str = Depends
     with store._connect() as db:
         store.initialize()
         _init(db)
+        db.execute("BEGIN IMMEDIATE")      # B-08: the daily-limit check and the insert are one step, also across several server processes (the insert is a single short row)
         row = db.execute("SELECT * FROM market_listings WHERE listing_id=? AND status='active' AND visibility='public'", (listing_id,)).fetchone()
         if row is None or row["created_by"] == user_id:
             return received
