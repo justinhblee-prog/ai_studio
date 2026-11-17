@@ -32,7 +32,7 @@ def main(argv: list[str]) -> int:
     content, info = video_mp4.make_turntable_mp4(cuts, aspect, seconds, turns, comment="source=3d_rotation_cuts; server-side render; no AI")
     qc = video_mp4.qc_mp4(content, video_mp4.SIZES[aspect], seconds)
     Path(argv[1]).write_bytes(content)
-    print(json.dumps({"cuts": len(cuts), "cut_size": list(cuts[0].size), "bytes": len(content), "encode_ms": info["encode_ms"], "probe": qc["probe"],
+    print(json.dumps({"cuts": len(cuts), "cut_size": list(cuts[0].size), "bytes": len(content), "encode_ms": info["encode_ms"], "blended_frames": info["blended_frames"], "probe": qc["probe"],
                       "qc_passed": qc["passed"], "warnings": [c for c in qc["checks"] if c["level"] == "warn"]}, ensure_ascii=False))
     return 0 if qc["passed"] else 1
 

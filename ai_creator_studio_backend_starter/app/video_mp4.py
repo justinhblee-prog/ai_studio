@@ -150,14 +150,19 @@ def render_turntable_frames(cuts: list[Image.Image], aspect: str, seconds: int, 
 
     def generate() -> Iterator[Image.Image]:
         for index in range(total):
-            position = index * n * turns / total
-            first = int(position)
-            part = position - first
-            if part < 1e-9:
+            first, rest = divmod(index * n * turns, total)          # whole cuts passed, and how far into the next one (exact integers)
+            if rest == 0:
                 yield prepared[first % n].copy()
             else:
-                yield Image.blend(prepared[first % n], prepared[(first + 1) % n], part)
+                yield Image.blend(prepared[first % n], prepared[(first + 1) % n], rest / total)
     return generate()
+
+
+def turntable_blended_frames(cut_count: int, seconds: int, turns: int = 1) -> int:
+    """How many frames of the rotation video are a BLEND of two cuts instead of one rendered cut. 0 when the cuts match the frames
+    (for one turn: as many cuts as frames, i.e. seconds x 24, or any count that divides the frames evenly per turn)."""
+    total = seconds * FPS
+    return sum(1 for index in range(total) if (index * cut_count * turns) % total != 0)
 
 
 def make_turntable_mp4(cuts: list[Image.Image], aspect: str, seconds: int, turns: int = 1, comment: str | None = None) -> tuple[bytes, dict[str, Any]]:
@@ -166,7 +171,7 @@ def make_turntable_mp4(cuts: list[Image.Image], aspect: str, seconds: int, turns
     started = time.perf_counter()
     content = encode_mp4(render_turntable_frames(cuts, aspect, seconds, turns), SIZES[aspect], FPS, comment)
     return content, {"aspect": aspect, "size": list(SIZES[aspect]), "seconds": seconds, "fps": FPS, "frames": seconds * FPS, "motion": "turntable",
-                     "turns": turns, "inputs": len(cuts), "interpolation": "blend of neighbouring cuts", "mode": "local", "ai": False,
+                     "turns": turns, "inputs": len(cuts), "interpolation": "blend of neighbouring cuts", "blended_frames": turntable_blended_frames(len(cuts), seconds, turns), "mode": "local", "ai": False,
                      "encoder": "ffmpeg libx264", "comment": comment, "bytes": len(content), "encode_ms": round((time.perf_counter() - started) * 1000)}
 
 
