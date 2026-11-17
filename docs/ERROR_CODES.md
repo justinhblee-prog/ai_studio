@@ -169,6 +169,7 @@
 | `UNSUPPORTED_PROVIDER` | provider | error | 지원하지 않는 AI 서비스입니다. | This AI service is not supported. |
 | `VALIDATION_ERROR` | general | error | 입력한 값이 올바르지 않습니다. 내용을 확인해 주세요. | Some of the values are not valid. Please check them. |
 | `VIDEO_ASPECT_INVALID` | video | error | 영상 비율은 9:16, 4:5, 16:9 중에서 고를 수 있습니다. | The video aspect must be 9:16, 4:5 or 16:9. |
+| `VIDEO_COMMENT_INVALID` | video | error | 영상 파일에 넣을 설명 글이 비었거나 너무 길거나 여러 줄입니다. | The text to put inside the video file is empty, too long or more than one line. |
 | `VIDEO_DAILY_LIMIT` | video | limit | 오늘 만들 수 있는 영상 수를 모두 썼습니다. | Today's video limit has been used up. |
 | `VIDEO_DURATION_INVALID` | video | error | 영상 길이는 5초, 10초, 15초 중에서 고를 수 있습니다. | The video length must be 5, 10 or 15 seconds. |
 | `VIDEO_FRAME_SIZE` | video | error | 프레임 크기가 영상 크기와 다릅니다. | A frame does not have the size of the video. |
