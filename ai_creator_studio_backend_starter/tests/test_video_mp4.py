@@ -113,7 +113,13 @@ def test_the_structure_reader_refuses_things_that_are_not_mp4():
 
 
 # ------------------------------------------------------------------------------------------------ real encoding
-@pytest.mark.parametrize("aspect, seconds", MATRIX)
+# B-14: the two slowest rows (15 s in 4:5 and 16:9, about 8 s each) run in the nightly workflow (.github/workflows/video-nightly.yml, RUN_SLOW_VIDEO=1).
+# Every pull request still runs all 5 s and 10 s rows, the 15 s row in 9:16, and the 15 s turntable in the browser job (360 cuts).
+NIGHTLY_ONLY = pytest.mark.skipif(os.environ.get("RUN_SLOW_VIDEO") != "1", reason="the slow 15 s rows run in the nightly workflow (B-14)")
+MATRIX_PARAMS = [pytest.param(a, s, marks=NIGHTLY_ONLY) if (s == 15 and a != "9:16") else pytest.param(a, s) for a, s in MATRIX]
+
+
+@pytest.mark.parametrize("aspect, seconds", MATRIX_PARAMS)
 def test_the_matrix_of_three_aspects_and_three_lengths_gives_playable_mp4(ffmpeg, aspect, seconds):
     index = MATRIX.index((aspect, seconds))
     motion, transition = vm.MOTIONS[index % 3], vm.TRANSITIONS[index % 2]
