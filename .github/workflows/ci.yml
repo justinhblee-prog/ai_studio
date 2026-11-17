@@ -142,6 +142,13 @@ jobs:
           VITE_SUPABASE_URL: https://e2e-mock.supabase.test
           VITE_SUPABASE_ANON_KEY: e2e-anon-not-a-secret
         run: npm run build
+      - name: Server-side render of a synthetic .glb (E-02 step 1, headless Chromium, no GPU)
+        if: matrix.group == 'b'
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          node e2e/render_flow.mjs | tee e2e_render.txt
+          grep -q "SUMMARY 4/4 render steps passed" e2e_render.txt
       - name: Pilot flow
         if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
