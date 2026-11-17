@@ -18,7 +18,7 @@ def test_add_column_ignores_a_column_that_is_already_there_and_nothing_else():
     with pytest.raises(sqlite3.OperationalError):
         add_column(db, "ALTER TABLE missing_table ADD COLUMN c TEXT")
     with pytest.raises(sqlite3.OperationalError):
-        add_column(db, "ALTER TABLE t ADD COLUMN broken broken broken")
+        add_column(db, "ALTER TABLE t ADD COLUMN ;")
 
 
 def test_many_connections_initialising_a_fresh_database_at_once_all_succeed(tmp_path):
