@@ -66,13 +66,51 @@ class _Mesh:
         self.tube(stops, cap=False)
 
 
-def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style: str = "pants", skin: Color = (224, 172, 105), top: Color = (60, 90, 160), bottom: Color = (50, 50, 60)) -> bytes:
+def _perimeter_cm(a: float, b: float) -> float:
+    h = ((a - b) / (a + b)) ** 2
+    return math.pi * (a + b) * (1 + 3 * h / (10 + math.sqrt(4 - 3 * h))) * 100
+
+
+def preset_circumferences_cm(sex: str) -> dict[str, float]:
+    p = PRESETS[sex]
+    return {"chest": round(_perimeter_cm(*p["chest"]), 1), "waist": round(_perimeter_cm(*p["waist"]), 1), "hips": round(_perimeter_cm(*p["hip"]), 1)}
+
+
+LIMITS = {"height_cm": (120.0, 220.0), "chest_cm": (60.0, 160.0), "waist_cm": (50.0, 150.0), "hips_cm": (70.0, 170.0)}
+
+
+def _fit_measurements(preset: dict[str, Any], measurements: dict[str, float]) -> dict[str, Any]:
+    """The preset scaled to typed body measurements (any subset): height scales the whole figure, a circumference rescales that cross-section. Approximate and stylised."""
+    for key, value in measurements.items():
+        if key not in LIMITS:
+            raise ValueError(f"unknown measurement {key!r}")
+        low, high = LIMITS[key]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not low <= float(value) <= high:
+            raise ValueError(f"{key} must be a number from {low:g} to {high:g}")
+    p = dict(preset)
+    if "height_cm" in measurements:
+        k = float(measurements["height_cm"]) / 100.0 / p["height"]
+        p["height"] *= k
+        for name in ("shoulder", "arm", "thigh", "calf", "head"):
+            p[name] *= k
+        for name in ("chest", "waist", "hip"):
+            p[name] = (p[name][0] * k, p[name][1] * k)
+    for key, name in (("chest_cm", "chest"), ("waist_cm", "waist"), ("hips_cm", "hip")):
+        if key in measurements:
+            a, b = p[name]
+            k = float(measurements[key]) / _perimeter_cm(a, b)
+            p[name] = (a * k, b * k)
+    return p
+
+
+def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style: str = "pants", skin: Color = (224, 172, 105), top: Color = (60, 90, 160), bottom: Color = (50, 50, 60),
+                     measurements: dict[str, float] | None = None) -> bytes:
     if sex not in SEXES:
         raise ValueError(f"unknown sex preset {sex!r}")
     if top_style not in TOP_STYLES or bottom_style not in BOTTOM_STYLES:
         raise ValueError("unknown clothing style")
     colours = {"skin": _check_color(skin, "skin"), "top": _check_color(top, "top"), "bottom": _check_color(bottom, "bottom")}
-    p = PRESETS[sex]
+    p = _fit_measurements(PRESETS[sex], measurements) if measurements else PRESETS[sex]
     h = p["height"]
     parts: dict[str, _Mesh] = {"skin": _Mesh(), "top": _Mesh(), "bottom": _Mesh()}
     hip_y, waist_y, chest_y, shoulder_y, neck_y = 0.52 * h, 0.60 * h, 0.70 * h, 0.81 * h, 0.835 * h

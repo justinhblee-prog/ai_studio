@@ -26,8 +26,8 @@ def _rgb(value: str) -> tuple[int, int, int]:
 
 
 @lru_cache(maxsize=128)
-def _build(sex: str, top_style: str, bottom_style: str, skin: str, top: str, bottom: str) -> tuple[bytes, str]:
-    data = base_models.build_base_model(sex, top_style, bottom_style, _rgb(skin), _rgb(top), _rgb(bottom))
+def _build(sex: str, top_style: str, bottom_style: str, skin: str, top: str, bottom: str, measures: tuple[tuple[str, float], ...] = ()) -> tuple[bytes, str]:
+    data = base_models.build_base_model(sex, top_style, bottom_style, _rgb(skin), _rgb(top), _rgb(bottom), dict(measures) or None)
     return data, '"' + hashlib.sha256(data).hexdigest()[:32] + '"'
 
 
@@ -35,15 +35,18 @@ def _build(sex: str, top_style: str, bottom_style: str, skin: str, top: str, bot
 async def list_base_models(response: Response) -> dict[str, Any]:
     response.headers["Cache-Control"] = "public, max-age=3600"
     return {"sexes": list(base_models.SEXES), "top_styles": list(base_models.TOP_STYLES), "bottom_styles": list(base_models.BOTTOM_STYLES), "default_colors": DEFAULTS,
-            "color_format": "six hex digits without '#'", "materials": ["skin", "top", "bottom"],
+            "color_format": "six hex digits without '#'", "measurements_cm": {k: list(v) for k, v in base_models.LIMITS.items()}, "preset_circumferences_cm": {sx: base_models.preset_circumferences_cm(sx) for sx in base_models.SEXES}, "materials": ["skin", "top", "bottom"],
             "note": "generated stylised placeholder figures: low-poly, no face, no scan, no third-party asset (see each file's node extras)"}
 
 
 @router.get("/v1/base-models/{sex}/glb", operation_id="getBaseModelGlb", response_class=Response, responses={200: {"content": {"model/gltf-binary": {}}}, 304: {"description": "unchanged"}})
 async def get_base_model_glb(sex: Literal["male", "female"], top_style: Literal["tank", "tshirt", "longsleeve"] = "tshirt", bottom_style: Literal["shorts", "pants"] = "pants",
                              skin: Annotated[str, Query(pattern=HEX)] = DEFAULTS["skin"], top: Annotated[str, Query(pattern=HEX)] = DEFAULTS["top"],
-                             bottom: Annotated[str, Query(pattern=HEX)] = DEFAULTS["bottom"], if_none_match: Annotated[str | None, Header()] = None) -> Response:
-    data, etag = _build(sex, top_style, bottom_style, skin.lower(), top.lower(), bottom.lower())
+                             bottom: Annotated[str, Query(pattern=HEX)] = DEFAULTS["bottom"], height_cm: Annotated[float | None, Query(ge=120, le=220)] = None,
+                             chest_cm: Annotated[float | None, Query(ge=60, le=160)] = None, waist_cm: Annotated[float | None, Query(ge=50, le=150)] = None,
+                             hips_cm: Annotated[float | None, Query(ge=70, le=170)] = None, if_none_match: Annotated[str | None, Header()] = None) -> Response:
+    measures = tuple((k, round(v, 1)) for k, v in (("height_cm", height_cm), ("chest_cm", chest_cm), ("waist_cm", waist_cm), ("hips_cm", hips_cm)) if v is not None)
+    data, etag = _build(sex, top_style, bottom_style, skin.lower(), top.lower(), bottom.lower(), measures)
     headers = {"ETag": etag, "Cache-Control": "public, max-age=86400"}
     if if_none_match == etag:
         return Response(status_code=304, headers=headers)

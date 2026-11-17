@@ -144,5 +144,6 @@
 코드로 직접 만든 양식화 인체 GLB(저폴리, 얼굴·스캔·사진·제3자 에셋 없음). 홈페이지 작업실의 임시 마네킹 교체용.
 - `GET /v1/base-models` → `{"sexes":["male","female"],"top_styles":["tank","tshirt","longsleeve"],"bottom_styles":["shorts","pants"],"default_colors":{"skin":"e0ac69","top":"3c5aa0","bottom":"32323c"},"materials":["skin","top","bottom"], ...}`
 - `GET /v1/base-models/{sex}/glb?top_style=tshirt&bottom_style=pants&top=ff0000&bottom=00ff00&skin=e0ac69` → `model/gltf-binary` (색은 `#` 없는 16진수 6자리, 대소문자 무관). 헤더 `ETag`, `Cache-Control: public, max-age=86400`, `If-None-Match` 일치 시 304. 잘못된 값은 422(파일 없음).
+- **몸 치수 반영(선택)**: 쿼리 `height_cm`(120~220), `chest_cm`(60~160), `waist_cm`(50~150), `hips_cm`(70~170) — 일부만 보내도 됨. 키는 모델 전체를 비례 확대, 둘레는 그 단면만 조정(근사치·양식화, 실제 몸 형태 아님). 프리셋 둘레는 `GET /v1/base-models`의 `preset_circumferences_cm`.
 - 옷 색 교체: 받은 GLB의 재질 `top`/`bottom`/`skin`의 `baseColorFactor`를 바꾸거나, 위 쿼리로 서버가 색을 입힌 파일을 다시 받는다. 스타일 교체도 같은 쿼리.
 - 한계: 매우 단순한 "나무 인형" 모양, 옷은 색·길이만 바뀌며 실제 의류 메시가 아님.

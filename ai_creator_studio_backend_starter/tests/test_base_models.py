@@ -65,3 +65,25 @@ def test_the_file_says_it_is_generated_and_not_a_person():
 def test_bad_input_is_refused(bad):
     with pytest.raises(ValueError):
         build_base_model(**bad)
+
+
+def test_body_measurements_scale_the_figure_and_the_cross_sections():
+    from app.base_models import preset_circumferences_cm
+    plain = inspect_glb(build_base_model("female"))
+    tall = inspect_glb(build_base_model("female", measurements={"height_cm": 190}))
+    assert tall["size"][1] > plain["size"][1] * 1.1 and tall["size"][0] > plain["size"][0], "taller means everything scales up"
+    wide = inspect_glb(build_base_model("female", measurements={"chest_cm": 130, "waist_cm": 120, "hips_cm": 140}))
+    assert wide["size"][1] == pytest.approx(plain["size"][1], abs=1e-3), "circumferences alone do not change the height"
+    assert wide["size"][2] > plain["size"][2], "a bigger chest/waist/hip gives a deeper figure"
+    assert build_base_model("female", measurements={"height_cm": 190}) == build_base_model("female", measurements={"height_cm": 190}), "deterministic"
+    assert build_base_model("female", measurements={}) == build_base_model("female")
+    preset = preset_circumferences_cm("male")
+    same = build_base_model("male", measurements={"chest_cm": preset["chest"], "waist_cm": preset["waist"], "hips_cm": preset["hips"]})
+    base = inspect_glb(build_base_model("male"))["size"]
+    assert all(abs(a - b) < 2e-3 for a, b in zip(inspect_glb(same)["size"], base)), "typing the preset's own circumferences changes (almost) nothing"
+
+
+@pytest.mark.parametrize("bad", [{"height_cm": 100}, {"height_cm": 230}, {"chest_cm": 50}, {"waist_cm": 200}, {"hips_cm": "wide"}, {"height_cm": True}, {"sleeve_cm": 60}])
+def test_bad_measurements_are_refused(bad):
+    with pytest.raises(ValueError):
+        build_base_model("male", measurements=bad)
