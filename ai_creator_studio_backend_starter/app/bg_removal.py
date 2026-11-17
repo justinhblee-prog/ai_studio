@@ -135,9 +135,9 @@ def _background(kind: str, rng: random.Random) -> Image.Image:
         small.putdata([(250, 250, 250), (200, 205, 215), (150, 160, 175), (100, 110, 130)])
         return small.resize(SIZE, Image.BILINEAR)
     if kind == "noisy":
-        base = Image.new("RGB", SIZE, (228, 226, 220))
-        noise = Image.effect_noise(SIZE, 10).convert("RGB")
-        return ImageChops.blend(base, noise, 0.12)
+        img = Image.new("RGB", SIZE)
+        img.putdata([tuple(max(0, min(255, base + rng.randint(-9, 9))) for base in (228, 226, 220)) for _ in range(SIZE[0] * SIZE[1])])     # seeded: reproducible
+        return img
     raise ValueError(kind)
 
 
@@ -158,7 +158,7 @@ def _product(shape: str, colour: tuple[int, int, int]) -> tuple[Image.Image, Ima
     body = Image.new("RGB", SIZE, colour)
     shade = Image.new("RGB", SIZE, (0, 0, 0))
     shade.paste((255, 255, 255), (0, 0, w, h // 2))
-    body = ImageChops.blend(body, ImageChops.multiply(body, shade.filter(ImageFilter.GaussianBlur(30))), 0.25)
+    body = ImageChops.blend(body, ImageChops.multiply(body, shade.filter(ImageFilter.GaussianBlur(30))), 0.08)
     return body, mask
 
 
