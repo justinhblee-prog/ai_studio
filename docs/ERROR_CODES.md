@@ -57,6 +57,7 @@
 | `EXTERNAL_NOTICE_REQUIRED` | legal | error | **[결정 필요: 법무]** | **[decision needed: legal]** |
 | `FFMPEG_FAILED` | general | error | 영상 파일을 만드는 중 오류가 났습니다. 잠시 뒤 다시 시도해 주세요. | The video file could not be encoded. Please try again shortly. |
 | `FFMPEG_MISSING` | general | error | 이 서버에 영상 변환 도구가 설치되어 있지 않아 MP4를 만들 수 없습니다. | The video encoder is not installed on this server, so MP4 output is not available. |
+| `FIT_REFUSED` | general | error | 입력한 몸 치수에 옷을 맞출 수 없습니다. 치수를 확인해 주세요. | The garment cannot be fitted to the measurements entered. Please check them. |
 | `GLB_INVALID` | general | error | 만들어진 3D 파일이 검사를 통과하지 못했습니다. | The generated 3D file did not pass the check. |
 | `GLOBAL_MONTHLY_LIMIT` | general | limit | 이번 달 서비스 전체 작업 한도에 도달했습니다. | The service-wide job limit for this month has been reached. |
 | `IMAGE_ANIMATION_UNSUPPORTED` | file | error | 움직이는 그림은 올릴 수 없습니다. | Animated pictures cannot be uploaded. |
@@ -173,6 +174,7 @@
 | `TRYON_INPUT_NOT_FOUND` | tryon | error | 선택한 항목을 찾을 수 없습니다. | The selected item was not found. |
 | `TRYON_PUBLIC_URL_MISSING` | tryon | error | 외부 AI 서비스를 쓰기 위한 설정이 아직 없습니다. 지원팀에 문의해 주세요. | The setup for the external AI service is missing. Please contact support. |
 | `UNKNOWN_PROVIDER` | provider | error | 알 수 없는 AI 서비스입니다. | Unknown AI service. |
+| `UNKNOWN_REQUEST` | general | error | 해당 요청을 찾을 수 없습니다. | That request was not found. |
 | `UNSUPPORTED_CAPABILITY` | provider | error | 이 AI 서비스가 지원하지 않는 기능입니다. | This AI service does not support that. |
 | `UNSUPPORTED_PROVIDER` | provider | error | 지원하지 않는 AI 서비스입니다. | This AI service is not supported. |
 | `VALIDATION_ERROR` | general | error | 입력한 값이 올바르지 않습니다. 내용을 확인해 주세요. | Some of the values are not valid. Please check them. |
