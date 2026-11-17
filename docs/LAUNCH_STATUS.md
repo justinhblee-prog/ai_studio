@@ -4,6 +4,180 @@
 
 ## 변경 로그 (최신이 위, PR이 머지될 때마다 추가)
 
+<!-- PR_INDEX_START -->
+### 머지된 PR 색인 (스크립트 생성, 166건)
+> 무엇이 언제 머지됐는지만 적는다. **CI 수치는 여기에 없다** — 각 PR의 체크 기록과 아래 손으로 쓴 항목을 본다. 재생성: `scripts/launch_status_pr_index.py`.
+
+| PR | 머지 시각(UTC) | 머지 커밋 | 제목 |
+|---:|---|---|---|
+| #169 | 2026-11-17 09:56 | a132d0a | 레인 2: 기본 인체 모델 A포즈·어깨 이음새, 정적 GLB 재생성 |
+| #166 | 2026-11-17 09:45 | f711b94 | 레인 2: 기본 인체 모델 정적 GLB(남·여) — 회신 59 |
+| #165 | 2026-11-17 09:40 | 6d558ea | B-18: 이벤트·웹훅 봉투와 서명 초안(연결 없음) |
+| #164 | 2026-11-17 09:36 | d82bbab | 레인 2: 기본 인체 모델에 몸 치수 반영 |
+| #163 | 2026-11-17 09:34 | 4ad4514 | B-17: 서명 URL·썸네일 캐시 헤더 점검 시험 |
+| #162 | 2026-11-17 09:41 | 385e79a | 레인 4: 영상 작업 API에 MP4 출력·표지 그림(회신 57 A① 2/2) |
+| #161 | 2026-11-17 09:28 | 6000036 | 레인 2/5: 기본 인체 모델 공개 읽기 라우트 |
+| #160 | 2026-11-17 09:22 | 6a6e45a | 레인 4: video 자산 종류(MP4) 추가 — 데이터 계층(회신 57 A①, 1/2) |
+| #159 | 2026-11-17 09:18 | 1ab04bf | 레인 2/5: 남·여 기본 모델 GLB(자체 생성, 옷 색·스타일 교체) |
+| #158 | 2026-11-17 09:26 | 0c8c029 | B-16: 목록 API 페이징 규칙 점검 시험(1차, 조사용) |
+| #157 | 2026-11-17 09:07 | 391e1f3 | 레인 4: 1280px 회전 컷 렌더·영상 측정(CI) |
+| #156 | 2026-11-17 09:01 | 458d060 | 레인 4: 회전 컷 상한 360 + 15초 회전 영상 측정 |
+| #155 | 2026-11-17 09:07 | 370a194 | 레인 3 E-10: 완성 사진 품질 점검기 |
+| #154 | 2026-11-17 04:46 | 18d5923 | 레인 4: 회전 영상 섞임 0 경로(120컷) + 섞인 프레임 수 기록 |
+| #153 | 2026-11-17 04:39 | 7ee3f76 | 레인 3 E-09c: 채널별 내보내기(크롭·크기·파일명·AI 표시·ZIP) |
+| #152 | 2026-11-17 04:33 | ba3def5 | 레인 4 E-08b: 3D 회전 컷 → 회전 영상 MP4 |
+| #151 | 2026-11-17 04:31 | d7a0de7 | 레인 3 E-09b: 배경 합성·그림자·반사 |
+| #150 | 2026-11-17 04:24 | 0db1d44 | 레인 4: 브라우저 MP4 재생 시험(e2e) |
+| #149 | 2026-11-17 04:18 | 8fa5ffb | 레인 4: 영상 표지 그림(poster_image) |
+| #148 | 2026-11-17 04:23 | e71ce38 | 레인 1 E-02 1단계: 헤드리스 Chromium 서버측 렌더 |
+| #147 | 2026-11-17 04:10 | f859461 | 레인 4: MP4 파일 안 표시 문구(comment 태그) + 문서 갱신 |
+| #146 | 2026-11-17 04:06 | dc4ef65 | 레인 1: glTF-Transform 도구(개발·CI 전용)와 압축 측정 |
+| #145 | 2026-11-17 04:00 | b95bf64 | 레인 4 E-08a: ffmpeg 실제 MP4(비율 3종·길이 3종) + QC |
+| #144 | 2026-11-17 00:54 | 8d6e4b7 | 레인 3 E-09a: 배경 제거 후보 비교 |
+| #143 | 2026-11-17 00:36 | cd09a69 | 레인 2 E-06/M1: 신체 치수 마네킹·크기 맞춤 참고 |
+| #142 | 2026-11-17 00:29 | ca93ee6 | 레인 7 B-01: 체크리스트 증거 점검기 |
+| #141 | 2026-11-17 00:23 | bc6e458 | 레인 1 E-01: GLB 검사·정규화 |
+| #140 | 2026-11-16 19:58 | 1401d3b | 레인 5: 사진→3D 작업(mock) |
+| #139 | 2026-11-16 19:47 | d1df807 | 레인 5: 사진→3D 공급자 자리 |
+| #138 | 2026-11-16 19:42 | c6e3c66 | 레인 6: 멤버 추가 이력 |
+| #137 | 2026-11-16 19:27 | 22cb050 | 레인 6: 멤버 관리와 GET /v1/me |
+| #136 | 2026-11-16 19:21 | fc914de | B-15: 계약 예시 시험 확대 |
+| #135 | 2026-11-16 19:15 | 5b83d51 | R-077: 복구 훈련 자동화 |
+| #134 | 2026-11-16 19:02 | b9cf0ef | R-076: 규모 측정과 가시성 검사 N+1 제거 |
+| #133 | 2026-11-16 18:19 | 9be4d71 | R-074: 캐릭터 시안 end-to-end(mock) |
+| #132 | 2026-11-16 18:09 | 0f19c1e | R-073: 영상 end-to-end(mock) |
+| #131 | 2026-11-16 18:00 | ca98e87 | R-072: 오류 코드 문구 표 |
+| #130 | 2026-11-16 15:33 | 0a9d32b | R-071: 시연용 시드 데이터 |
+| #129 | 2026-11-16 15:21 | 15dd7e0 | R-070: 계약 문서 예시 ↔ OpenAPI 시험 |
+| #128 | 2026-11-16 14:50 | 14d6769 | R-069: 작업 항목 범용 저장소 |
+| #127 | 2026-11-16 14:32 | 8098b3c | R-067: 속도 제한 점검과 보강 |
+| #126 | 2026-11-16 14:18 | dfbc42c | R-065: 데이터 수명주기 |
+| #125 | 2026-11-16 14:05 | 8f6375e | R-063 후속: 검수 설정과 내보내기 관문 |
+| #124 | 2026-11-16 13:40 | 6d9a226 | R-061 ① (회신 41): 내려받기 때 GPS 제거 |
+| #123 | 2026-11-16 13:29 | 69edcc6 | R-059 후속: 승인 시 속성 자동 기록 + 계약표 예시 |
+| #122 | 2026-11-16 13:25 | 58a6d02 | R-064: 마켓 목록 서버(결제 제외) |
+| #121 | 2026-11-16 13:03 | a243d0d | R-066: 운영자 읽기 계약표 + 감사 로그 조회 |
+| #120 | 2026-11-16 12:55 | 39399c6 | R-062: AI 생성 표시 메타데이터 |
+| #119 | 2026-11-16 12:46 | 444b844 | R-063: 자산 검수·승인 서버 기록 |
+| #118 | 2026-11-16 12:41 | dd9862f | R-061: 표시용 이미지(480/960 WebP) |
+| #117 | 2026-11-16 12:30 | 2edf0f5 | R-060: 작업 결과 → 라이브러리 from-job |
+| #116 | 2026-11-16 12:19 | 3e83405 | R-059: 생성 요청 style·region·prompt_prefix |
+| #115 | 2026-11-16 12:13 | a3cd4ca | R-068: AIS_API 연결표 |
+| #114 | 2026-11-16 12:03 | e26e923 | R-058: 라이브러리 항목 속성 메타데이터 |
+| #113 | 2026-11-16 11:53 | 3c34dd4 | R-057(회신 37 개정): 고객·계약·유입경로 통계 API |
+| #112 | 2026-11-16 11:42 | a7e5a91 | R-057: 고객·마케팅 통계 데이터와 API |
+| #111 | 2026-11-16 08:02 | 7871c17 | R-055: 속성 값 수용(숫자 값·홈페이지 키 별칭) |
+| #110 | 2026-11-16 07:57 | 7fb0c7d | R-054: 운영자 사용량 집계 API |
+| #109 | 2026-11-16 07:49 | 251673e | 901px 가로 넘침: 재현 시험 + 수정 |
+| #108 | 2026-11-16 07:32 | 921d416 | R-051: 옵션·도감 이미지 점검 도구와 규칙 |
+| #107 | 2026-11-16 07:23 | 8ae1df4 | R-050: 영상 작업 API(mock) |
+| #106 | 2026-11-16 07:13 | b778d46 | R-049: GLB 썸네일·모델 정보 |
+| #105 | 2026-11-16 07:06 | 4dff6b7 | R-048: 말로 요청 서버 해석(규칙 + LLM 자리) |
+| #104 | 2026-11-16 06:56 | 6231224 | R-047: 모델 생성 계약(mock) |
+| #103 | 2026-11-16 06:45 | bd18c3c | R-046: 라이브러리 항목으로 가상 착용(mock) |
+| #102 | 2026-11-16 06:38 | 2167a8f | R-045: 내 라이브러리 서버 저장 |
+| #101 | 2026-11-16 03:51 | 375712a | R-053: 남은 출시 준비 표·간헐 실패 조사 |
+| #100 | 2026-11-16 03:13 | 6bea620 | R-036: 화면 캡처 4장 |
+| #99 | 2026-11-16 03:00 | e2a7343 | 전·후 비교 슬라이더(R-036 ③ 준비) |
+| #98 | 2026-11-16 02:55 | f542382 | e2e: 삭제 유예 → purge (임시 스택 전용) |
+| #97 | 2026-11-16 02:47 | 5daf207 | e2e: 검수 결정(수정 요청·승인·반려) |
+| #96 | 2026-11-16 02:42 | d5c8b26 | R-044 B(일부): 그라데이션·화이트 밸런스·그림자 |
+| #95 | 2026-11-16 02:37 | 4cc973e | R-044 A-5: 여러 장 가져오기·개발 예정 표시 |
+| #94 | 2026-11-16 02:32 | b52b0f7 | R-044 A-4: 브랜드 프리셋·전후 비교 |
+| #93 | 2026-11-16 02:26 | b70d7e1 | R-044 A-3: 사진 단계 편집 화면 |
+| #92 | 2026-11-16 02:20 | de87578 | R-044 A-2: 사진 단계 실행 API |
+| #91 | 2026-11-16 02:15 | 6ab84b9 | R-044 A-1: 사진 단계 파이프라인(로컬) |
+| #90 | 2026-11-16 02:07 | 8f325e2 | R-042 C: 롤업(시간·일·월) |
+| #89 | 2026-11-16 01:58 | a441cbb | R-038 A: 3D 스튜디오(보기) |
+| #88 | 2026-11-16 01:47 | 3aa9e82 | R-039 A: 브랜드 모델 프로필 |
+| #87 | 2026-11-16 01:40 | e518e25 | R-037 J: 외부 전송 안내 화면 |
+| #86 | 2026-11-16 01:35 | f15579b | R-043 D: 삭제 요청 목록(운영자) |
+| #85 | 2026-11-16 00:45 | 116141e | R-043 C: 실패 작업·내려받기 목록(운영자) |
+| #84 | 2026-11-16 00:40 | e398bcb | R-037 I: 결과물 표시 문구(입력 출처) |
+| #83 | 2026-11-16 00:32 | d355986 | R-043 B: 작업 지연 지표 |
+| #82 | 2026-11-16 00:26 | 26a6c85 | R-043 A: 운영자 전체 현황 API |
+| #81 | 2026-11-16 00:21 | 6c65b5a | R-042 B: 사용량 화면 |
+| #80 | 2026-11-16 00:10 | 5efbc4b | R-042 A: 회사 월 사용량 API |
+| #79 | 2026-11-15 23:58 | 8acf161 | R-037 H: 실패 미과금 반영 |
+| #78 | 2026-11-15 23:54 | 89fab80 | R-037 G: 공급자 호출 스로틀 |
+| #77 | 2026-11-15 23:49 | 7ef4721 | R-037 F: 공급자 데이터 처리 메타 |
+| #76 | 2026-11-15 23:44 | 6ffbf47 | R-037 E: 외부 전송 고지 확인·감사 |
+| #75 | 2026-11-15 23:38 | fd8feab | R-037 D: 공급자별 일 상한 |
+| #74 | 2026-11-15 23:34 | 3a76f11 | R-037 C: job별 추정 비용 기록 |
+| #73 | 2026-11-15 23:29 | 76e2b92 | R-030: 점검 스크립트 수정 |
+| #72 | 2026-11-15 23:24 | 4636390 | CI: e2e를 병렬 job 2개로 분할 |
+| #71 | 2026-11-15 23:04 | 1feda2f | R-030: 점검 목록에 라이브러리 |
+| #70 | 2026-11-15 17:05 | 5003f75 | R-037 B: 월 USD 상한 |
+| #69 | 2026-11-15 16:21 | 09367ab | R-037 A: 파일럿 한도 100/500 + 90% 중단 |
+| #68 | 2026-11-15 16:01 | 6a5b5d9 | R-030 C: 다시 불러오기 버튼 |
+| #67 | 2026-11-15 15:41 | c2c5ab6 | 공통 기반: 파일럿 서비스 스위치 조회 API |
+| #66 | 2026-11-15 15:20 | 14a5019 | R-034 후속: 운영에서 likeness_check 거부 + 설정값 문서 |
+| #65 | 2026-11-15 12:28 | 68591b4 | R-030 B: 오류 문구 한국어 공통 함수 |
+| #64 | 2026-11-15 12:05 | 3217934 | R-030 A: 401이면 로그인으로 (화면·입력 유지) |
+| #63 | 2026-11-15 11:33 | f951ba5 | R-035: 이미지 다운로드·복사 통제 (서버 + 화면) |
+| #62 | 2026-11-15 11:19 | 7f7cdbb | R-034: 라이브러리 가져오기 도구와 표시용 데이터 |
+| #61 | 2026-11-15 11:09 | c698abb | R-033: 라이브러리 화면과 자산 고르기 연결 |
+| #60 | 2026-11-15 10:58 | 2976e81 | R-032: 기본 자산 라이브러리 저장·조회 API |
+| #59 | 2026-11-15 10:39 | 658c063 | R-030: 화면 안정성·접근성 점검 스크립트 (보고 전용) |
+| #58 | 2026-11-15 10:34 | 97f1502 | R-031: 출시 근거 한 장 (CI 증거 요약) |
+| #57 | 2026-11-15 10:22 | 6cf8c44 | R-028: 결과 이미지 그림 경로 시험 + 자동 새로고침 |
+| #56 | 2026-11-15 10:05 | 92d060f | R-027: 생성 작업 목록·상태·결과 열람 화면 (mock 전용) |
+| #55 | 2026-11-15 10:01 | 169b12f | R-026: 가상 착장 시험 생성 시작 화면 (mock 전용) |
+| #54 | 2026-11-10 06:40 | 06ddc22 | R-024: 설정에서 약관·방침 본문 보기 + 모달 스크린샷 |
+| #53 | 2026-11-10 06:31 | a5f2763 | R-023: 워크스페이스 월 한도 429에 limit·used 추가 |
+| #52 | 2026-11-10 06:16 | 00e148c | R-015: 약관·방침 본문 보기 (동의 화면) + R-016 문구 정정 |
+| #51 | 2026-11-10 05:53 | f598e8b | R-018: 이메일 신고 임시 처리 절차(RUNBOOK) |
+| #50 | 2026-11-10 05:49 | 194607d | R-016: 한도 초과·킬 스위치 한국어 안내 |
+| #49 | 2026-11-10 05:32 | 465886c | CLAUDE.md: v1 mailbox block (R-007) |
+| #48 | 2026-11-10 04:53 | 115f816 | docs: LAUNCH_STATUS 로그 — PR #43 |
+| #47 | 2026-11-10 02:07 | 6a58848 | docs: log PR 46; CI history and the second occurrence of the pilot_flow race |
+| #46 | 2026-11-10 02:02 | 6076be7 | L-08 follow-up: no new photo or lookbook work on an asset that is under a report |
+| #45 | 2026-11-10 01:40 | 0186dd0 | Audit multi-statement writes on the autocommit connection: fix create_workspace and the output import |
+| #44 | 2026-11-10 00:51 | a6de6e1 | docs: log PR 42 (L-08) with CI numbers |
+| #43 | 2026-11-10 04:47 | 8b3d272 | Add CLAUDE.md with the design-window mailbox rules |
+| #42 | 2026-11-10 00:34 | 083a281 | L-08: rights-infringement reports and temporary takedown (within the acceptance-pack scope) |
+| #41 | 2026-11-10 00:27 | d4004d6 | L-05: tie the documented access-log fields to the code; pin that bodies and signed URLs are never logged |
+| #40 | 2026-11-10 00:22 | 4337a43 | L-07: pin the AI disclosure in lookbook manifests and show the server decides it |
+| #39 | 2026-11-10 00:16 | 8bf3718 | D2: image version uploads need the rights declaration; save_asset is now one transaction |
+| #38 | 2026-11-10 00:16 | 8aa0211 | docs: log PR 37, refresh the blocked table, update tasks.json |
+| #37 | 2026-11-09 23:01 | 951f8d6 | D2: upload rights confirmation required by default, with a record table and a retention rule |
+| #36 | 2026-11-09 22:44 | 52a8bac | Legal flow: re-acceptance after a document version change (browser test) |
+| #35 | 2026-11-09 22:49 | a1a3372 | Design-window launch_gate (independent patch), adapted to main |
+| #34 | 2026-11-09 13:46 | 4b33004 | Design-window patch 9 (authz_seeded): authorization on seeded objects |
+| #33 | 2026-11-09 13:34 | 032bb2b | Fix a race in pilot_flow (save a photo draft) |
+| #32 | 2026-11-09 13:45 | cdc13f3 | Layout flow: cover the legal gate and the settings account panel (13 checks) |
+| #31 | 2026-11-09 13:25 | 2e8d8a1 | L-02: server-side enforcement of legal acceptance (LEGAL_REQUIRE_ACCEPTANCE, default off) |
+| #30 | 2026-11-09 13:18 | 5300688 | L-02 / L-01 screens: legal acceptance gate, AI-training consent, deletion requests |
+| #29 | 2026-11-09 13:04 | 76e6724 | docs: log PR 27 and summarize the nine design-window patches |
+| #28 | 2026-11-09 12:03 | 669dd09 | Design-window patch 9/9: e2e (keep main's flows, add API-level account flow) |
+| #27 | 2026-11-09 12:08 | c074810 | Design-window patch 8/9: deps_upgrade (already on main; comparison and pip-audit recorded) |
+| #26 | 2026-11-09 11:57 | e802f6c | Design-window patch 7/9: ops_check (script + three defects fixed) |
+| #25 | 2026-11-09 11:53 | cf140fa | Design-window patch 6/9: authz v2 (authorization matrix test) |
+| #24 | 2026-11-09 11:47 | 0742599 | Design-window patch 5/9: purge (deletion-request processing script) |
+| #23 | 2026-11-09 11:42 | c6deae2 | Design-window patch 4/9: cost_cap (monthly/global caps + kill switch beside main's daily cap) |
+| #22 | 2026-11-09 11:37 | fe8ec24 | Design-window patch 3/9: backup (compare, keep main, port two improvements) |
+| #21 | 2026-11-09 11:31 | 3ab4616 | Patch 2/9 (consent): AI training opt-in consent API |
+| #20 | 2026-11-09 11:24 | d26aab9 | Patch 1/9 (legal): acceptance records and deletion-request API |
+| #19 | 2026-11-09 10:48 | 370bf81 | LAUNCH_STATUS: change log entries for PR #16, #17 and #18 |
+| #18 | 2026-11-09 10:44 | 3625e18 | Upgrade FastAPI 0.162.2 / Starlette 1.10 (no known vulnerabilities left) and harden the route-surface test |
+| #17 | 2026-11-09 06:37 | a20944c | Dependencies: Pillow 13 and pytest 9 (known vulnerabilities fixed) |
+| #16 | 2026-11-09 06:29 | e15871d | Fix tablet-width horizontal overflow in four screens; responsive layout E2E |
+| #15 | 2026-11-09 06:20 | 5593ea1 | Launch checklist (first version, by evidence) and LAUNCH_STATUS update |
+| #14 | 2026-11-09 06:09 | 55d5e37 | L-05: structured access log with bounded retention |
+| #13 | 2026-11-09 06:04 | b6c011d | Deep health endpoint, runbook, and a worker-liveness fix |
+| #12 | 2026-11-09 05:58 | 1567d9e | L-07: disclose AI generated provider outputs (API, manifest, review screen) |
+| #11 | 2026-11-09 05:50 | 911fa32 | Backup and restore for the SQLite + local files deployment |
+| #10 | 2026-11-09 05:40 | 525ae7d | E2E: roles, workspace isolation and mobile width (six scenarios) |
+| #9 | 2026-11-09 05:31 | 5082305 | Cost control: per-workspace daily cap on generation jobs |
+| #8 | 2026-11-09 05:20 | 56090a7 | L-04: rights and likeness declaration on image upload |
+| #7 | 2026-11-09 02:43 | 2c39903 | E2E: browser pilot flow (release build, local SQLite, Supabase mocked) + CI job |
+| #6 | 2026-11-09 02:24 | 46005d4 | Registry: test evidence per aggregate, mechanically gated |
+| #5 | 2026-11-09 02:14 | 294b6dd | L-13: fix API address in release builds; T56 version metadata parity test |
+| #4 | 2026-11-09 01:42 | c5baffa | Concurrency round 4–6: work-20261109 + Outbox fence tests and test isolation |
+| #3 | 2026-11-09 01:42 | d280985 | Concurrency round 4: Project FOR SHARE, Character asset-delete guard |
+| #2 | 2026-11-09 00:20 | a1fc935 | Import AI Creator Studio source (BUILD-00231 baseline + WORK-20261108-E) |
+<!-- PR_INDEX_END -->
+
 ### 2026-11-10 · PR #43 (머지 8b3d272) — CLAUDE.md: 설계 창과의 소통 v2 규칙
 - **CI (head 89f8fb7, run 42757771977)**: backend success — pytest `902 passed, 1 warning`, 실DB 단계 `78 passed, 1 warning`; frontend success — 노드 시험 통과(로그의 `failed` 문자열은 시험 이름뿐); e2e success — 10/10, 6/6 rights, 4/4 disclosure, 6/6 legal, 4/4 account(+layout·roles 단계 success). 로그에 실패 줄 없음.
 - **완료**: 폴더 우체통 블록을 v2 블록(붙여 넣기 방식, R-번호별 결과 한 덩어리, 금지선 충돌은 BLOCKED, 사용자 결정은 NEED_USER)으로 교체. 코드 변경 없음.
