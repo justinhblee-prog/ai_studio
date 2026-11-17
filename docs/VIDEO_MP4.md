@@ -46,11 +46,11 @@ ffmpeg가 없으면 `FFMPEG_MISSING`으로 **실패**한다. 다른 형식(WebP 
 `encode_mp4(..., comment=...)`·`make_mp4(..., comment=...)`는 한 줄(1~500자)을 MP4의 comment 태그에 넣고 `probe_mp4()["comment"]`로 다시 읽는다. AI 표시처럼 **파일과 함께 다녀야 하는 문구**를 넣는 자리다. 어떤 문구를 넣을지는 이 모듈이 정하지 않는다(표시 기준은 `app/ai_marking.py`와 법무 결정).
 
 ## 3D 회전 컷 → 회전 영상 (E-08b)
-`make_turntable_mp4(cuts, aspect, seconds, turns=1)`은 서버측 렌더(`ai_creator_studio_3d_viewer/scripts/render_glb.mjs --turntable N`)가 만든 360° 그림 묶음(8~120장, 같은 크기)을 물체가 1~3바퀴 도는 MP4로 만든다. 명령줄: `python scripts/turntable_mp4.py <turn_*.png 폴더> out.mp4 [비율] [초] [바퀴]`.
+`make_turntable_mp4(cuts, aspect, seconds, turns=1)`은 서버측 렌더(`ai_creator_studio_3d_viewer/scripts/render_glb.mjs --turntable N`)가 만든 360° 그림 묶음(8~360장, 같은 크기)을 물체가 1~3바퀴 도는 MP4로 만든다. 명령줄: `python scripts/turntable_mp4.py <turn_*.png 폴더> out.mp4 [비율] [초] [바퀴]`.
 - 컷은 **자르지 않고 전체를 맞춰 넣고** 남는 곳은 컷의 모서리 색(렌더 배경)으로 채운다.
 - 컷과 컷 사이 프레임은 **이웃한 두 컷을 섞은 것**이다(새로 렌더한 것이 아님). 컷이 적거나 빨리 돌면 가장자리가 옅게 겹쳐 보인다 — 5초 한 바퀴(120프레임)에 겹침이 없으려면 컷 120장이 필요하다.
 - 마지막 프레임이 첫 프레임으로 이어져 반복 재생이 끊기지 않는다.
-- 섞인 프레임 수는 `turntable_blended_frames(컷 수, 초, 바퀴)`로 미리 알 수 있고 결과 기록의 `blended_frames`에도 남는다. 5초 한 바퀴는 컷 120장이면 0, 24장이면 96이다.
+- 섞인 프레임 수는 `turntable_blended_frames(컷 수, 초, 바퀴)`로 미리 알 수 있고 결과 기록의 `blended_frames`에도 남는다. 5초 한 바퀴는 컷 120장이면 0, 24장이면 96이다. 10초는 240장, 15초는 360장이면 0이다(컷 상한 360).
 - CI e2e(b)가 합성 모델(구)을 **120컷**으로 렌더 → MP4(섞인 프레임 0) → Chrome 재생까지 한 번에 확인한다. 실제 작가 모델로는 **미확인**.
 
 ## 표지 그림

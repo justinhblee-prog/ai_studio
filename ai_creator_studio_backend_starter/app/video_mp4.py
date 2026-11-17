@@ -34,7 +34,7 @@ ROTATE_DEGREES = 4.0        # rotate: from -4 to +4 degrees
 ENCODE_TIMEOUT = 300
 BLANK_STDDEV, FLICKER_JUMP, STATIC_DIFF, STATIC_RATIO = 1.5, 25.0, 0.02, 0.6
 QC_SCALE = 4                # the QC decodes at a quarter of the size
-TURNTABLE_CUTS = (8, 120)   # how many pictures a 360-degree set may have
+TURNTABLE_CUTS = (8, 360)   # how many pictures a 360-degree set may have
 MAX_TURNS = 3
 MAX_COMMENT = 500           # the text written into the file (for example the AI disclosure line)
 
@@ -146,15 +146,22 @@ def render_turntable_frames(cuts: list[Image.Image], aspect: str, seconds: int, 
     if isinstance(turns, bool) or not isinstance(turns, int) or not (1 <= turns <= MAX_TURNS):
         raise VideoEncodeError("VIDEO_TURNTABLE_INVALID", f"turns must be an integer 1..{MAX_TURNS}")
     size, total, n = SIZES[aspect], seconds * FPS, len(cuts)
-    prepared = [_contain(cut, size) for cut in cuts]
+    cache: dict[int, Image.Image] = {}
+
+    def prepared(k: int) -> Image.Image:        # only two fitted cuts are kept at a time: 360 fitted 720x1280 pictures would be about 1 GB
+        if k not in cache:
+            if len(cache) >= 2:
+                cache.pop(next(iter(cache)))
+            cache[k] = _contain(cuts[k], size)
+        return cache[k]
 
     def generate() -> Iterator[Image.Image]:
         for index in range(total):
             first, rest = divmod(index * n * turns, total)          # whole cuts passed, and how far into the next one (exact integers)
             if rest == 0:
-                yield prepared[first % n].copy()
+                yield prepared(first % n).copy()
             else:
-                yield Image.blend(prepared[first % n], prepared[(first + 1) % n], rest / total)
+                yield Image.blend(prepared(first % n), prepared((first + 1) % n), rest / total)
     return generate()
 
 
