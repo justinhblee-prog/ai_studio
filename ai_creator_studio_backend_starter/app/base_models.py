@@ -132,12 +132,15 @@ def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style:
     parts["top"].tube([((0, waist_y, 0), p["waist"][0], p["waist"][1]), ((0, chest_y, 0), p["chest"][0], p["chest"][1]), ((0, shoulder_y, 0), p["shoulder"] * 0.72, p["chest"][1] * 0.92)])
     parts["skin"].tube([((0, shoulder_y, 0), p["shoulder"] * 0.30, p["chest"][1] * 0.5), ((0, neck_y, 0), 0.045, 0.045), ((0, neck_y + 0.04, 0), 0.04, 0.04)])
     parts["skin"].sphere((0.0, neck_y + 0.04 + p["head"], 0.0), p["head"])
-    # arms hang slightly away from the body: shoulder -> elbow -> wrist -> hand
+    # arms in a relaxed A-pose (about 15 degrees away from the body): the upper arm starts INSIDE the shoulder line so there is no gap at the joint
     for side in (-1, 1):
-        sx = side * p["shoulder"] * 0.95
-        upper = [((sx, shoulder_y - 0.02, 0.0), p["arm"] * 1.3, p["arm"] * 1.3), ((side * (p["shoulder"] + 0.04), shoulder_y - 0.22 * h, 0.0), p["arm"] * 1.0, p["arm"] * 1.0)]
-        lower = [((side * (p["shoulder"] + 0.04), shoulder_y - 0.22 * h, 0.0), p["arm"] * 0.95, p["arm"] * 0.95), ((side * (p["shoulder"] + 0.07), shoulder_y - 0.42 * h, 0.02), p["arm"] * 0.7, p["arm"] * 0.7)]
-        hand = [((side * (p["shoulder"] + 0.07), shoulder_y - 0.42 * h, 0.02), p["arm"] * 0.75, p["arm"] * 0.6), ((side * (p["shoulder"] + 0.08), shoulder_y - 0.49 * h, 0.03), p["arm"] * 0.55, p["arm"] * 0.45)]
+        sx = side * p["shoulder"] * 0.78
+        e_x, e_y = side * (p["shoulder"] + 0.045), shoulder_y - 0.21 * h
+        w_x, w_y = side * (p["shoulder"] + 0.115), shoulder_y - 0.40 * h
+        hand_x, hand_y = side * (p["shoulder"] + 0.14), shoulder_y - 0.47 * h
+        upper = [((sx, shoulder_y - 0.015, 0.0), p["arm"] * 1.55, p["arm"] * 1.55), ((e_x, e_y, 0.0), p["arm"] * 1.05, p["arm"] * 1.05)]
+        lower = [((e_x, e_y, 0.0), p["arm"] * 1.0, p["arm"] * 1.0), ((w_x, w_y, 0.015), p["arm"] * 0.72, p["arm"] * 0.72)]
+        hand = [((w_x, w_y, 0.015), p["arm"] * 0.8, p["arm"] * 0.6), ((hand_x, hand_y, 0.025), p["arm"] * 0.55, p["arm"] * 0.45)]
         (parts["skin"] if top_style == "tank" else parts["top"]).tube(upper)
         (parts["top"] if top_style == "longsleeve" else parts["skin"]).tube(lower)
         parts["skin"].tube(hand)
