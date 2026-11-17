@@ -20,7 +20,7 @@ def wav(seconds=2.0, rate=22050, channels=1, freq=440.0, width=2, amplitude=1200
         frames = bytearray()
         for i in range(int(seconds * rate)):
             sample = int(amplitude * math.sin(2 * math.pi * freq * i / rate))
-            frames += struct.pack("<h" * channels, *([sample] * channels)) if width == 2 else bytes([128 + sample // 256]) * channels
+            frames += struct.pack("<" + "h" * channels, *([sample] * channels)) if width == 2 else bytes([128 + sample // 256]) * channels
         w.writeframes(bytes(frames))
     return buf.getvalue()
 
