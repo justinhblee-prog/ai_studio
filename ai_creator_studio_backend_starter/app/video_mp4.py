@@ -33,6 +33,7 @@ ROTATE_DEGREES = 4.0        # rotate: from -4 to +4 degrees
 ENCODE_TIMEOUT = 300
 BLANK_STDDEV, FLICKER_JUMP, STATIC_DIFF, STATIC_RATIO = 1.5, 25.0, 0.02, 0.6
 QC_SCALE = 4                # the QC decodes at a quarter of the size
+MAX_COMMENT = 500           # the text written into the file (for example the AI disclosure line)
 
 
 class VideoEncodeError(RuntimeError):
@@ -121,16 +122,19 @@ def render_frames(images: list[Image.Image], aspect: str, seconds: int, motion: 
 
 
 # ---------------------------------------------------------------------------------------------------------------- encode
-def encode_mp4(frames: Iterable[Image.Image], size: tuple[int, int], fps: int = FPS) -> bytes:
-    """Encode RGB frames of exactly ``size`` as H.264 MP4 (yuv420p, faststart, no audio). Raises VideoEncodeError if ffmpeg is missing or fails."""
+def encode_mp4(frames: Iterable[Image.Image], size: tuple[int, int], fps: int = FPS, comment: str | None = None) -> bytes:
+    """Encode RGB frames of exactly ``size`` as H.264 MP4 (yuv420p, faststart, no audio). Raises VideoEncodeError if ffmpeg is missing or fails.
+    ``comment`` is written INSIDE the file (the MP4 comment tag) and read back by ``probe_mp4``: the place for a disclosure line that must travel with the file."""
     ffmpeg = _require_ffmpeg()
+    if comment is not None and (not isinstance(comment, str) or not comment.strip() or len(comment) > MAX_COMMENT or any(ord(c) < 32 or ord(c) == 127 for c in comment)):
+        raise VideoEncodeError("VIDEO_COMMENT_INVALID", f"the comment must be 1..{MAX_COMMENT} characters on one line")
     if size[0] % 2 or size[1] % 2 or min(size) < 16:
         raise VideoEncodeError("VIDEO_SIZE_INVALID", "width and height must be even and at least 16")
     with tempfile.TemporaryDirectory(prefix="acs_mp4_") as folder:
         out_path, log_path = Path(folder) / "out.mp4", Path(folder) / "ffmpeg.log"
         command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{size[0]}x{size[1]}",
                    "-r", str(fps), "-i", "-", "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
-                   "-movflags", "+faststart", str(out_path)]
+                   "-movflags", "+faststart", *(["-metadata", f"comment={comment}"] if comment is not None else []), str(out_path)]
         with open(log_path, "wb") as log:
             process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=log)
             written = 0
@@ -156,13 +160,14 @@ def encode_mp4(frames: Iterable[Image.Image], size: tuple[int, int], fps: int = 
         return out_path.read_bytes()
 
 
-def make_mp4(images: list[Image.Image], aspect: str, seconds: int, motion: str = "zoom", transition: str = "cut") -> tuple[bytes, dict[str, Any]]:
+def make_mp4(images: list[Image.Image], aspect: str, seconds: int, motion: str = "zoom", transition: str = "cut",
+             comment: str | None = None) -> tuple[bytes, dict[str, Any]]:
     """Pictures -> MP4 bytes and a record of what was made. Local only (no AI model, no provider)."""
     _require_ffmpeg()
     started = time.perf_counter()
-    content = encode_mp4(render_frames(images, aspect, seconds, motion, transition), SIZES[aspect], FPS)
+    content = encode_mp4(render_frames(images, aspect, seconds, motion, transition), SIZES[aspect], FPS, comment)
     return content, {"aspect": aspect, "size": list(SIZES[aspect]), "seconds": seconds, "fps": FPS, "frames": seconds * FPS, "motion": motion,
-                     "transition": transition, "inputs": len(images), "mode": "local", "ai": False, "encoder": "ffmpeg libx264",
+                     "transition": transition, "inputs": len(images), "mode": "local", "ai": False, "encoder": "ffmpeg libx264", "comment": comment,
                      "bytes": len(content), "encode_ms": round((time.perf_counter() - started) * 1000)}
 
 
@@ -197,8 +202,20 @@ def _handler(data: bytes, start: int, end: int) -> bytes:
     return b"" if box is None else data[box[0] + 8:box[0] + 12]
 
 
+def _comment(data: bytes, moov_start: int, moov_end: int) -> str | None:
+    """The MP4 comment tag (moov/udta/meta/ilst/(c)cmt/data) or None. ``meta`` has 4 bytes of version and flags before its children."""
+    try:
+        meta = _find(data, moov_start, moov_end, ("udta", "meta"))
+        if meta is None:
+            return None
+        text = _find(data, meta[0] + 4, meta[1], ("ilst", "\xa9cmt", "data"))
+        return None if text is None else data[text[0] + 8:text[1]].decode("utf-8", "replace")
+    except VideoEncodeError:
+        return None
+
+
 def probe_mp4(content: bytes) -> dict[str, Any]:
-    """What the file says about itself (pure Python, no ffmpeg): brand, video codec, picture size, frame count, duration, faststart."""
+    """What the file says about itself (pure Python, no ffmpeg): brand, video codec, picture size, frame count, duration, faststart, comment tag."""
     top = list(_boxes(content, 0, len(content)))
     names = [kind for kind, _, _ in top]
     if not names or names[0] != "ftyp" or "moov" not in names or "mdat" not in names:
@@ -231,7 +248,7 @@ def probe_mp4(content: bytes) -> dict[str, Any]:
         raise VideoEncodeError("MP4_INVALID", "the MP4 has no video track")
     audio_tracks = sum(1 for kind, body, stop in _boxes(content, moov_start, moov_end) if kind == "trak" and _handler(content, body, stop) == b"soun")
     return {"brand": brand, **video, "duration_seconds": round(duration / timescale, 3) if timescale else 0.0, "audio_tracks": audio_tracks,
-            "faststart": names.index("moov") < names.index("mdat"), "bytes": len(content)}
+            "faststart": names.index("moov") < names.index("mdat"), "comment": _comment(content, moov_start, moov_end), "bytes": len(content)}
 
 
 # ---------------------------------------------------------------------------------------------------------------- QC by decoding

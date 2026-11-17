@@ -164,3 +164,21 @@ def test_the_encoder_refuses_odd_sizes_wrong_frames_and_no_frames(ffmpeg):
     with pytest.raises(vm.VideoEncodeError) as err:
         vm.encode_mp4([], (160, 90))
     assert err.value.code == "FFMPEG_FAILED"
+
+
+def test_a_comment_travels_inside_the_file_and_is_read_back(ffmpeg):
+    size = (160, 96)
+    def frames():
+        return (Image.linear_gradient("L").resize(size).rotate(i * 3).convert("RGB") for i in range(24))
+    line = "ai_generated=true; ai_edited=false; tool=AI Creator Studio; 표시=AI 생성 이미지 포함"
+    tagged = vm.encode_mp4(frames(), size, comment=line)
+    assert vm.probe_mp4(tagged)["comment"] == line, "the line is inside the MP4 itself, Korean included"
+    assert vm.probe_mp4(tagged)["faststart"] is True and vm.probe_mp4(tagged)["frames"] == 24
+    assert vm.probe_mp4(vm.encode_mp4(frames(), size))["comment"] is None, "no comment asked, none written"
+
+
+@pytest.mark.parametrize("comment", ["", "   ", "two\nlines", "x" * 501, "tab\there", 7])
+def test_a_comment_that_is_empty_too_long_or_not_one_line_is_refused(ffmpeg, comment):
+    with pytest.raises(vm.VideoEncodeError) as err:
+        vm.encode_mp4([Image.new("RGB", (160, 96))], (160, 96), comment=comment)
+    assert err.value.code == "VIDEO_COMMENT_INVALID"
