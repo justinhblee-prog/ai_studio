@@ -33,6 +33,7 @@ GLOBAL_TABLES = {
     "generation_ops_alerts", "generation_ops_alert_deliveries", "deletion_requests", "sqlite_sequence",
     "library_items", "library_item_versions",  # R-032: platform-owned default library, never part of a workspace or account purge
     "rate_limit_hits",  # R-067: transient counters keyed by one-way hashes, emptied by the limiter itself after an hour
+    "export_reservations",  # B-08: in-flight markers of an export being built, deleted when the request ends (stale ones ignored after 15 minutes); hold only an id and a time
     "data_lifecycle_audit",  # R-065: the record that a deletion / export happened is kept (it holds only hashes and counts, never content or ids)
 }
 USER_TABLES = ("legal_acceptances", "consents", "market_profiles", "account_exports")   # R-064 seller profile, R-065 account export records
