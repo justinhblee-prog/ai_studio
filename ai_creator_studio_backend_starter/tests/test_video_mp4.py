@@ -267,3 +267,14 @@ def test_a_rotation_set_encodes_to_a_playable_mp4_that_moves(ffmpeg):
     assert qc["passed"] is True and qc["decoded_frames"] == 120 and levels["static_picture"] == "ok", qc["checks"]
     assert info["motion"] == "turntable" and info["inputs"] == 24 and info["turns"] == 1 and info["ai"] is False
     assert qc["probe"]["comment"] == "source=3d_rotation_cuts" and (qc["probe"]["width"], qc["probe"]["height"]) == (720, 1280)
+
+
+def test_with_as_many_cuts_as_frames_no_frame_is_a_blend():
+    assert vm.turntable_blended_frames(120, 5) == 0 and vm.turntable_blended_frames(60, 5, turns=2) == 0 and vm.turntable_blended_frames(120, 10) == 120
+    assert vm.turntable_blended_frames(24, 5) == 96 and vm.turntable_blended_frames(12, 5) == 108, "24 cuts: only every 5th frame is a rendered cut"
+    source = cuts(120, 64)
+    prepared = {vm._contain(c, (720, 1280)).tobytes() for c in source}
+    frames = list(vm.render_turntable_frames(source, "9:16", 5))
+    assert all(f.tobytes() in prepared for f in frames) and len({f.tobytes() for f in frames}) == 120, "every frame is one rendered cut, each used once"
+    blended = [f for f in vm.render_turntable_frames(cuts(24, 64), "9:16", 5) if f.tobytes() not in {vm._contain(c, (720, 1280)).tobytes() for c in cuts(24, 64)}]
+    assert len(blended) == vm.turntable_blended_frames(24, 5) == 96
