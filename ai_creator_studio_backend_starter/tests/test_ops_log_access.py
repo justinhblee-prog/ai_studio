@@ -4,6 +4,9 @@ from tests.test_authz_matrix import _fill, _operations, auth, client, seeded  # 
 from app import config
 
 
+WORKSPACE_ADMIN_TOOLS = {"/internal/ops/poll-tasks"}      # by design a per-workspace view for that workspace's owner/admin (needs ?workspace_id=); everyone else is refused
+
+
 def _ops_gets():
     for method, path, op in _operations():
         if method == "get" and (path.startswith("/internal/") or path.startswith("/v1/ops")):
@@ -23,6 +26,10 @@ def test_operations_and_audit_reads_are_for_platform_operators_only(seeded, monk
     assert len(paths) >= 8, [p for p, _ in paths]
     leaks, anon, blocked_operator = [], [], []
     for path, op in paths:
+        if path in WORKSPACE_ADMIN_TOOLS:
+            assert _call(path, op, seeded, "tok-b") in (403, 404), f"{path}: a stranger to the workspace must be refused"
+            assert _call(path, op, seeded, None) == 401
+            continue
         if _call(path, op, seeded, "tok-a") not in (401, 403):          # the workspace OWNER is not a platform operator
             leaks.append(path)
         if _call(path, op, seeded, None) != 401:
