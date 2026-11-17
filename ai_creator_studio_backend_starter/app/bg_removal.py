@@ -16,7 +16,9 @@ from typing import Any
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-METHODS = ("flood", "gradient")
+CANDIDATES = ("flood", "gradient")
+METHODS = CANDIDATES + ("auto",)
+SPREAD_LIMIT = 30          # corner colours further apart than this = a shaded background: use the gradient model
 MARK = (255, 0, 254)
 
 
@@ -36,6 +38,14 @@ def _corner_background(img: Image.Image) -> Image.Image:
     small = Image.new("RGB", (2, 2))
     small.putdata(corners)
     return small.resize((w, h), Image.BILINEAR)
+
+
+def corner_spread(img: Image.Image) -> float:
+    """How far apart the four corner colours are (0 = one flat colour)."""
+    w, h = img.size
+    m = 4
+    corners = [_patch_median(img, m, m), _patch_median(img, w - 1 - m, m), _patch_median(img, m, h - 1 - m), _patch_median(img, w - 1 - m, h - 1 - m)]
+    return float(max(max(c[i] for c in corners) - min(c[i] for c in corners) for i in range(3)))
 
 
 def _mask_flood(rgb: Image.Image, tolerance: int) -> Image.Image:
@@ -68,6 +78,8 @@ def foreground_mask(img: Image.Image, method: str = "gradient", tolerance: int |
     if method not in METHODS:
         raise ValueError(f"unknown method {method!r}")
     rgb = img.convert("RGB")
+    if method == "auto":
+        method = "gradient" if corner_spread(rgb) > SPREAD_LIMIT else "flood"
     if method == "flood":
         return _mask_flood(rgb, 40 if tolerance is None else tolerance)
     return _mask_gradient(rgb, 28 if tolerance is None else tolerance)
@@ -118,6 +130,10 @@ def _background(kind: str, rng: random.Random) -> Image.Image:
         small = Image.new("RGB", (2, 2))
         small.putdata([(235, 238, 245), (215, 225, 240), (190, 200, 215), (170, 180, 200)])
         return small.resize(SIZE, Image.BILINEAR)
+    if kind == "strong":
+        small = Image.new("RGB", (2, 2))
+        small.putdata([(250, 250, 250), (200, 205, 215), (150, 160, 175), (100, 110, 130)])
+        return small.resize(SIZE, Image.BILINEAR)
     if kind == "noisy":
         base = Image.new("RGB", SIZE, (228, 226, 220))
         noise = Image.effect_noise(SIZE, 10).convert("RGB")
@@ -151,6 +167,7 @@ def evaluation_set() -> list[dict[str, Any]]:
     cases = []
     spec = [("white", "ellipse", (200, 40, 40)), ("white", "rect", (30, 60, 170)), ("gray", "ellipse", (40, 120, 60)), ("gradient", "rect", (150, 60, 160)),
             ("noisy", "ellipse", (60, 60, 60)), ("white", "donut", (220, 150, 30)), ("gradient", "donut", (30, 30, 30)),
+            ("strong", "ellipse", (200, 40, 40)), ("strong", "rect", (30, 60, 170)),
             ("white", "ellipse", (246, 246, 246))]                # the hard case: a white product on a white background
     for background, shape, colour in spec:
         body, mask = _product(shape, colour)
@@ -174,6 +191,8 @@ def evaluate(methods: tuple[str, ...] = METHODS) -> dict[str, Any]:
         for method in methods:
             table[method][case["name"]] = round(iou(foreground_mask(case["image"], method), case["truth"]), 4)
     easy = [c["name"] for c in cases if not c["hard"]]
-    summary = {m: {"mean_iou_easy": round(sum(table[m][n] for n in easy) / len(easy), 4), "min_iou_easy": min(table[m][n] for n in easy)} for m in methods}
-    best = max(methods, key=lambda m: summary[m]["mean_iou_easy"])
+    names = [c["name"] for c in cases]
+    summary = {m: {"mean_iou_easy": round(sum(table[m][n] for n in easy) / len(easy), 4), "min_iou_easy": min(table[m][n] for n in easy),
+                   "mean_iou_all": round(sum(table[m][n] for n in names) / len(names), 4)} for m in methods}
+    best = max(methods, key=lambda m: (summary[m]["mean_iou_all"], summary[m]["min_iou_easy"]))
     return {"cases": [c["name"] for c in cases], "iou": table, "summary": summary, "selected": best}
