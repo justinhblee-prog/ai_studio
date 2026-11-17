@@ -12,6 +12,7 @@ Every transition is written to an append-only history (the database refuses UPDA
 """
 from __future__ import annotations
 
+import sqlite3
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
@@ -41,6 +42,10 @@ def _init(db) -> None:
         review_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, asset_id TEXT NOT NULL, status TEXT NOT NULL, requested_by TEXT NOT NULL, requested_at TEXT NOT NULL,
         handled_by TEXT, handled_at TEXT, comment TEXT, updated_at TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_asset_reviews_ws ON asset_reviews(workspace_id, asset_id, requested_at)")
+    try:     # B-08: the database itself refuses a second OPEN review of one asset (two workers asking at the same moment); an old database that already holds a duplicate keeps the check in request_review
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_asset_reviews_one_open ON asset_reviews(workspace_id, asset_id) WHERE status IN ('requested','changes_requested')")
+    except Exception:  # noqa: BLE001
+        pass
     db.execute("""CREATE TABLE IF NOT EXISTS asset_review_events (
         event_id INTEGER PRIMARY KEY AUTOINCREMENT, review_id TEXT NOT NULL, workspace_id TEXT NOT NULL, at TEXT NOT NULL, actor_id TEXT NOT NULL, actor_role TEXT NOT NULL,
         action TEXT NOT NULL, from_status TEXT, to_status TEXT NOT NULL, comment TEXT)""")
@@ -121,8 +126,11 @@ async def request_review(workspace_id: str, body: RequestIn, user_id: str = Depe
         if db.execute("SELECT 1 FROM asset_reviews WHERE workspace_id=? AND asset_id=? AND status IN ('requested','changes_requested')", (workspace_id, body.asset_id)).fetchone():
             raise HTTPException(status_code=409, detail={"code": "REVIEW_ALREADY_OPEN", "message": "this asset already has an open review"})
         review_id, now = "rev_" + uuid.uuid4().hex, _now()
-        db.execute("INSERT INTO asset_reviews(review_id, workspace_id, asset_id, status, requested_by, requested_at, comment, updated_at) VALUES (?,?,?,?,?,?,?,?)",
-                   (review_id, workspace_id, body.asset_id, "requested", user_id, now, comment, now))
+        try:
+            db.execute("INSERT INTO asset_reviews(review_id, workspace_id, asset_id, status, requested_by, requested_at, comment, updated_at) VALUES (?,?,?,?,?,?,?,?)",
+                       (review_id, workspace_id, body.asset_id, "requested", user_id, now, comment, now))
+        except sqlite3.IntegrityError as exc:       # lost the race against another request for the same asset
+            raise HTTPException(status_code=409, detail={"code": "REVIEW_ALREADY_OPEN", "message": "this asset already has an open review"}) from exc
         _event(db, review_id, workspace_id, user_id, role, "request", None, "requested", comment)
         return _public(db.execute("SELECT * FROM asset_reviews WHERE review_id=?", (review_id,)).fetchone())
 
