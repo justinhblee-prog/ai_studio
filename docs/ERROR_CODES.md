@@ -37,6 +37,8 @@
 | `ATTR_FILTER_INVALID` | attributes | error | 필터는 '이름:값' 모양이어야 합니다. | A filter must look like name:value. |
 | `ATTR_KEY_INVALID` | attributes | error | 속성 이름은 소문자·숫자·밑줄만 쓸 수 있습니다. | Attribute names may use lowercase letters, digits and underscores only. |
 | `ATTR_VALUE_INVALID` | attributes | error | 속성 값은 짧은 글이나 작은 정수여야 합니다. | Attribute values must be short text or a small whole number. |
+| `AUDIO_ENCODER_MISSING` | general | error | 이 서버의 영상 도구에 소리를 넣는 기능이 없습니다. | This server's video tool cannot encode sound. |
+| `AUDIO_INVALID` | general | error | 소리 파일은 16비트 WAV(최대 50MB·10분)여야 하고, 영상에 이미 소리가 없어야 합니다. | The sound must be a 16-bit WAV (up to 50 MB and 10 minutes) and the video must have no sound yet. |
 | `AUTO_ROUTING_NOT_APPROVED` | provider | error | 자동 선택은 아직 승인되지 않았습니다. | Automatic selection is not approved yet. |
 | `CAPABILITY_NOT_VERIFIED` | provider | error | 이 기능은 아직 확인되지 않았습니다. | This capability has not been verified yet. |
 | `COLLECTION_DISABLED` | customers | error | 이 정보는 지금 수집하지 않습니다. | This information is not being collected right now. |

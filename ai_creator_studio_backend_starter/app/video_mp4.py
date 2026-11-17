@@ -346,6 +346,59 @@ def poster_image(content: bytes, at: float = 0.0, max_side: int | None = None) -
     return picture.convert("RGB")
 
 
+# ---------------------------------------------------------------------------------------------------------------- sound track (technical spike, not connected)
+MAX_AUDIO_BYTES, MAX_AUDIO_SECONDS = 50 * 1024 * 1024, 600
+AUDIO_RATES = (8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000)
+FADE_OUT_SECONDS = 1.0
+
+
+def check_wav(audio: bytes) -> dict[str, Any]:
+    """The only sound format taken in: an uncompressed 16-bit PCM WAV, read with the standard library (no decoder is run on a stranger's bytes).
+    Refuses anything else, files over 50 MB or 10 minutes, and odd sample rates or channel counts."""
+    import wave
+    if not isinstance(audio, (bytes, bytearray)) or not (44 < len(audio) <= MAX_AUDIO_BYTES):
+        raise VideoEncodeError("AUDIO_INVALID", "the sound file must be a WAV of 44 bytes to 50 MB")
+    try:
+        with wave.open(io.BytesIO(bytes(audio)), "rb") as w:
+            channels, width, rate, frames = w.getnchannels(), w.getsampwidth(), w.getframerate(), w.getnframes()
+            comptype = w.getcomptype()
+    except (wave.Error, EOFError):
+        raise VideoEncodeError("AUDIO_INVALID", "the sound file is not a readable PCM WAV") from None
+    if comptype != "NONE" or width != 2 or channels not in (1, 2) or rate not in AUDIO_RATES or frames < 1 or frames / rate > MAX_AUDIO_SECONDS:
+        raise VideoEncodeError("AUDIO_INVALID", "the sound must be 16-bit PCM, mono or stereo, 8-48 kHz, at most 10 minutes")
+    return {"channels": channels, "rate": rate, "seconds": round(frames / rate, 3)}
+
+
+def add_audio(video: bytes, audio_wav: bytes, fade_out_seconds: float = FADE_OUT_SECONDS) -> tuple[bytes, dict[str, Any]]:
+    """The same MP4 with a sound track (AAC, 128 kb/s): the picture is copied, not re-encoded. The sound is cut at the end of the video (with a short fade-out)
+    or, if shorter, followed by silence. Local only; no sound is made or fetched. NOT connected to any route: which sound may be used is a legal decision."""
+    ffmpeg = _require_ffmpeg()
+    info = check_wav(audio_wav)
+    probe = probe_mp4(video)
+    if probe["audio_tracks"]:
+        raise VideoEncodeError("AUDIO_INVALID", "the video already has a sound track")
+    seconds = probe["duration_seconds"]
+    if isinstance(fade_out_seconds, bool) or not isinstance(fade_out_seconds, (int, float)) or not (0 <= fade_out_seconds <= 5):
+        raise VideoEncodeError("AUDIO_INVALID", "the fade-out must be 0..5 seconds")
+    fade = min(float(fade_out_seconds), seconds)
+    encoders = subprocess.run([ffmpeg, "-hide_banner", "-encoders"], capture_output=True, timeout=30).stdout.decode(errors="replace")
+    if " aac " not in encoders:
+        raise VideoEncodeError("AUDIO_ENCODER_MISSING", "this ffmpeg has no AAC encoder")
+    filters = f"apad=whole_dur={seconds:.3f}" + (f",afade=t=out:st={seconds - fade:.3f}:d={fade:.3f}" if fade > 0 else "")
+    with tempfile.TemporaryDirectory(prefix="acs_mp4audio_") as folder:
+        video_path, audio_path, out_path = Path(folder) / "v.mp4", Path(folder) / "a.wav", Path(folder) / "out.mp4"
+        video_path.write_bytes(video)
+        audio_path.write_bytes(audio_wav)
+        done = subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-i", str(video_path), "-f", "wav", "-i", str(audio_path), "-map", "0:v:0", "-map", "1:a:0",
+                               "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-af", filters, "-t", f"{seconds:.3f}", "-movflags", "+faststart", str(out_path)],
+                              stdin=subprocess.DEVNULL, capture_output=True, timeout=ENCODE_TIMEOUT)
+        if done.returncode != 0 or not out_path.is_file():
+            raise VideoEncodeError("FFMPEG_FAILED", f"ffmpeg could not add the sound: {done.stderr.decode(errors='replace')[-200:].strip()}")
+        content = out_path.read_bytes()
+    return content, {"audio": {**info, "codec": "aac", "bitrate_kbps": 128, "fade_out_seconds": fade, "padded": info["seconds"] < seconds, "cut": info["seconds"] > seconds},
+                     "video_seconds": seconds, "bytes": len(content)}
+
+
 # ---------------------------------------------------------------------------------------------------------------- QC by decoding
 def qc_mp4(content: bytes, size: tuple[int, int], seconds: int, fps: int = FPS) -> dict[str, Any]:
     """Decode the file again and judge it. FAIL: not an MP4, wrong codec/size/frame count/duration, cannot be decoded, blank frames.
