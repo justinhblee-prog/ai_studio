@@ -1,0 +1,10 @@
+{
+  "name": "ai-studio-gltf-compress-tools",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Development / CI only: glTF-Transform CLI used to MEASURE 3D compression (meshopt, WebP). Not part of the runtime or the server. Approved 2026-11-17 (reply 55).",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@gltf-transform/cli": "4.5.1"
+  }
+}
