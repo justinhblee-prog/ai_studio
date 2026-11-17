@@ -45,8 +45,8 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fonts-noto-cjk && ffmpeg -version | head -n 1 && fc-list | grep -c NotoSansCJK
       - name: Keep the font package's own licence text (copyright file) for docs/THIRD_PARTY_FONTS.md
         run: |
-          cp /usr/share/doc/fonts-noto-cjk/copyright font_license_noto_cjk.txt && dpkg-query -W -f='${Package} ${Version}
-' fonts-noto-cjk > font_package_version.txt
+          cp /usr/share/doc/fonts-noto-cjk/copyright font_license_noto_cjk.txt
+          dpkg-query -W fonts-noto-cjk > font_package_version.txt
       - name: Prepare Supabase-compatible roles (stubs for the disposable CI database)
         run: >-
           psql -h localhost -U postgres -d acs_live -v ON_ERROR_STOP=1 -c
