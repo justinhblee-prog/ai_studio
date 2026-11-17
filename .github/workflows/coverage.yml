@@ -1,0 +1,40 @@
+# B-22: manual coverage measurement of the backend tests (not part of the pull-request checks: it makes the run slower).
+# Run it from the Actions tab (workflow_dispatch). It only READS the code and prints a table; no secrets, no paid Provider, no Supabase/Vercel.
+# The first run is also triggered by the pull request that adds this file (paths filter) so the table exists right away.
+name: coverage
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/coverage.yml"
+permissions:
+  contents: read
+jobs:
+  backend-coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ai_creator_studio_backend_starter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: ai_creator_studio_backend_starter/requirements.txt
+      - run: pip install -r requirements.txt coverage==7.6.10
+      - name: Install ffmpeg and the open Korean subtitle font (the video tests need them)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fonts-noto-cjk
+      - name: pytest under coverage (live PostgreSQL tests are skipped: no database service here)
+        env:
+          REQUIRE_FFMPEG: "1"
+          REQUIRE_SUBTITLE_FONT: "1"
+        run: |
+          set -o pipefail
+          coverage run --source=app -m pytest -q --no-header -p no:cacheprovider | tail -n 5
+      - name: Coverage table (lowest first)
+        run: |
+          coverage report --sort=cover --skip-covered -m --fail-under=0 | tee coverage.txt | head -n 70
+          echo "---- total ----"
+          tail -n 2 coverage.txt
