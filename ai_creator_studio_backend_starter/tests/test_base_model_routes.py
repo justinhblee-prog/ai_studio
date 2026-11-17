@@ -59,3 +59,14 @@ def test_the_routes_are_in_the_openapi_description():
     assert "/v1/base-models" in spec["paths"] and "/v1/base-models/{sex}/glb" in spec["paths"]
     ops = {spec["paths"]["/v1/base-models"]["get"]["operationId"], spec["paths"]["/v1/base-models/{sex}/glb"]["get"]["operationId"]}
     assert ops == {"listBaseModels", "getBaseModelGlb"}
+
+
+def test_measurement_queries_change_the_model_and_are_limited():
+    plain = client.get("/v1/base-models/male/glb").content
+    tall = client.get("/v1/base-models/male/glb", params={"height_cm": 195, "chest_cm": 110})
+    assert tall.status_code == 200 and tall.content != plain and validate_gltf_upload("m.glb", tall.content).media_type == "model/gltf-binary"
+    assert client.get("/v1/base-models/male/glb", params={"height_cm": 195, "chest_cm": 110}).content == tall.content
+    for bad in ({"height_cm": 119}, {"height_cm": 221}, {"chest_cm": 59}, {"waist_cm": 151}, {"hips_cm": 69}, {"height_cm": "tall"}):
+        assert client.get("/v1/base-models/male/glb", params=bad).status_code == 422, bad
+    listing = client.get("/v1/base-models").json()
+    assert listing["measurements_cm"]["height_cm"] == [120.0, 220.0] and set(listing["preset_circumferences_cm"]) == {"male", "female"}
