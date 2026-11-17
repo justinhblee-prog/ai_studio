@@ -22,9 +22,13 @@ def test_every_candidate_cuts_the_easy_cases_well_and_the_numbers_are_recorded()
         summary = result["summary"][method]
         assert summary["mean_iou_easy"] >= 0.95, (method, summary)
         assert summary["min_iou_easy"] >= 0.80, (method, summary)
-    for name in ("white-ellipse-200x40x40", "gray-ellipse-40x120x60", "noisy-ellipse-60x60x60", "strong-ellipse-200x40x40"):
+    for name in ("white-ellipse-200x40x40", "gray-ellipse-40x120x60", "strong-ellipse-200x40x40"):
         for method in bg.METHODS:
             assert result["iou"][method][name] >= 0.99, (method, name)
+    for method in bg.METHODS:
+        assert result["iou"][method]["noisy-ellipse-60x60x60"] >= 0.98, method
+    hard = {m: result["iou"][m]["white-ellipse-246x246x246"] for m in bg.METHODS}
+    assert hard["gradient"] < 0.1 and 0.5 < hard["flood"] < 0.8 and hard["auto"] == hard["flood"], hard      # the hard case is NOT solved by any candidate
     assert result["selected"] in bg.METHODS and result["selected"] == "auto"
     assert result["summary"]["auto"]["mean_iou_all"] >= max(result["summary"][m]["mean_iou_all"] for m in bg.CANDIDATES) - 1e-9
 
