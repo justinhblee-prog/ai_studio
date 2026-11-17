@@ -20,7 +20,7 @@ THRESHOLDS = {
     "centre_offset_warn": 0.08,     # product centre further than this share of width/height from the picture centre
     "coverage_small": 0.05,         # product area share
     "coverage_large": 0.95,
-    "sharpness_warn": 40.0,         # variance of the edge response inside the product box; lower = softer
+    "sharpness_warn": 100.0,        # variance of the edge response INSIDE the product (outer 20% of the box skipped: the product outline is sharp even in a blurry picture); lower = softer
     "white_bg_dirty_share": 0.02,   # share of background pixels that are not near-white on a "white" background
     "blown_share": 0.35,            # share of product pixels at 253+ in every channel
 }
@@ -68,7 +68,9 @@ def check_image(img: Image.Image, *, target_size: tuple[int, int] | None = None,
         checks.append(_check("coverage", "warn", round(area, 3), "the product is very small in the picture" if area < t["coverage_small"] else "the product fills almost the whole picture"))
     else:
         checks.append(_check("coverage", "pass", round(area, 3), "the product has a sensible size"))
-    box = lum.crop(bbox)
+    x0, y0, x1, y1 = bbox
+    inset_x, inset_y = int((x1 - x0) * 0.2), int((y1 - y0) * 0.2)
+    box = lum.crop((x0 + inset_x, y0 + inset_y, x1 - inset_x, y1 - inset_y))
     sharp = ImageStat.Stat(box.filter(ImageFilter.FIND_EDGES)).var[0]
     checks.append(_check("sharpness", "warn" if sharp < t["sharpness_warn"] else "pass", round(sharp, 1), "the product looks soft or blurry" if sharp < t["sharpness_warn"] else "the product is sharp enough"))
     product_pixels = ImageChops.multiply(rgb, Image.merge("RGB", (mask, mask, mask)))
