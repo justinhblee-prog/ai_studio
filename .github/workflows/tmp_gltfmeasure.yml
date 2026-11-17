@@ -18,7 +18,7 @@ jobs:
         run: |
           npm ci
           npx --no-install gltf-transform --version
-          ./measure.sh /tmp/samples /tmp/out | tee /tmp/table.md
+          bash ./measure.sh /tmp/samples /tmp/out | tee /tmp/table.md
           echo "=== inspect meshopt_webp"; npx --no-install gltf-transform inspect /tmp/out/sphere_hi__meshopt_webp.glb | head -40
           echo "=== validate"; npx --no-install gltf-transform validate /tmp/out/sphere_hi__meshopt_webp.glb | head -20
           cd ../../ai_creator_studio_backend_starter && python - <<'PY'
