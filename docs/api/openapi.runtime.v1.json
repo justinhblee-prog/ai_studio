@@ -10114,7 +10114,7 @@
             "required": false,
             "schema": {
               "default": "all",
-              "pattern": "^(all|model|image)$",
+              "pattern": "^(all|model|image|video)$",
               "title": "Kind",
               "type": "string"
             }
