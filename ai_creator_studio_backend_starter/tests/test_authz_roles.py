@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.test_asset_reviews import ask, asset
 from tests.test_members import team  # noqa: F401  (wa: owner a, viewer c, editor d, admin e, admin f, editor g; wb: owner b)
 from tests.test_photo_steps_api import auth, env  # noqa: F401  (the fixture `team` builds on `env`)
 
@@ -27,22 +28,29 @@ TABLE = [
     ("GET", f"{W}/reviews", None, ALL4),
     ("GET", f"{W}/reviews/status", None, ALL4),
     ("POST", f"{W}/reviews", {"asset_id": "ast_nobody"}, WRITERS),
-    ("POST", f"{W}/reviews/rev_nobody/approve", {}, ADMINS),
-    ("POST", f"{W}/reviews/rev_nobody/reject", {"comment": "no"}, ADMINS),
-    ("POST", f"{W}/reviews/rev_nobody/request-changes", {"comment": "no"}, ADMINS),
+    ("POST", f"{W}/reviews/{rev}/approve", {}, ADMINS),
+    ("POST", f"{W}/reviews/{rev}/reject", {"comment": "no"}, ADMINS),
+    ("POST", f"{W}/reviews/{rev}/request-changes", {"comment": "no"}, ADMINS),
     ("GET", f"{W}/library", None, ALL4),
     ("GET", "/v1/assets?workspace_id=wa", None, ALL4),
 ]
 
 
+_n = [0]
+
+
 def call(method, url, body, who):
+    if "{rev}" in url:       # a decision needs a real open review (a missing one answers 404 before the role is looked at): a fresh one per call
+        _n[0] += 1
+        review_id = ask(asset("a", (1 + _n[0] % 250, 7, 7)), "d").json()["review_id"]
+        url = url.replace("{rev}", review_id)
     kw = {"headers": auth(who)} if who else {}
     if body is not None:
         kw["json"] = body
     return client.request(method, url, **kw)
 
 
-@pytest.mark.parametrize("method,url,body,allowed", TABLE, ids=[f"{m} {u.split('wa', 1)[1] or u}" for m, u, _, _ in TABLE])
+@pytest.mark.parametrize("method,url,body,allowed", TABLE, ids=[f"{m} {u.split('wa', 1)[-1]}" for m, u, _, _ in TABLE])
 def test_each_operation_is_open_to_exactly_its_roles(team, method, url, body, allowed):
     for role, who in WHO.items():
         got = call(method, url, body, who).status_code
