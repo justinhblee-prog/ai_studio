@@ -30,6 +30,7 @@
 | `RESTORE_DRILL.md` | 복구 훈련 (RTO 측정) — R-077 | `scripts/restore_drill.py`가 **백업 → 검증 → 새 빈 폴더로 복원 → 복원본 무결성 검사**를 한 번에 돌리고 단계별 시간을 JSON으로 냅니다. 운영 백업·운영 DB는 쓰… |
 | `RUNBOOK.md` | 운영 런북 (제한된 B2B 파일럿, SQLite 단일 인스턴스) | > **상태**: 이 문서의 명령과 설정은 코드에서 확인했고, 점검·백업·복구 절차는 시험으로 검증했다. 그러나 **실제 배포 환경에서 실행해 본 적은 없다**(배포 대상 정보 없음 — `docs/… |
 | `THIRD_PARTY_FONTS.md` | 서드파티 글꼴 (자막용) | / 항목 / 내용 / |
+| `UPSCALE_EVAL.md` | 업스케일 (E-09d · 레인 3) | `app/upscale.py` — 사진 단계(`photo-steps`)의 새 연산 `upscale`(`factor_pct` 100~400, 기본 200 = 가로세로 2배 / `sharpen_pct`… |
 | `VERSIONING.md` | 버전 및 문서 관리 규칙 | / 식별자 / 형식 / 목적 / 증가 기준 / |
 | `VIDEO_MP4.md` | 실제 MP4 출력 (레인 4 · E-08a) | `ai_creator_studio_backend_starter/app/video_mp4.py` — 정지 그림 1~8장을 카메라 움직임이 있는 **실제 MP4**로 만든다. AI·외부 공급자·네트워크… |
 | `WORK_ITEMS_CONTRACT.md` | 작업 항목(내 작업) 연결 계약표 — `AIS_API.work.*` ↔ 서버 `work-items` (R-069) | 서버: `/v1/workspaces/{작업공간 ID}/work-items`. 홈페이지의 `company` = 작업공간 ID. 권한은 라이브러리와 같음(읽기: 보기 이상, 쓰기: 편집자 이상, 관리자… |
