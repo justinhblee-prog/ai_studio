@@ -1,4 +1,6 @@
-"""R-ENGINE-03a (track A, step 1): a TOP (shirt-like shell) fitted around the measurement mannequin, in pure Python (no new dependency, no photo, no AI, no network).
+"""LEGACY since D-66b (R-ENGINE-07): the canonical fitting is the garment.v1 mesh deformation (app/garment_deform.py, R-ENGINE-03b); this ring-shell is kept only for its
+checker/CI sample (app/fit_check.py, scripts/make_fitted_glb.py) and is NOT on the own3d path.
+R-ENGINE-03a (track A, step 1): a TOP (shirt-like shell) fitted around the measurement mannequin, in pure Python (no new dependency, no photo, no AI, no network).
 
 What this is: for one size of a SizeChart, a closed-ring shell whose chest/waist/hip circumferences are the garment's finished circumferences, pushed OUTWARD where the
 body would otherwise poke through it, written next to the mannequin in ONE .glb (two meshes, two materials). Every result is checked numerically: the clearance between the

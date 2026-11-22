@@ -1,4 +1,4 @@
-"""R-ENGINE-04 (slot): the ``own`` engine mock follows the provider contract and never claims what it does not do."""
+"""R-ENGINE-04/07 (slot): the ``own3d`` engine mock follows the provider contract and never claims what it does not do."""
 import asyncio
 
 import pytest
@@ -22,7 +22,7 @@ def _finish(payload):
 
 def test_a_request_runs_through_start_and_status_and_yields_a_valid_glb():
     started, done = _finish({"sex": "female", "garment_kind": "top", "measurements": {"height_cm": 172, "chest_cm": 92}})
-    assert started["status"] == "running" and started["request_id"].startswith("own_")
+    assert started["status"] == "running" and started["request_id"].startswith("own3d_")
     assert done["status"] == "succeeded" and done["charged"] is True and done["output_url"] is None
     out = done["output"]
     assert out["fit"]["penetrations"] == 0 and out["fit"]["method"] == "profile-ratio.v1" and out["glb_bytes"] > 0
@@ -55,8 +55,8 @@ def test_bad_requests_are_refused_before_anything_runs(bad):
 
 
 def test_an_unknown_request_id_is_a_failed_status_that_charges_nothing():
-    done = run(P.status("own_" + "0" * 32))
-    assert done["status"] == "failed" and done["charged"] is False and done["error"]["code"] == "UNKNOWN_REQUEST" and P.result_glb("own_" + "0" * 32) is None
+    done = run(P.status("own3d_" + "0" * 32))
+    assert done["status"] == "failed" and done["charged"] is False and done["error"]["code"] == "UNKNOWN_REQUEST" and P.result_glb("own3d_" + "0" * 32) is None
 
 
 def test_a_refused_fit_is_a_failed_status_that_charges_nothing(monkeypatch):
@@ -75,10 +75,25 @@ def test_the_memory_is_bounded(monkeypatch):
     assert run(P.status(ids[0]))["status"] == "failed" and run(P.status(ids[-1]))["status"] == "succeeded"
 
 
-def test_it_is_not_in_the_registry_and_cannot_be_selected_as_a_provider():
-    """The registry already holds the closed in-house slot 'own3d' (R-ENGINE-05); this mock adds NO second name there and can never be dispatched to."""
-    assert P.describe_capabilities() == ["TRY_ON_3D"] and P.name == "own"
-    assert reg.find_capability("own", "own-3d-mock", "TRY_ON_3D") is None and reg.find_capability("own", "own-3d-mock") is None
+def test_one_name_the_registry_keeps_a_single_closed_own3d_record_and_the_mock_cannot_be_dispatched():
+    """D-66a: ``own3d`` is the only name. The registry holds exactly the closed slot of R-ENGINE-05; this mock adds no second record and can never be dispatched to."""
+    assert P.describe_capabilities() == ["TRY_ON_3D"] and P.name == "own3d"
+    own_records = [r for r in reg._RECORDS if r.provider_id == "own3d"]
+    assert len(own_records) == 1 and own_records[0].production_eligible is False and own_records[0].status == "NOT_INTEGRATED"
+    assert not [r for r in reg._RECORDS if r.provider_id == "own"], "the old second name 'own' must not exist"
+    assert reg.find_capability("own3d", "own3d-mock", "TRY_ON_3D") is None
     with pytest.raises(reg.ProviderPolicyError) as exc:
-        reg.resolve_manual("own", "own-3d-mock")
-    assert exc.value.code == "UNSUPPORTED_CAPABILITY"
+        reg.resolve_manual("own3d", "own3d-mock")
+    assert exc.value.code in ("UNSUPPORTED_CAPABILITY", "PROVIDER_NOT_PRODUCTION_READY")
+    with pytest.raises(reg.ProviderPolicyError) as slot:
+        reg.resolve_manual("own3d", "fitted-shell-v0", purpose="production")
+    assert slot.value.code == "PROVIDER_NOT_PRODUCTION_READY"
+
+
+def test_fitting_goes_through_the_garment_v1_mesh_deformation_only_not_the_ring_shell():
+    """D-66b: 03b (garment_deform) is canonical; the mock must not depend on 03a (garment_fit)."""
+    import inspect
+    source = inspect.getsource(own_mock)
+    assert "deform_garment" in source and "import garment_fit" not in source and "from app.garment_fit" not in source
+    _, done = _finish({"sex": "female", "garment_kind": "bottom", "measurements": {"height_cm": 165}})
+    assert done["status"] == "succeeded" and done["output"]["fit"]["method"] == "profile-ratio.v1"

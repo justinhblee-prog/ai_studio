@@ -1,9 +1,11 @@
-"""R-ENGINE-04 (slot only): the ``own`` engine as a MOCK provider that plugs into the same start/status contract as ``mock`` and ``fashn``.
+"""R-ENGINE-04 / R-ENGINE-07 (slot only): the in-house engine ``own3d`` as a MOCK provider that plugs into the same start/status contract as ``mock`` and ``fashn``.
 
 What it does: builds a sample garment (``app/garments.py``), deforms it to the requested body measurements (``app/garment_deform.py``) and reports the result. It is the
 flow of the own 3D engine (track A) behind the provider contract, so the rest of the system can be wired and tested before any real engine exists.
 What it is NOT: no image, no photo, no GPU, no model weights, no paid call, no review score (the 5-item review of the plan is NOT run here: every score is ``None``).
-It is not selectable through ``PROVIDER_MODE`` (``main.py`` is unchanged) and it is deliberately NOT in ``provider_registry`` (the registry holds the closed in-house slot ``own3d``, R-ENGINE-05).
+One name (D-66a, R-ENGINE-07): this mock IS the mock implementation of ``own3d``; the registry keeps exactly ONE ``own3d`` record (the closed slot of R-ENGINE-05) and this class adds no second one.
+Fitting uses ONLY the garment.v1 mesh deformation (R-ENGINE-03b, ``app/garment_deform.py``, canonical per D-66b); the older ring-shell ``app/garment_fit.py`` (03a) is not on this path.
+It is not selectable through ``PROVIDER_MODE`` (``main.py`` is unchanged) and the registry slot stays closed (never dispatchable, never production eligible).
 A fitting that is refused (the garment would pass through the body) ends as ``failed`` with ``charged: False`` (the "no deduction on failure" rule of the plan).
 """
 from __future__ import annotations
@@ -36,8 +38,8 @@ def _clean(payload: dict) -> dict[str, Any]:
 
 
 class OwnMockProvider:
-    name = "own"
-    model = "own-3d-mock"
+    name = "own3d"
+    model = "own3d-mock"
 
     def validate_request(self, payload: dict) -> None:
         clean = _clean(payload)
@@ -49,7 +51,7 @@ class OwnMockProvider:
 
     async def start(self, payload: dict) -> dict:
         clean = _clean(payload)
-        request_id = "own_" + hashlib.sha256(json.dumps(clean, sort_keys=True).encode()).hexdigest()[:32]
+        request_id = "own3d_" + hashlib.sha256(json.dumps(clean, sort_keys=True).encode()).hexdigest()[:32]
         if request_id not in _RESULTS:
             _RESULTS[request_id] = self._run(clean)
             while len(_RESULTS) > MAX_KEPT:
@@ -73,8 +75,8 @@ class OwnMockProvider:
     async def status(self, request_id: str) -> dict:
         found = _RESULTS.get(request_id)
         if found is None:
-            return {"request_id": request_id, "status": "failed", "charged": False, "output_url": None, "error": {"code": "UNKNOWN_REQUEST", "message": "no such own-mock request (results are kept in memory only)"}}
-        return {"request_id": request_id, "output_url": None, "message": "own 3D mock: geometry only, no image, no photo", **found}
+            return {"request_id": request_id, "status": "failed", "charged": False, "output_url": None, "error": {"code": "UNKNOWN_REQUEST", "message": "no such own3d-mock request (results are kept in memory only)"}}
+        return {"request_id": request_id, "output_url": None, "message": "own3d mock: geometry only, no image, no photo", **found}
 
     def result_glb(self, request_id: str) -> bytes | None:
         """The fitted garment .glb of a finished request (for the later render step); None for an unknown or failed one."""

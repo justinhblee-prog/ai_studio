@@ -13,3 +13,6 @@
 - 몸은 마네킹(통 모양)이지 사람이 아니다. 결과는 마네킹과 같은 "참고용(근사치)" 표시를 단다.
 - 하의·여러 옷 종류·사용자 옷 사진·실사 보정(트랙 B)은 이후 단계(R-ENGINE-03b~).
 - 브라우저·렌더 화면·API 연결 없음. 실제 사용자 데이터로 검증하지 않았다.
+
+## 정리(R-ENGINE-07 · D-66b)
+이 문서의 `garment_fit.py`(03a, 링 껍데기)는 **정본이 아니다**. 정본은 garment.v1 메시 변형(`app/garment_deform.py`, R-ENGINE-03b, `docs/GARMENT_DEFORM.md`)이고, `own3d` mock 경로는 03b만 쓴다. 03a는 점검기(`app/fit_check.py`)와 CI 표본(`scripts/make_fitted_glb.py`)이 쓰고 있어 **지우지 않고 보존**(제거하려면 점검기·CI 단계 재작성 필요 — 후속 판단).
