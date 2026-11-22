@@ -3,7 +3,9 @@
 Method (deliberately simple, deterministic, CPU only, no GPU, no model weights): the garment is made around a REFERENCE body (the unmeasured preset of ``spec['fit']['reference_sex']``).
 Every vertex is moved by the ratio between the TARGET body and the REFERENCE body at the vertex's own height:
   * torso part: x and z are scaled by (target half-width / reference half-width) at that height; the height is scaled by the height ratio;
-  * a leg part: the vertex keeps its offset from the leg's centre line, scaled by the radius ratio, and the centre line moves to the target leg position.
+  * a leg part: the vertex keeps its offset from the leg's centre line, scaled by the radius ratio, and the centre line moves to the target leg position;
+  * an arm part (jacket sleeves, R-ENGINE-09): the same as a leg, with the arm's centre line and radius (``garments.arm_stops``);
+  * a skirt part (skirt, dress; R-ENGINE-09): like the torso, but the profile is the ENVELOPE of waist, hips and both thighs (``garments.skirt_stops``) so the skirt follows the legs too.
 Because the garment's EASE (its gap to the body) is scaled by the same ratio, a garment that stood outside the reference body stands outside the target body: the result is checked
 for vertices that fall INSIDE the target body and the fit is refused if there are any (``penetrations`` is always 0 on a successful return).
 
@@ -37,6 +39,14 @@ def _lerp_profile(stops: list[tuple[float, ...]], y: float) -> tuple[float, ...]
 def _torso_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
     h = p["height"]
     return [(0.52 * h, *p["hip"]), (0.60 * h, *p["waist"]), (0.70 * h, *p["chest"]), (0.81 * h, p["shoulder"] * 0.72, p["chest"][1] * 0.92)]
+
+
+def _arm_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
+    return garments.arm_stops(p)
+
+
+def _skirt_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
+    return garments.skirt_stops(p)
 
 
 def _leg_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
@@ -76,6 +86,7 @@ def deform_garment(glb: bytes, spec: dict[str, Any], measurements: dict[str, flo
     binary = bytearray(binary)
     ratio_h = tgt["height"] / ref["height"]
     ref_torso, tgt_torso, ref_leg, tgt_leg = _torso_stops(ref), _torso_stops(tgt), _leg_stops(ref), _leg_stops(tgt)
+    ref_arm, tgt_arm, ref_skirt, tgt_skirt = _arm_stops(ref), _arm_stops(tgt), _skirt_stops(ref), _skirt_stops(tgt)
     penetrations = vertices = 0
     y_lo, y_hi = float("inf"), float("-inf")
     for primitive in doc["meshes"][0]["primitives"]:
@@ -83,17 +94,18 @@ def deform_garment(glb: bytes, spec: dict[str, Any], measurements: dict[str, flo
         if part not in garments.PARTS:
             raise garments.GarmentError([f"every primitive needs extras.part in {list(garments.PARTS)}"])
         accessor, start, pos = _read_positions(doc, binary, primitive)
-        side = -1 if part == "leg_l" else 1
+        side = -1 if part in ("leg_l", "arm_l") else 1
         out = list(pos)
         for i in range(0, len(pos), 3):
             x, y, z = pos[i:i + 3]
             y_t = y * ratio_h
-            if part == "torso":
-                (ar, br), (at, bt) = _lerp_profile(ref_torso, y), _lerp_profile(tgt_torso, y_t)
+            if part in ("torso", "skirt"):
+                (ar, br), (at, bt) = (_lerp_profile(ref_torso, y), _lerp_profile(tgt_torso, y_t)) if part == "torso" else (_lerp_profile(ref_skirt, y), _lerp_profile(tgt_skirt, y_t))
                 nx, nz = x * at / ar, z * bt / br
                 penetrations += _inside(nx, nz, at, bt)
             else:
-                (cxr, rr), (cxt, rt) = _lerp_profile(ref_leg, y), _lerp_profile(tgt_leg, y_t)
+                ref_c, tgt_c = (ref_arm, tgt_arm) if part in ("arm_l", "arm_r") else (ref_leg, tgt_leg)
+                (cxr, rr), (cxt, rt) = _lerp_profile(ref_c, y), _lerp_profile(tgt_c, y_t)
                 nx, nz = side * cxt + (x - side * cxr) * rt / rr, z * rt / rr
                 penetrations += _inside(nx - side * cxt, nz, rt, rt)
             out[i:i + 3] = [nx, y_t, nz]
