@@ -35,7 +35,7 @@ jobs:
           mkdir -p reports
           python scripts/restore_drill.py --demo small --out reports/small.json > /dev/null
           python scripts/restore_drill.py --demo scale --out reports/scale.json > /dev/null
-      - name: Summary and the RTO budget (a proposal: 30 s on this runner; measured 2.2 s at R-077)
+      - name: "Summary and the RTO budget (a proposal: 30 s on this runner; measured 2.2 s at R-077)"
         if: always()
         run: python scripts/drill_report.py reports/small.json reports/scale.json --max-rto 30 | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Keep the drill reports
