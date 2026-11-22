@@ -103,6 +103,115 @@ def _fit_measurements(preset: dict[str, Any], measurements: dict[str, float]) ->
     return p
 
 
+BODY_SEG = 20                  # sides of every body ring (the garments of app/garments.py keep the coarser SEG above)
+Vec = tuple[float, float, float]
+
+
+def _norm(v: Vec) -> Vec:
+    n = math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2) or 1.0
+    return (v[0] / n, v[1] / n, v[2] / n)
+
+
+def _cross(a: Vec, b: Vec) -> Vec:
+    return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+
+def _dot(a: Vec, b: Vec) -> float:
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+
+def _spline(anchors: list[tuple[float, ...]], sub: int = 2) -> list[tuple[float, ...]]:
+    """Catmull-Rom through the anchors (every number of an anchor is smoothed together); ``sub`` rings per gap, the anchors themselves are always kept (material seams need them)."""
+    n = len(anchors)
+    ext = [tuple(2 * a - b for a, b in zip(anchors[0], anchors[1]))] + list(anchors) + [tuple(2 * a - b for a, b in zip(anchors[-1], anchors[-2]))]
+    out: list[tuple[float, ...]] = []
+    for i in range(n - 1):
+        p0, p1, p2, p3 = ext[i], ext[i + 1], ext[i + 2], ext[i + 3]
+        for k in range(sub):
+            t = k / sub
+            out.append(tuple(0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t ** 3) for a, b, c, d in zip(p0, p1, p2, p3)))
+    out.append(tuple(anchors[-1]))
+    return out
+
+
+class _Smooth:
+    """Rings with ANY orientation (limbs, hands and feet are lofts along a path) and smooth vertex normals, so the figure is not faceted. Triangles are wound outward by test, not by assumption."""
+
+    def __init__(self) -> None:
+        self.pos: list[float] = []
+        self.nrm: list[float] = []
+        self.idx: list[int] = []
+        self._tris: list[tuple[int, int, int, Vec]] = []      # (a, b, c, reference direction that the face normal must point along)
+
+    def loft(self, stops: list[tuple[Vec, Vec, float, float]], seg: int = BODY_SEG, cap_start: bool = False, cap_end: bool = False) -> None:
+        """stops: (centre, direction of the path there, half-width, half-depth). The rings are ellipses in the plane across the path."""
+        base = len(self.pos) // 3
+        centres: list[Vec] = []
+        for centre, direction, a, b in stops:
+            d = _norm(direction)
+            up = (0.0, 0.0, 1.0) if abs(d[2]) < 0.9 else (0.0, 1.0, 0.0)
+            u = _norm(_cross(up, d))
+            v = _cross(d, u)
+            centres.append(centre)
+            for i in range(seg):
+                t = 2 * math.pi * i / seg
+                ca, sb = a * math.cos(t), b * math.sin(t)
+                self.pos += [centre[0] + ca * u[0] + sb * v[0], centre[1] + ca * u[1] + sb * v[1], centre[2] + ca * u[2] + sb * v[2]]
+        for r in range(len(stops) - 1):
+            for i in range(seg):
+                j = (i + 1) % seg
+                p0, p1, q0, q1 = base + r * seg + i, base + r * seg + j, base + (r + 1) * seg + i, base + (r + 1) * seg + j
+                for tri in ((p0, q0, p1), (p1, q0, q1)):
+                    cx = sum(self.pos[3 * k] for k in tri) / 3 - (centres[r][0] + centres[r + 1][0]) / 2
+                    cy = sum(self.pos[3 * k + 1] for k in tri) / 3 - (centres[r][1] + centres[r + 1][1]) / 2
+                    cz = sum(self.pos[3 * k + 2] for k in tri) / 3 - (centres[r][2] + centres[r + 1][2]) / 2
+                    self._tris.append((*tri, (cx, cy, cz)))
+        for ring, sign in ((0, -1.0), (len(stops) - 1, 1.0)):
+            if (ring == 0 and not cap_start) or (ring != 0 and not cap_end):
+                continue
+            d = _norm(stops[ring][1])
+            centre_index = len(self.pos) // 3
+            self.pos += list(stops[ring][0])
+            copies = len(self.pos) // 3
+            for i in range(seg):
+                src = base + ring * seg + i
+                self.pos += self.pos[3 * src:3 * src + 3]
+            for i in range(seg):
+                self._tris.append((copies + i, copies + (i + 1) % seg, centre_index, (sign * d[0], sign * d[1], sign * d[2])))
+
+    def finish(self) -> None:
+        n = len(self.pos) // 3
+        acc = [0.0] * (3 * n)
+        for a, b, c, ref in self._tris:
+            pa, pb, pc = (tuple(self.pos[3 * k:3 * k + 3]) for k in (a, b, c))
+            fn = _cross((pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]), (pc[0] - pa[0], pc[1] - pa[1], pc[2] - pa[2]))
+            if _dot(fn, ref) < 0:
+                b, c, fn = c, b, (-fn[0], -fn[1], -fn[2])
+            self.idx += [a, b, c]
+            for k in (a, b, c):
+                acc[3 * k] += fn[0]
+                acc[3 * k + 1] += fn[1]
+                acc[3 * k + 2] += fn[2]
+        for k in range(n):
+            nx, ny, nz = _norm((acc[3 * k], acc[3 * k + 1], acc[3 * k + 2]))
+            self.nrm += [nx, ny, nz]
+
+
+def _path(points: list[tuple[float, ...]]) -> list[tuple[Vec, Vec, float, float]]:
+    """points: (x, y, z, half-width, half-depth) along a limb -> stops with the direction taken from the neighbours."""
+    centres = [(p[0], p[1], p[2]) for p in points]
+    stops = []
+    for i, p in enumerate(points):
+        a, b = centres[max(i - 1, 0)], centres[min(i + 1, len(points) - 1)]
+        stops.append((centres[i], (b[0] - a[0], b[1] - a[1], b[2] - a[2]), p[3], p[4]))
+    return stops
+
+
+def _column(rows: list[tuple[float, ...]]) -> list[tuple[Vec, Vec, float, float]]:
+    """rows: (y, half-width, half-depth, z offset) of an upright body part -> horizontal rings."""
+    return [((0.0, y, cz), (0.0, 1.0, 0.0), a, b) for y, a, b, cz in rows]
+
+
 def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style: str = "pants", skin: Color = (224, 172, 105), top: Color = (60, 90, 160), bottom: Color = (50, 50, 60),
                      measurements: dict[str, float] | None = None) -> bytes:
     if sex not in SEXES:
@@ -111,43 +220,80 @@ def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style:
         raise ValueError("unknown clothing style")
     colours = {"skin": _check_color(skin, "skin"), "top": _check_color(top, "top"), "bottom": _check_color(bottom, "bottom")}
     p = _fit_measurements(PRESETS[sex], measurements) if measurements else PRESETS[sex]
-    h = p["height"]
-    parts: dict[str, _Mesh] = {"skin": _Mesh(), "top": _Mesh(), "bottom": _Mesh()}
-    hip_y, waist_y, chest_y, shoulder_y, neck_y = 0.52 * h, 0.60 * h, 0.70 * h, 0.81 * h, 0.835 * h
-    # legs: thigh (hip -> knee), calf (knee -> ankle), foot. Two legs at +-x.
-    knee_y, ankle_y = 0.28 * h, 0.04 * h
-    leg_x = p["hip"][0] * 0.55
-    for side in (-1, 1):
-        thigh = [((side * leg_x, hip_y, 0.0), p["thigh"], p["thigh"]), ((side * leg_x * 0.95, knee_y, 0.0), p["thigh"] * 0.72, p["thigh"] * 0.72)]
-        calf = [((side * leg_x * 0.95, knee_y, 0.0), p["calf"] * 1.15, p["calf"] * 1.15), ((side * leg_x * 0.9, ankle_y, 0.0), p["calf"] * 0.65, p["calf"] * 0.65)]
-        foot = [((side * leg_x * 0.9, ankle_y, 0.0), p["calf"] * 0.7, p["calf"] * 0.8), ((side * leg_x * 0.9, 0.0, 0.05), p["calf"] * 0.75, p["calf"] * 1.6)]
-        parts["bottom"].tube(thigh)
-        if bottom_style == "pants":
-            parts["bottom"].tube(calf)
-        else:
-            parts["skin"].tube(calf)
-        parts["skin"].tube(foot)
-    # torso: hips + waist belong to the bottom, chest to the top
-    parts["bottom"].tube([((0, hip_y, 0), p["hip"][0], p["hip"][1]), ((0, waist_y, 0), p["waist"][0], p["waist"][1])])
-    parts["top"].tube([((0, waist_y, 0), p["waist"][0], p["waist"][1]), ((0, chest_y, 0), p["chest"][0], p["chest"][1]), ((0, shoulder_y, 0), p["shoulder"] * 0.72, p["chest"][1] * 0.92)])
-    parts["skin"].tube([((0, shoulder_y, 0), p["shoulder"] * 0.30, p["chest"][1] * 0.5), ((0, neck_y, 0), 0.045, 0.045), ((0, neck_y + 0.04, 0), 0.04, 0.04)])
-    parts["skin"].sphere((0.0, neck_y + 0.04 + p["head"], 0.0), p["head"])
-    # arms in a relaxed A-pose (about 15 degrees away from the body): the upper arm starts INSIDE the shoulder line so there is no gap at the joint
-    for side in (-1, 1):
-        sx = side * p["shoulder"] * 0.78
-        e_x, e_y = side * (p["shoulder"] + 0.045), shoulder_y - 0.21 * h
-        w_x, w_y = side * (p["shoulder"] + 0.115), shoulder_y - 0.40 * h
-        hand_x, hand_y = side * (p["shoulder"] + 0.14), shoulder_y - 0.47 * h
-        upper = [((sx, shoulder_y - 0.015, 0.0), p["arm"] * 1.55, p["arm"] * 1.55), ((e_x, e_y, 0.0), p["arm"] * 1.05, p["arm"] * 1.05)]
-        lower = [((e_x, e_y, 0.0), p["arm"] * 1.0, p["arm"] * 1.0), ((w_x, w_y, 0.015), p["arm"] * 0.72, p["arm"] * 0.72)]
-        hand = [((w_x, w_y, 0.015), p["arm"] * 0.8, p["arm"] * 0.6), ((hand_x, hand_y, 0.025), p["arm"] * 0.55, p["arm"] * 0.45)]
-        (parts["skin"] if top_style == "tank" else parts["top"]).tube(upper)
-        (parts["top"] if top_style == "longsleeve" else parts["skin"]).tube(lower)
-        parts["skin"].tube(hand)
+    h, female = p["height"], sex == "female"
+    parts: dict[str, _Smooth] = {"skin": _Smooth(), "top": _Smooth(), "bottom": _Smooth()}
+    ah, bh = p["hip"]
+    aw, bw = p["waist"]
+    ac, bc = p["chest"]
+    sh = p["shoulder"]
+    hip_y, waist_y, chest_y, shoulder_y, neck_y = 0.52 * h, 0.60 * h, 0.70 * h, 0.81 * h, 0.862 * h
+    # ---- torso: ellipse rings whose width/depth/forward offset follow the body's curve. The hip, waist and chest rings are EXACTLY the preset circumferences (garments are built on them);
+    # the extra shape (glutes, bust, armpit, shoulder line) stays well inside the 4 cm of ease the sample garments carry.
+    glute, bust = (-0.07 if female else -0.05), (0.10 if female else 0.05)
+    hips_rows = [(0.470 * h, ah * 0.96, bh * 0.94, glute * bh * 1.2), (0.500 * h, ah * 1.0, bh * 1.0, glute * bh * 1.1), (hip_y, ah, bh, glute * bh),
+                 (0.560 * h, (ah + aw) / 2 * 1.0, (bh + bw) / 2, glute * bh * 0.3), (waist_y, aw, bw, 0.0)]
+    chest_rows = [(waist_y, aw, bw, 0.0), (0.650 * h, (aw + ac) / 2 * 1.02, (bw + bc) / 2, bust * bc * 0.5), (chest_y, ac, bc, bust * bc), (0.760 * h, ac * 1.04, bc * 0.97, bust * bc * 0.4),
+                  (0.795 * h, sh * 0.70, bc * 0.88, 0.0), (shoulder_y, sh * 0.58, bc * 0.90, 0.0)]
+    k = p["head"] / 0.10
+    neck_rows = [(shoulder_y, sh * 0.58, bc * 0.90, 0.0), (0.8205 * h, sh * 0.40, bc * 0.70, 0.0), (0.832 * h, sh * 0.22, bc * 0.52, 0.0), (0.845 * h, 0.060 * k, 0.058 * k, 0.0),
+                 (neck_y, 0.050 * k, 0.052 * k, 0.008), (neck_y + 0.07, 0.050 * k, 0.052 * k, 0.014)]
+    parts["bottom"].loft(_column(_spline(hips_rows, 2)), cap_start=True)
+    parts["top"].loft(_column(_spline(chest_rows, 2)))
+    parts["skin"].loft(_column(_spline(neck_rows, 2)))
+    # ---- head: width, depth and a forward chin; no face detail (no eyes, nose or mouth)
+    r = p["head"]
+    hc = neck_y + 0.03 + r
+    head_rows = [(hc - 1.00 * r * 1.12, 0.40 * r * 0.8, 0.40 * r, 0.06 * r), (hc - 0.88 * r * 1.12, 0.62 * r * 0.8, 0.62 * r, 0.12 * r), (hc - 0.58 * r * 1.12, 0.84 * r * 0.8, 0.84 * r, 0.06 * r),
+                 (hc - 0.15 * r * 1.12, 0.96 * r * 0.8, 0.94 * r, 0.0), (hc + 0.30 * r * 1.12, 0.97 * r * 0.8, 1.00 * r, -0.03 * r), (hc + 0.68 * r * 1.12, 0.82 * r * 0.8, 0.90 * r, -0.06 * r),
+                 (hc + 0.92 * r * 1.12, 0.52 * r * 0.8, 0.58 * r, -0.07 * r), (hc + 1.00 * r * 1.12, 0.10 * r * 0.8, 0.12 * r, -0.07 * r)]
+    parts["skin"].loft(_column(_spline(head_rows, 1)), seg=BODY_SEG, cap_end=True)
+    # ---- legs: thigh (bottom), calf (bottom for pants, else skin), foot (skin). The thigh top is inside the hip ring, the knee ring is shared by thigh and calf.
+    leg_x = ah * 0.52
+    th, cf = p["thigh"], p["calf"]
+    for side in (-1.0, 1.0):
+        thigh = [(side * leg_x, hip_y, 0.0, th * 0.80, th * 0.90), (side * leg_x * 0.99, 0.49 * h, 0.0, th * 0.96, th * 1.04), (side * leg_x * 0.98, 0.43 * h, 0.004, th * 1.00, th * 1.06),
+                 (side * leg_x * 0.97, 0.36 * h, 0.0, th * 0.86, th * 0.90),
+                 (side * leg_x * 0.95, 0.28 * h, 0.0, th * 0.72, th * 0.74)]
+        calf = [thigh[-1], (side * leg_x * 0.94, 0.235 * h, -0.004, cf * 1.02, cf * 1.05), (side * leg_x * 0.93, 0.19 * h, -0.010, cf * 1.10, cf * 1.18),
+                (side * leg_x * 0.91, 0.10 * h, -0.004, cf * 0.80, cf * 0.82), (side * leg_x * 0.90, 0.04 * h, 0.0, cf * 0.62, cf * 0.65)]
+        foot_stops = [((side * leg_x * 0.90, 0.04 * h, 0.0), (0.0, -1.0, 0.0), cf * 0.62, cf * 0.65),
+                      ((side * leg_x * 0.90, 0.040, 0.022), (0.0, -0.6, 0.8), cf * 0.70, 0.044), ((side * leg_x * 0.90, 0.029, 0.075), (0.0, -0.1, 1.0), cf * 0.80, 0.031),
+                      ((side * leg_x * 0.90, 0.021, 0.135), (0.0, -0.05, 1.0), cf * 0.74, 0.022), ((side * leg_x * 0.90, 0.014, 0.178), (0.0, 0.0, 1.0), cf * 0.40, 0.014)]
+        parts["bottom"].loft(_path([tuple(c) for c in _spline(thigh, 2)]))
+        parts["bottom" if bottom_style == "pants" else "skin"].loft(_path([tuple(c) for c in _spline(calf, 2)]))
+        parts["skin"].loft(foot_stops, cap_end=True)
+    # ---- arms in a relaxed A-pose (about 15 degrees away from the body): the upper arm starts INSIDE the shoulder line so there is no gap at the joint
+    ar = p["arm"]
+    for side in (-1.0, 1.0):
+        sx = side * sh * 0.78
+        elbow = (side * (sh + 0.045), shoulder_y - 0.21 * h)
+        wrist = (side * (sh + 0.115), shoulder_y - 0.40 * h)
+        upper = [(sx, shoulder_y - 0.035, 0.0, ar * 1.66, ar * 1.60), (sx + (elbow[0] - sx) * 0.30, shoulder_y - 0.035 + (elbow[1] - shoulder_y + 0.035) * 0.30, 0.0, ar * 1.38, ar * 1.32),
+                 (sx + (elbow[0] - sx) * 0.65, shoulder_y - 0.035 + (elbow[1] - shoulder_y + 0.035) * 0.65, 0.0, ar * 1.18, ar * 1.12), (elbow[0], elbow[1], 0.0, ar * 1.04, ar * 1.00)]
+        cap = [(sx, shoulder_y + 0.012, 0.0, ar * 0.9, ar * 0.9), (sx, shoulder_y - 0.008, 0.0, ar * 1.5, ar * 1.45)]   # the rounded top of the shoulder (deltoid)
+        lower = [upper[-1], (elbow[0] + (wrist[0] - elbow[0]) * 0.22, elbow[1] + (wrist[1] - elbow[1]) * 0.22, 0.004, ar * 1.06, ar * 1.00),
+                 (elbow[0] + (wrist[0] - elbow[0]) * 0.65, elbow[1] + (wrist[1] - elbow[1]) * 0.65, 0.012, ar * 0.84, ar * 0.80), (wrist[0], wrist[1], 0.015, ar * 0.70, ar * 0.66)]
+        hand_dir = (side * 0.30, -1.0, 0.12)
+        hx, hy, hz = wrist[0], wrist[1], 0.015
+        unit = _norm(hand_dir)
+
+        def along(t: float) -> Vec:
+            return (hx + unit[0] * t, hy + unit[1] * t, hz + unit[2] * t)
+        hand_stops = [(along(0.0), hand_dir, ar * 0.72, ar * 0.62), (along(0.045), hand_dir, ar * 1.30, ar * 0.62), (along(0.085), hand_dir, ar * 1.38, ar * 0.56),
+                      (along(0.130), hand_dir, ar * 1.12, ar * 0.42), (along(0.170), hand_dir, ar * 0.62, ar * 0.30)]
+        thumb = [((along(0.040)[0] - side * 0.026, along(0.040)[1] - 0.004, along(0.040)[2] + 0.020), (-side * 0.4, -1.0, 0.7), ar * 0.36, ar * 0.34),
+                 ((along(0.075)[0] - side * 0.030, along(0.075)[1] - 0.004, along(0.075)[2] + 0.034), (-side * 0.2, -1.0, 0.6), ar * 0.30, ar * 0.28),
+                 ((along(0.108)[0] - side * 0.029, along(0.108)[1] - 0.004, along(0.108)[2] + 0.044), (-side * 0.1, -1.0, 0.5), ar * 0.22, ar * 0.21)]
+        (parts["skin"] if top_style == "tank" else parts["top"]).loft(_path([tuple(c) for c in cap + _spline(upper, 2)[0:1]] + [tuple(c) for c in _spline(upper, 2)[1:]]), cap_start=True)
+        (parts["top"] if top_style == "longsleeve" else parts["skin"]).loft(_path([tuple(c) for c in _spline(lower, 2)]))
+        parts["skin"].loft(hand_stops, cap_end=True)
+        parts["skin"].loft(thumb, seg=8, cap_end=True)
+    for part in parts.values():
+        part.finish()
     return _write(parts, colours, sex, top_style, bottom_style)
 
 
-def _write(parts: dict[str, _Mesh], colours: dict[str, Color], sex: str, top_style: str, bottom_style: str) -> bytes:
+def _write(parts: dict[str, _Smooth], colours: dict[str, Color], sex: str, top_style: str, bottom_style: str) -> bytes:
     binary, views, accessors, primitives, materials = b"", [], [], [], []
 
     def add(blob: bytes) -> int:
@@ -162,11 +308,13 @@ def _write(parts: dict[str, _Mesh], colours: dict[str, Color], sex: str, top_sty
             continue
         xs, ys, zs = mesh.pos[0::3], mesh.pos[1::3], mesh.pos[2::3]
         v_pos = add(struct.pack(f"<{len(mesh.pos)}f", *mesh.pos))
+        v_nrm = add(struct.pack(f"<{len(mesh.nrm)}f", *mesh.nrm))
         v_idx = add(struct.pack(f"<{len(mesh.idx)}H", *mesh.idx))
         accessors += [{"bufferView": v_pos, "componentType": 5126, "count": len(mesh.pos) // 3, "type": "VEC3", "min": [min(xs), min(ys), min(zs)], "max": [max(xs), max(ys), max(zs)]},
+                      {"bufferView": v_nrm, "componentType": 5126, "count": len(mesh.nrm) // 3, "type": "VEC3"},
                       {"bufferView": v_idx, "componentType": 5123, "count": len(mesh.idx), "type": "SCALAR"}]
         materials.append({"name": name, "doubleSided": True, "pbrMetallicRoughness": {"baseColorFactor": [c / 255 for c in colours[name]] + [1.0], "metallicFactor": 0.0, "roughnessFactor": 0.85}})
-        primitives.append({"attributes": {"POSITION": len(accessors) - 2}, "indices": len(accessors) - 1, "material": len(materials) - 1})
+        primitives.append({"attributes": {"POSITION": len(accessors) - 3, "NORMAL": len(accessors) - 2}, "indices": len(accessors) - 1, "material": len(materials) - 1})
     doc = {"asset": {"version": "2.0", "generator": "ai-creator-studio base_models"}, "scene": 0, "scenes": [{"nodes": [0]}],
            "nodes": [{"name": f"base_{sex}", "mesh": 0, "extras": {"generated_by_code": True, "is_scan": False, "is_a_real_person": False, "has_face_detail": False, "sex_preset": sex,
                                                                  "top_style": top_style, "bottom_style": bottom_style, "licence": "generated by this repository's code; no third-party asset"}}],

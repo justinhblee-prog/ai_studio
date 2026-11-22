@@ -14,7 +14,7 @@ def test_the_committed_file_is_the_generator_output_and_a_valid_glb(sex):
     data = (FOLDER / f"base_{sex}.glb").read_bytes()
     assert data == build_base_model(sex), "run scripts/export_base_models.py and commit the result"
     assert validate_gltf_upload(f"base_{sex}.glb", data).media_type == "model/gltf-binary"
-    assert 10_000 < len(data) < 20_000
+    assert 10_000 < len(data) < 150_000       # R-ENGINE-08: smooth normals and rounder body parts made the file ~97 KB (was ~15 KB)
 
 
 def test_the_readme_states_the_origin_and_how_to_regenerate():
