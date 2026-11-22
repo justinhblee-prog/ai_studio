@@ -18,7 +18,7 @@ def _good(kind="top", sex="male"):
 def test_every_sample_is_a_valid_garment_and_a_valid_upload(kind, sex):
     glb, spec = _good(kind, sex)
     report = validate_garment(glb, spec)
-    assert report["kind"] == kind and report["sizes"] == ["L", "M", "S"] and 0 < report["triangles"] < 500
+    assert report["kind"] == kind and report["sizes"] == ["L", "M", "S"] and 0 < report["triangles"] < 3000
     assert validate_gltf_upload(f"{kind}.glb", glb).media_type == "model/gltf-binary"
     doc, _ = parse_glb(glb)
     assert [m["name"] for m in doc["materials"]] == ["base"] and doc["nodes"][0]["extras"]["generated_by_code"] is True

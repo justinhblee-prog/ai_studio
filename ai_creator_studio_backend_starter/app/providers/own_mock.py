@@ -70,7 +70,8 @@ class OwnMockProvider:
         except garments.GarmentError as exc:
             return {"status": "failed", "charged": False, "error": {"code": "FIT_REFUSED", "message": str(exc)}, "output": None}
         body_tris, layers, fits = render3d_scene.build_layers(clean["sex"], clean["measurements"] or None, [clean["garment_kind"]], clean["ease_cm"])
-        qc = render_qc.check_cuts(body_tris, layers, QC_ANGLES, penetrations={f["kind"]: f["penetrations"] for f in fits})     # R-ENGINE-11: recorded, never invented
+        qc = render_qc.check_cuts(body_tris, layers, QC_ANGLES, penetrations={f["kind"]: f["penetrations"] for f in fits},
+                                    body_without_arms=render3d_scene.body_without_arms(clean["sex"], clean["measurements"] or None))     # R-ENGINE-11: recorded, never invented
         review = {"mock": True, "scores": {item: None for item in REVIEW_ITEMS}, "note": "the 5-item review is not run in the mock: no score is invented"}
         return {"status": "succeeded", "charged": True, "error": None, "_glb": fitted,
                 "output": {"glb_sha256": hashlib.sha256(fitted).hexdigest(), "glb_bytes": len(fitted), "fit": report, "garment_spec_id": spec["id"], "review": review, "qc": qc}}

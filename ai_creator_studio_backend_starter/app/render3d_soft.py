@@ -23,7 +23,9 @@ MAX_PIXELS = 800 * 1400
 
 
 def triangles_of(glb: bytes, colour: tuple[int, int, int] | None = None, axis_outward: bool = False) -> list[Triangle]:
-    """The triangles of a .glb. A mesh without NORMAL gets face normals; with ``axis_outward`` (garment tubes) they are turned to point away from the vertical axis."""
+    """The triangles of a .glb. A mesh without NORMAL gets face normals; with ``axis_outward`` (garment tubes) the normals of each primitive are turned, all together, to point away from THAT
+    primitive's own axis (decided by majority vote over its faces). R-ENGINE-09b: pointing away from the body's vertical axis was wrong for a sleeve, whose inner side faces the body, so those
+    faces were taken for back faces and the body showed through the sleeve."""
     doc, binary = parse_glb(glb)
     out: list[Triangle] = []
     for prim in doc["meshes"][0]["primitives"]:
@@ -37,6 +39,7 @@ def triangles_of(glb: bytes, colour: tuple[int, int, int] | None = None, axis_ou
         pos = read(prim["attributes"]["POSITION"], "f", 3)
         normals = read(prim["attributes"]["NORMAL"], "f", 3) if "NORMAL" in prim["attributes"] else None
         idx = read(prim["indices"], "H", 1)
+        prim_start = len(out)
         for t in range(0, len(idx), 3):
             corners = tuple(tuple(pos[3 * k:3 * k + 3]) for k in idx[t:t + 3])
             if normals is not None:
@@ -45,11 +48,16 @@ def triangles_of(glb: bytes, colour: tuple[int, int, int] | None = None, axis_ou
                 u = [corners[1][i] - corners[0][i] for i in range(3)]
                 w = [corners[2][i] - corners[0][i] for i in range(3)]
                 n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]]
-                if axis_outward and n[0] * sum(c[0] for c in corners) + n[2] * sum(c[2] for c in corners) < 0:
-                    n = [-x for x in n]
                 length = math.sqrt(sum(x * x for x in n)) or 1.0
                 ns = ((n[0] / length, n[1] / length, n[2] / length),) * 3
             out.append((corners, ns, rgb))      # type: ignore[arg-type]
+        if axis_outward and normals is None and len(out) > prim_start:
+            mine = out[prim_start:]
+            cx = sum(c[0] for t in mine for c in t[0]) / (3 * len(mine))
+            cz = sum(c[2] for t in mine for c in t[0]) / (3 * len(mine))
+            vote = sum(1 if (n[0] * (sum(c[0] for c in t[0]) / 3 - cx) + n[2] * (sum(c[2] for c in t[0]) / 3 - cz)) >= 0 else -1 for t in mine for n in (t[1][0],))
+            if vote < 0:
+                out[prim_start:] = [(t[0], tuple((-n[0], -n[1], -n[2]) for n in t[1]), t[2]) for t in mine]     # type: ignore[misc]
     return out
 
 

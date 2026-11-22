@@ -35,27 +35,28 @@ class _Mesh:
     def __init__(self) -> None:
         self.pos: list[float] = []
         self.idx: list[int] = []
+        self.seg = SEG                  # sides of each ring (a garment may ask for finer rings)
 
     def tube(self, stops: list[tuple[tuple[float, float, float], float, float]], cap: bool = True) -> None:
         """Rings along a polyline: each stop is (centre, half-width in x, half-depth in z). Rings are horizontal (the figure is upright), limbs are tilted by moving the centres."""
         base = len(self.pos) // 3
         for (cx, cy, cz), a, b in stops:
-            for i in range(SEG):
-                t = 2 * math.pi * i / SEG
+            for i in range(self.seg):
+                t = 2 * math.pi * i / self.seg
                 self.pos += [cx + a * math.cos(t), cy, cz + b * math.sin(t)]
         for r in range(len(stops) - 1):
-            for i in range(SEG):
-                j = (i + 1) % SEG
-                p0, p1, q0, q1 = base + r * SEG + i, base + r * SEG + j, base + (r + 1) * SEG + i, base + (r + 1) * SEG + j
+            for i in range(self.seg):
+                j = (i + 1) % self.seg
+                p0, p1, q0, q1 = base + r * self.seg + i, base + r * self.seg + j, base + (r + 1) * self.seg + i, base + (r + 1) * self.seg + j
                 self.idx += [p0, q0, p1, p1, q0, q1]
         if cap:
             for ring, up in ((0, False), (len(stops) - 1, True)):
                 centre = len(self.pos) // 3
                 (cx, cy, cz), _, _ = stops[ring]
                 self.pos += [cx, cy, cz]
-                for i in range(SEG):
-                    j = (i + 1) % SEG
-                    a, b = base + ring * SEG + i, base + ring * SEG + j
+                for i in range(self.seg):
+                    j = (i + 1) % self.seg
+                    a, b = base + ring * self.seg + i, base + ring * self.seg + j
                     self.idx += [a, b, centre] if up else [b, a, centre]
 
     def sphere(self, centre: tuple[float, float, float], radius: float, rings: int = 6) -> None:
@@ -212,8 +213,68 @@ def _column(rows: list[tuple[float, ...]]) -> list[tuple[Vec, Vec, float, float]
     return [((0.0, y, cz), (0.0, 1.0, 0.0), a, b) for y, a, b, cz in rows]
 
 
+def _torso_anchor_rows(p: dict[str, Any], female: bool) -> tuple[list[tuple[float, ...]], list[tuple[float, ...]]]:
+    """The torso anchors (y, half-width, half-depth, z offset): the lower part (crotch -> waist) and the upper part (waist -> shoulder top). Shared by the body and by the garments made to fit it."""
+    h = p["height"]
+    ah, bh = p["hip"]
+    aw, bw = p["waist"]
+    ac, bc = p["chest"]
+    sh = p["shoulder"]
+    hip_y, waist_y, chest_y, shoulder_y = 0.52 * h, 0.60 * h, 0.70 * h, 0.81 * h
+    glute, bust = (-0.07 if female else -0.05), (0.10 if female else 0.05)
+    hips_rows = [(0.470 * h, ah * 0.96, bh * 0.94, glute * bh * 1.2), (0.500 * h, ah * 1.0, bh * 1.0, glute * bh * 1.1), (hip_y, ah, bh, glute * bh),
+                 (0.560 * h, (ah + aw) / 2 * 1.0, (bh + bw) / 2, glute * bh * 0.3), (waist_y, aw, bw, 0.0)]
+    chest_rows = [(waist_y, aw, bw, 0.0), (0.650 * h, (aw + ac) / 2 * 1.02, (bw + bc) / 2, bust * bc * 0.5), (chest_y, ac, bc, bust * bc), (0.760 * h, ac * 1.04, bc * 0.97, bust * bc * 0.4),
+                  (0.795 * h, sh * 0.70, bc * 0.88, 0.0), (shoulder_y, sh * 0.58, bc * 0.90, 0.0)]
+    return hips_rows, chest_rows
+
+
+def _leg_anchor_rows(p: dict[str, Any], side: float) -> tuple[list[tuple[float, ...]], list[tuple[float, ...]]]:
+    """One leg's anchors (x, y, z, half-width, half-depth), hip -> knee (thigh) and knee -> ankle (calf); ``side`` is -1 or +1."""
+    h = p["height"]
+    hip_y = 0.52 * h
+    leg_x = p["hip"][0] * 0.52
+    th, cf = p["thigh"], p["calf"]
+    thigh = [(side * leg_x, hip_y, 0.0, th * 0.80, th * 0.90), (side * leg_x * 0.99, 0.49 * h, 0.0, th * 0.96, th * 1.04), (side * leg_x * 0.98, 0.43 * h, 0.004, th * 1.00, th * 1.06),
+             (side * leg_x * 0.97, 0.36 * h, 0.0, th * 0.86, th * 0.90),
+             (side * leg_x * 0.95, 0.28 * h, 0.0, th * 0.72, th * 0.74)]
+    calf = [thigh[-1], (side * leg_x * 0.94, 0.235 * h, -0.004, cf * 1.02, cf * 1.05), (side * leg_x * 0.93, 0.19 * h, -0.010, cf * 1.10, cf * 1.18),
+            (side * leg_x * 0.91, 0.10 * h, -0.004, cf * 0.80, cf * 0.82), (side * leg_x * 0.90, 0.04 * h, 0.0, cf * 0.62, cf * 0.65)]
+    return thigh, calf
+
+
+def _arm_anchor_rows(p: dict[str, Any], side: float) -> tuple[list[tuple[float, ...]], list[tuple[float, ...]], list[tuple[float, ...]]]:
+    """One arm's anchors (x, y, z, half-width, half-depth): the rounded shoulder cap, the upper arm (shoulder -> elbow) and the forearm (elbow -> wrist)."""
+    h, sh, ar = p["height"], p["shoulder"], p["arm"]
+    shoulder_y = 0.81 * h
+    sx = side * sh * 0.78
+    elbow = (side * (sh + 0.045), shoulder_y - 0.21 * h)
+    wrist = (side * (sh + 0.115), shoulder_y - 0.40 * h)
+    upper = [(sx, shoulder_y - 0.035, 0.0, ar * 1.66, ar * 1.60), (sx + (elbow[0] - sx) * 0.30, shoulder_y - 0.035 + (elbow[1] - shoulder_y + 0.035) * 0.30, 0.0, ar * 1.38, ar * 1.32),
+             (sx + (elbow[0] - sx) * 0.65, shoulder_y - 0.035 + (elbow[1] - shoulder_y + 0.035) * 0.65, 0.0, ar * 1.18, ar * 1.12), (elbow[0], elbow[1], 0.0, ar * 1.04, ar * 1.00)]
+    cap = [(sx, shoulder_y + 0.012, 0.0, ar * 0.9, ar * 0.9), (sx, shoulder_y - 0.008, 0.0, ar * 1.5, ar * 1.45)]   # the rounded top of the shoulder (deltoid)
+    lower = [upper[-1], (elbow[0] + (wrist[0] - elbow[0]) * 0.22, elbow[1] + (wrist[1] - elbow[1]) * 0.22, 0.004, ar * 1.06, ar * 1.00),
+             (elbow[0] + (wrist[0] - elbow[0]) * 0.65, elbow[1] + (wrist[1] - elbow[1]) * 0.65, 0.012, ar * 0.84, ar * 0.80), (wrist[0], wrist[1], 0.015, ar * 0.70, ar * 0.66)]
+    return cap, upper, lower
+
+
+def body_profiles(p: dict[str, Any], female: bool) -> dict[str, list[tuple[float, ...]]]:
+    """The body's cross-sections as the SAME numbers the body mesh is built from, so a garment made from them cannot disagree with the body (R-ENGINE-09b).
+      torso: (y, half-width, half-depth, z offset), crotch -> shoulder top, ascending y
+      leg:   (y, centre x of the RIGHT leg, half-width, half-depth, z offset), ankle -> hip, ascending y (the left leg mirrors x)
+      arm:   (y, centre x of the RIGHT arm, half-width, half-depth, z offset), wrist -> shoulder cap top, ascending y"""
+    hips_rows, chest_rows = _torso_anchor_rows(p, female)
+    torso = [tuple(r) for r in _spline(hips_rows, 2)] + [tuple(r) for r in _spline(chest_rows, 2)][1:]
+    thigh, calf = _leg_anchor_rows(p, 1.0)
+    leg_down = [tuple(r) for r in _spline(thigh, 2)] + [tuple(r) for r in _spline(calf, 2)][1:]
+    cap, upper, lower = _arm_anchor_rows(p, 1.0)
+    arm_down = [tuple(r) for r in cap] + [tuple(r) for r in _spline(upper, 2)] + [tuple(r) for r in _spline(lower, 2)][1:]
+    return {"torso": torso, "leg": [(y, x, a, b, z) for x, y, z, a, b in reversed(leg_down)], "arm": [(y, x, a, b, z) for x, y, z, a, b in reversed(arm_down)]}
+
+
 def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style: str = "pants", skin: Color = (224, 172, 105), top: Color = (60, 90, 160), bottom: Color = (50, 50, 60),
-                     measurements: dict[str, float] | None = None) -> bytes:
+                     measurements: dict[str, float] | None = None, arms: bool = True) -> bytes:
+    """The base body .glb. ``arms=False`` leaves the arms and hands out (used only to check a sleeveless garment against the torso, ``app/render_qc.py``); it is not a way to get a different figure."""
     if sex not in SEXES:
         raise ValueError(f"unknown sex preset {sex!r}")
     if top_style not in TOP_STYLES or bottom_style not in BOTTOM_STYLES:
@@ -229,11 +290,7 @@ def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style:
     hip_y, waist_y, chest_y, shoulder_y, neck_y = 0.52 * h, 0.60 * h, 0.70 * h, 0.81 * h, 0.862 * h
     # ---- torso: ellipse rings whose width/depth/forward offset follow the body's curve. The hip, waist and chest rings are EXACTLY the preset circumferences (garments are built on them);
     # the extra shape (glutes, bust, armpit, shoulder line) stays well inside the 4 cm of ease the sample garments carry.
-    glute, bust = (-0.07 if female else -0.05), (0.10 if female else 0.05)
-    hips_rows = [(0.470 * h, ah * 0.96, bh * 0.94, glute * bh * 1.2), (0.500 * h, ah * 1.0, bh * 1.0, glute * bh * 1.1), (hip_y, ah, bh, glute * bh),
-                 (0.560 * h, (ah + aw) / 2 * 1.0, (bh + bw) / 2, glute * bh * 0.3), (waist_y, aw, bw, 0.0)]
-    chest_rows = [(waist_y, aw, bw, 0.0), (0.650 * h, (aw + ac) / 2 * 1.02, (bw + bc) / 2, bust * bc * 0.5), (chest_y, ac, bc, bust * bc), (0.760 * h, ac * 1.04, bc * 0.97, bust * bc * 0.4),
-                  (0.795 * h, sh * 0.70, bc * 0.88, 0.0), (shoulder_y, sh * 0.58, bc * 0.90, 0.0)]
+    hips_rows, chest_rows = _torso_anchor_rows(p, female)
     k = p["head"] / 0.10
     neck_rows = [(shoulder_y, sh * 0.58, bc * 0.90, 0.0), (0.8205 * h, sh * 0.40, bc * 0.70, 0.0), (0.832 * h, sh * 0.22, bc * 0.52, 0.0), (0.845 * h, 0.060 * k, 0.058 * k, 0.0),
                  (neck_y, 0.050 * k, 0.052 * k, 0.008), (neck_y + 0.07, 0.050 * k, 0.052 * k, 0.014)]
@@ -251,11 +308,7 @@ def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style:
     leg_x = ah * 0.52
     th, cf = p["thigh"], p["calf"]
     for side in (-1.0, 1.0):
-        thigh = [(side * leg_x, hip_y, 0.0, th * 0.80, th * 0.90), (side * leg_x * 0.99, 0.49 * h, 0.0, th * 0.96, th * 1.04), (side * leg_x * 0.98, 0.43 * h, 0.004, th * 1.00, th * 1.06),
-                 (side * leg_x * 0.97, 0.36 * h, 0.0, th * 0.86, th * 0.90),
-                 (side * leg_x * 0.95, 0.28 * h, 0.0, th * 0.72, th * 0.74)]
-        calf = [thigh[-1], (side * leg_x * 0.94, 0.235 * h, -0.004, cf * 1.02, cf * 1.05), (side * leg_x * 0.93, 0.19 * h, -0.010, cf * 1.10, cf * 1.18),
-                (side * leg_x * 0.91, 0.10 * h, -0.004, cf * 0.80, cf * 0.82), (side * leg_x * 0.90, 0.04 * h, 0.0, cf * 0.62, cf * 0.65)]
+        thigh, calf = _leg_anchor_rows(p, side)
         foot_stops = [((side * leg_x * 0.90, 0.04 * h, 0.0), (0.0, -1.0, 0.0), cf * 0.62, cf * 0.65),
                       ((side * leg_x * 0.90, 0.040, 0.022), (0.0, -0.6, 0.8), cf * 0.70, 0.044), ((side * leg_x * 0.90, 0.029, 0.075), (0.0, -0.1, 1.0), cf * 0.80, 0.031),
                       ((side * leg_x * 0.90, 0.021, 0.135), (0.0, -0.05, 1.0), cf * 0.74, 0.022), ((side * leg_x * 0.90, 0.014, 0.178), (0.0, 0.0, 1.0), cf * 0.40, 0.014)]
@@ -264,15 +317,11 @@ def build_base_model(sex: str = "male", top_style: str = "tshirt", bottom_style:
         parts["skin"].loft(foot_stops, cap_end=True)
     # ---- arms in a relaxed A-pose (about 15 degrees away from the body): the upper arm starts INSIDE the shoulder line so there is no gap at the joint
     ar = p["arm"]
-    for side in (-1.0, 1.0):
+    for side in ((-1.0, 1.0) if arms else ()):
         sx = side * sh * 0.78
         elbow = (side * (sh + 0.045), shoulder_y - 0.21 * h)
         wrist = (side * (sh + 0.115), shoulder_y - 0.40 * h)
-        upper = [(sx, shoulder_y - 0.035, 0.0, ar * 1.66, ar * 1.60), (sx + (elbow[0] - sx) * 0.30, shoulder_y - 0.035 + (elbow[1] - shoulder_y + 0.035) * 0.30, 0.0, ar * 1.38, ar * 1.32),
-                 (sx + (elbow[0] - sx) * 0.65, shoulder_y - 0.035 + (elbow[1] - shoulder_y + 0.035) * 0.65, 0.0, ar * 1.18, ar * 1.12), (elbow[0], elbow[1], 0.0, ar * 1.04, ar * 1.00)]
-        cap = [(sx, shoulder_y + 0.012, 0.0, ar * 0.9, ar * 0.9), (sx, shoulder_y - 0.008, 0.0, ar * 1.5, ar * 1.45)]   # the rounded top of the shoulder (deltoid)
-        lower = [upper[-1], (elbow[0] + (wrist[0] - elbow[0]) * 0.22, elbow[1] + (wrist[1] - elbow[1]) * 0.22, 0.004, ar * 1.06, ar * 1.00),
-                 (elbow[0] + (wrist[0] - elbow[0]) * 0.65, elbow[1] + (wrist[1] - elbow[1]) * 0.65, 0.012, ar * 0.84, ar * 0.80), (wrist[0], wrist[1], 0.015, ar * 0.70, ar * 0.66)]
+        cap, upper, lower = _arm_anchor_rows(p, side)
         hand_dir = (side * 0.30, -1.0, 0.12)
         hx, hy, hz = wrist[0], wrist[1], 0.015
         unit = _norm(hand_dir)

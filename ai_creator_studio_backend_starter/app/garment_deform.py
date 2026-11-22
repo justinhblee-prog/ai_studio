@@ -2,10 +2,11 @@
 
 Method (deliberately simple, deterministic, CPU only, no GPU, no model weights): the garment is made around a REFERENCE body (the unmeasured preset of ``spec['fit']['reference_sex']``).
 Every vertex is moved by the ratio between the TARGET body and the REFERENCE body at the vertex's own height:
-  * torso part: x and z are scaled by (target half-width / reference half-width) at that height; the height is scaled by the height ratio;
-  * a leg part: the vertex keeps its offset from the leg's centre line, scaled by the radius ratio, and the centre line moves to the target leg position;
-  * an arm part (jacket sleeves, R-ENGINE-09): the same as a leg, with the arm's centre line and radius (``garments.arm_stops``);
+  * torso part: x and z are scaled about the body section's own centre by (target half-width / reference half-width) and (target half-depth / reference half-depth) at that height; the height is scaled by the height ratio;
+  * a leg part: the vertex keeps its offset from the leg's centre line, scaled per axis by the section ratio, and the centre line moves to the target leg position;
+  * an arm part (jacket sleeves, R-ENGINE-09): the same as a leg, with the arm's centre line and sections;
   * a skirt part (skirt, dress; R-ENGINE-09): like the torso, but the profile is the ENVELOPE of waist, hips and both thighs (``garments.skirt_stops``) so the skirt follows the legs too.
+R-ENGINE-09b: the sections are the body mesh's own (``base_models.body_profiles``: curves, bust/glute offsets, thigh and arm shapes), not a simpler stand-in, so a garment that covers the reference body covers the target body.
 Because the garment's EASE (its gap to the body) is scaled by the same ratio, a garment that stood outside the reference body stands outside the target body: the result is checked
 for vertices that fall INSIDE the target body and the fit is refused if there are any (``penetrations`` is always 0 on a successful return).
 
@@ -36,23 +37,11 @@ def _lerp_profile(stops: list[tuple[float, ...]], y: float) -> tuple[float, ...]
     return stops[-1][1:]
 
 
-def _torso_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
-    h = p["height"]
-    return [(0.52 * h, *p["hip"]), (0.60 * h, *p["waist"]), (0.70 * h, *p["chest"]), (0.81 * h, p["shoulder"] * 0.72, p["chest"][1] * 0.92)]
-
-
-def _arm_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
-    return garments.arm_stops(p)
-
-
-def _skirt_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
-    return garments.skirt_stops(p)
-
-
-def _leg_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
-    h = p["height"]
-    leg_x = p["hip"][0] * 0.55
-    return [(0.04 * h, leg_x * 0.9, p["calf"] * 0.65), (0.28 * h, leg_x * 0.95, p["thigh"] * 0.72), (0.52 * h, leg_x, p["thigh"])]
+def _profiles(p: dict[str, Any], female: bool) -> dict[str, list[tuple[float, ...]]]:
+    """The body's sections (R-ENGINE-09b: the numbers the body mesh itself is built from, ``base_models.body_profiles``) plus the skirt envelope."""
+    profile = dict(base_models.body_profiles(p, female))
+    profile["skirt"] = garments.skirt_stops(p, female)
+    return profile
 
 
 def _read_positions(doc: dict[str, Any], binary: bytes | bytearray, primitive: dict[str, Any]) -> tuple[dict[str, Any], int, list[float]]:
@@ -85,8 +74,7 @@ def deform_garment(glb: bytes, spec: dict[str, Any], measurements: dict[str, flo
     doc, binary = parse_glb(glb)
     binary = bytearray(binary)
     ratio_h = tgt["height"] / ref["height"]
-    ref_torso, tgt_torso, ref_leg, tgt_leg = _torso_stops(ref), _torso_stops(tgt), _leg_stops(ref), _leg_stops(tgt)
-    ref_arm, tgt_arm, ref_skirt, tgt_skirt = _arm_stops(ref), _arm_stops(tgt), _skirt_stops(ref), _skirt_stops(tgt)
+    ref_prof, tgt_prof = _profiles(ref, sex == "female"), _profiles(tgt, sex == "female")
     penetrations = vertices = 0
     y_lo, y_hi = float("inf"), float("-inf")
     for primitive in doc["meshes"][0]["primitives"]:
@@ -99,15 +87,15 @@ def deform_garment(glb: bytes, spec: dict[str, Any], measurements: dict[str, flo
         for i in range(0, len(pos), 3):
             x, y, z = pos[i:i + 3]
             y_t = y * ratio_h
-            if part in ("torso", "skirt"):
-                (ar, br), (at, bt) = (_lerp_profile(ref_torso, y), _lerp_profile(tgt_torso, y_t)) if part == "torso" else (_lerp_profile(ref_skirt, y), _lerp_profile(tgt_skirt, y_t))
-                nx, nz = x * at / ar, z * bt / br
-                penetrations += _inside(nx, nz, at, bt)
-            else:
-                ref_c, tgt_c = (ref_arm, tgt_arm) if part in ("arm_l", "arm_r") else (ref_leg, tgt_leg)
-                (cxr, rr), (cxt, rt) = _lerp_profile(ref_c, y), _lerp_profile(tgt_c, y_t)
-                nx, nz = side * cxt + (x - side * cxr) * rt / rr, z * rt / rr
-                penetrations += _inside(nx - side * cxt, nz, rt, rt)
+            if part in ("torso", "skirt"):                        # rows (y, half-width, half-depth, z offset): scale about the ellipse's own centre
+                (ar, br, zr), (at, bt, zt) = _lerp_profile(ref_prof[part], y), _lerp_profile(tgt_prof[part], y_t)
+                nx, nz = x * at / ar, zt + (z - zr) * bt / br
+                penetrations += _inside(nx, nz - zt, at, bt)
+            else:                                                 # leg / arm rows (y, centre x, half-width, half-depth, z offset)
+                key = "arm" if part in ("arm_l", "arm_r") else "leg"
+                (cxr, ar, br, zr), (cxt, at, bt, zt) = _lerp_profile(ref_prof[key], y), _lerp_profile(tgt_prof[key], y_t)
+                nx, nz = side * cxt + (x - side * cxr) * at / ar, zt + (z - zr) * bt / br
+                penetrations += _inside(nx - side * cxt, nz - zt, at, bt)
             out[i:i + 3] = [nx, y_t, nz]
             y_lo, y_hi = min(y_lo, y_t), max(y_hi, y_t)
         vertices += len(pos) // 3

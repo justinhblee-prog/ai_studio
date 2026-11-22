@@ -88,10 +88,10 @@ def test_the_check_is_deterministic():
 @pytest.mark.parametrize("sex", ("male", "female"))
 @pytest.mark.parametrize("kind", ("top", "bottom", "skirt", "dress", "jacket"))
 def test_the_real_sample_garments_are_measured_and_the_numbers_are_sane(sex, kind):
-    """Measured, not asserted to pass: the baseline state of the samples on the R-ENGINE-08 body is recorded in the report (the body's bust and thighs show through - R-ENGINE-09b)."""
+    """Measured here with the whole body and no relaxation; the pass line for the samples is tests/test_garment_cover.py (R-ENGINE-09b)."""
     body, layers, fits = render3d_scene.build_layers(sex, M, [kind])
     r = render_qc.check_cuts(body, layers, (0, 90, 180, 270), penetrations={f["kind"]: f["penetrations"] for f in fits})
     g = r["garments"][0]
     assert g["kind"] == kind and g["penetration_points"] == 0 and len(g["views"]) == 4
-    assert 0.0 < g["visible_share_min"] <= 1.0 and 0.0 <= g["colour_distance_max"] <= render_qc.MAX_COLOUR_DISTANCE, "the colour is right even where the shape is not"
+    assert 0.0 < g["visible_share_min"] <= 1.0 and 0.0 <= g["colour_distance_max"] <= render_qc.MAX_COLOUR_DISTANCE
     assert all(v["reference_pixels"] > 0 for v in g["views"]) and [v["frontal"] for v in g["views"]] == [True, False, True, False]

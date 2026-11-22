@@ -69,13 +69,13 @@ def test_a_skirt_never_cuts_through_the_legs_over_a_grid_of_bodies(kind, sex):
         m = {k: v for k, v in (("height_cm", h), ("chest_cm", c), ("waist_cm", w), ("hips_cm", hp)) if v is not None}
         fitted, _ = deform_garment(glb, spec, m or None)
         body = garment_deform._body(sex, m or None)
-        legs = garment_deform._leg_stops(body)
+        legs = base_models.body_profiles(body, sex == "female")["leg"]          # (y, centre x, half-width, half-depth, z offset): the body mesh's own leg sections
         for x, y, z in _parts(fitted)["skirt"]:
             if y > 0.52 * body["height"]:
                 continue
-            cx, r = garment_deform._lerp_profile(legs, y)
+            cx, a, b, zc = garment_deform._lerp_profile(legs, y)
             for side in (-1, 1):
-                assert (x - side * cx) ** 2 + z ** 2 >= r * r * 0.999, (m, y)
+                assert ((x - side * cx) / a) ** 2 + ((z - zc) / b) ** 2 >= 0.999, (m, y)
 
 
 @pytest.mark.parametrize("sex", base_models.SEXES)
