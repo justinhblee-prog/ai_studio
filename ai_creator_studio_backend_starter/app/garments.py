@@ -194,14 +194,17 @@ def skirt_stops(p: dict[str, Any], female: bool) -> list[tuple[float, ...]]:
     return rows
 
 
-def build_sample_garment(kind: str, sex: str = "male", ease_cm: float = 4.0, colour: tuple[int, int, int] = (60, 90, 160)) -> tuple[bytes, dict[str, Any]]:
+def build_sample_garment(kind: str, sex: str = "male", ease_cm: float = 4.0, colour: tuple[int, int, int] = (60, 90, 160),
+                         measurements: dict[str, float] | None = None) -> tuple[bytes, dict[str, Any]]:
     """A plain sample garment of ``kind`` (top, bottom = trousers, skirt, dress, jacket) around the body of ``sex`` with ``ease_cm`` of room, plus its garment.v1 spec (sizes S/M/L = reference -4/0/+4 cm, a TABLE only).
+    ``measurements`` (M4): make it around a body with these typed measurements instead of the preset (the garment of a size ladder is "the one made for THIS body + ease"); the chart then
+    describes that garment and ``fit.reference_sex`` still names the preset used by ``garment_deform``.
     R-ENGINE-09b: every ring is the body mesh's own cross-section (``base_models.body_profiles``, including its forward/backward offsets) plus the ease, so the garment covers the body it was made for."""
     if kind not in KINDS or sex not in base_models.SEXES:
         raise ValueError("unknown kind or sex preset")
     if isinstance(ease_cm, bool) or not isinstance(ease_cm, (int, float)) or not 0.0 <= float(ease_cm) <= 20.0:
         raise ValueError("ease_cm must be a number from 0 to 20")
-    p = base_models.PRESETS[sex]
+    p = base_models._fit_measurements(base_models.PRESETS[sex], measurements) if measurements else base_models.PRESETS[sex]
     female = sex == "female"
     h = p["height"]
     off = float(ease_cm) / 100.0 / (2 * math.pi)     # radial offset giving about ease_cm more perimeter
