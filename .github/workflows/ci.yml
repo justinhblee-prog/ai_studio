@@ -43,6 +43,8 @@ jobs:
       - run: python -m compileall -q app tests scripts
       - name: Docs index is complete (B-20)
         run: python scripts/docs_check.py --check
+      - name: Our own 3D models stay inside the phone budget (E-04, static numbers; FPS is not measured)
+        run: python scripts/glb_budget.py --strict mobile
       - name: The one-command local start works in mock mode and says how long it took (B-21)
         run: python scripts/dev_up.py --selftest
       - name: Install ffmpeg and the open Korean subtitle font (Lane 4 / E-08a, E-08c; the tests fail, not skip, if it is missing)
