@@ -41,6 +41,10 @@ jobs:
           cache-dependency-path: ai_creator_studio_backend_starter/requirements.txt
       - run: pip install -r requirements.txt
       - run: python -m compileall -q app tests scripts
+      - name: Docs index is complete (B-20)
+        run: python scripts/docs_check.py --check
+      - name: The one-command local start works in mock mode and says how long it took (B-21)
+        run: python scripts/dev_up.py --selftest
       - name: Install ffmpeg and the open Korean subtitle font (Lane 4 / E-08a, E-08c; the tests fail, not skip, if it is missing)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fonts-noto-cjk && ffmpeg -version | head -n 1 && fc-list | grep -c NotoSansCJK
       - name: Keep the font package's own licence text (copyright file) for docs/THIRD_PARTY_FONTS.md
