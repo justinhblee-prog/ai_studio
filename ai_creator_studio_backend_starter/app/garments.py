@@ -161,94 +161,117 @@ def _write(parts: list[tuple[str, base_models._Mesh]], kind: str, colour: tuple[
     return build_glb(doc, binary)
 
 
-def skirt_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
-    """The ENVELOPE a skirt must clear, as (y, half-width, half-depth) in ascending y: the waist ellipse at the top, then a shape wide enough to hold the hips AND both thighs (the depth is
-    1.4 x the thigh radius so that a round thigh stays inside an ellipse), down to the knee. The sample skirt is this envelope plus ease and ``app/garment_deform.py`` scales it by the
-    ratio of the target body's envelope to the reference body's, so a skirt that stood clear of the legs stays clear of them."""
-    h = p["height"]
-    leg_x, th = p["hip"][0] * 0.55, p["thigh"]
-
-    def thigh_at(y: float) -> tuple[float, float]:           # (leg centre x, thigh radius) between the knee (0.28h) and the hip (0.52h), the same lines as the trousers' legs
-        t = (y - 0.28 * h) / (0.24 * h)
-        return leg_x * (0.95 + 0.05 * t), th * (0.72 + 0.28 * t)
-
-    def env(y: float) -> tuple[float, float]:
-        cx, r = thigh_at(y)
-        return max(p["hip"][0], cx + r + 0.01), max(p["hip"][1], 1.4 * r)
-    return [(0.34 * h, *env(0.34 * h)), (0.43 * h, *env(0.43 * h)), (0.52 * h, *env(0.52 * h)), (0.60 * h, *p["waist"])]
+GARMENT_SEG = 20        # sides of a garment ring: the same as the body's, so a ring that is the body's section plus ease cannot cut into the body between two vertices
 
 
-def arm_stops(p: dict[str, Any]) -> list[tuple[float, ...]]:
-    """(y, centre x of the RIGHT arm, radius) in ascending y: wrist, elbow, shoulder top (the left arm mirrors x). The same A-pose lines as the base body."""
-    h, sh, ar = p["height"], p["shoulder"], p["arm"]
-    shoulder_y = 0.81 * h
-    return [(shoulder_y - 0.40 * h, sh + 0.115, ar * 0.70), (shoulder_y - 0.21 * h, sh + 0.045, ar * 1.04), (shoulder_y - 0.035, sh * 0.78, ar * 1.66)]
+def _lerp(rows: list[tuple[float, ...]], y: float) -> tuple[float, ...]:
+    """Piecewise-linear value list at height y (clamped at both ends); rows are (y, v1, v2, ...) in ascending y."""
+    if y <= rows[0][0]:
+        return tuple(rows[0][1:])
+    if y >= rows[-1][0]:
+        return tuple(rows[-1][1:])
+    for lo, hi in zip(rows, rows[1:]):
+        if lo[0] <= y <= hi[0]:
+            t = (y - lo[0]) / (hi[0] - lo[0]) if hi[0] > lo[0] else 0.0
+            return tuple(a + (b - a) * t for a, b in zip(lo[1:], hi[1:]))
+    return tuple(rows[-1][1:])
+
+
+def skirt_stops(p: dict[str, Any], female: bool) -> list[tuple[float, ...]]:
+    """The ENVELOPE a skirt must clear, as (y, half-width, half-depth, z offset) in ascending y: from the knee-ish hem up to the waist ellipse. Where the legs are, it is wide enough to hold the hips AND
+    both thighs (the depth is 1.4 x the thigh depth so that a round thigh stays inside an ellipse). Built from ``base_models.body_profiles`` (R-ENGINE-09b), the same sections the body mesh uses.
+    The sample skirt is this envelope plus ease and ``app/garment_deform.py`` scales it by the ratio of the target body's envelope to the reference body's, so a skirt that stood clear stays clear."""
+    profile = base_models.body_profiles(p, female)
+    torso, legs, h = profile["torso"], profile["leg"], p["height"]
+    waist_y, hip_y = 0.60 * h, 0.52 * h
+
+    def env(y: float) -> tuple[float, float, float]:
+        a, b, z = _lerp(torso, y)
+        cx, la, lb, _ = _lerp(legs, y)
+        return max(a, cx + la + 0.01), max(b, 1.4 * lb), z
+    rows = [(y, *env(y)) for y in (0.34 * h, 0.43 * h, 0.47 * h, hip_y)]
+    rows += [(y, *_lerp(torso, y)) for y in (0.56 * h, waist_y)]
+    return rows
 
 
 def build_sample_garment(kind: str, sex: str = "male", ease_cm: float = 4.0, colour: tuple[int, int, int] = (60, 90, 160)) -> tuple[bytes, dict[str, Any]]:
-    """A plain t-shirt body or trousers tube around the preset body of ``sex`` with ``ease_cm`` of room, plus its garment.v1 spec (sizes S/M/L = reference -4/0/+4 cm, a TABLE only)."""
+    """A plain sample garment of ``kind`` (top, bottom = trousers, skirt, dress, jacket) around the body of ``sex`` with ``ease_cm`` of room, plus its garment.v1 spec (sizes S/M/L = reference -4/0/+4 cm, a TABLE only).
+    R-ENGINE-09b: every ring is the body mesh's own cross-section (``base_models.body_profiles``, including its forward/backward offsets) plus the ease, so the garment covers the body it was made for."""
     if kind not in KINDS or sex not in base_models.SEXES:
         raise ValueError("unknown kind or sex preset")
     if isinstance(ease_cm, bool) or not isinstance(ease_cm, (int, float)) or not 0.0 <= float(ease_cm) <= 20.0:
         raise ValueError("ease_cm must be a number from 0 to 20")
     p = base_models.PRESETS[sex]
+    female = sex == "female"
     h = p["height"]
     off = float(ease_cm) / 100.0 / (2 * math.pi)     # radial offset giving about ease_cm more perimeter
     hip_y, waist_y, chest_y, shoulder_y = 0.52 * h, 0.60 * h, 0.70 * h, 0.81 * h
+    profile = base_models.body_profiles(p, female)
+    torso = profile["torso"]
 
-    def ring(centre_x: float, y: float, a: float, b: float) -> tuple[tuple[float, float, float], float, float]:
-        return ((centre_x, y, 0.0), a + off, b + off)
+    def mesh() -> base_models._Mesh:
+        m = base_models._Mesh()
+        m.seg = GARMENT_SEG
+        return m
+
+    def ring(centre_x: float, y: float, a: float, b: float, z: float = 0.0, extra: float = 0.0) -> tuple[tuple[float, float, float], float, float]:
+        return ((centre_x, y, z), a + off + extra, b + off + extra)
+
+    def torso_rings(y_from: float, y_to: float, extra: float = 0.0):
+        return [ring(0.0, y, a, b, z, extra) for y, a, b, z in torso if y_from - 1e-9 <= y <= y_to + 1e-9]
+
+    def torso_ring_at(y: float, extra: float = 0.0):
+        return min(torso_rings(0.0, 9.0, extra), key=lambda r: abs(r[0][1] - y))
+
+    def leg_rings(side: int):
+        return [ring(side * cx, y, a, b, z) for y, cx, a, b, z in reversed(profile["leg"]) if 0.04 * h - 1e-9 <= y <= hip_y + 1e-9]
     if kind == "top":
-        hem_y = hip_y
-        stops = [ring(0, hem_y, p["hip"][0], p["hip"][1]), ring(0, waist_y, *p["waist"]), ring(0, chest_y, *p["chest"]), ring(0, shoulder_y, p["shoulder"] * 0.72, p["chest"][1] * 0.92)]
-        torso = base_models._Mesh()
-        torso.tube(stops, cap=False)
-        parts = [("torso", torso)]
-        length_cm = round((shoulder_y - hem_y) * 100, 1)
-        measures = {"chest_cm": _ring_cm(stops[2][1], stops[2][2]), "waist_cm": _ring_cm(stops[1][1], stops[1][2]), "length_cm": length_cm}
+        stops = torso_rings(hip_y, shoulder_y)
+        torso_mesh = mesh()
+        torso_mesh.tube(stops, cap=False)
+        parts = [("torso", torso_mesh)]
+        chest, waist = torso_ring_at(chest_y), torso_ring_at(waist_y)
+        measures = {"chest_cm": _ring_cm(chest[1], chest[2]), "waist_cm": _ring_cm(waist[1], waist[2]), "length_cm": round((shoulder_y - hip_y) * 100, 1)}
     elif kind == "bottom":
-        leg_x = p["hip"][0] * 0.55
-        ankle_y = 0.04 * h
-        stops_torso = [ring(0, hip_y, *p["hip"]), ring(0, waist_y, *p["waist"])]
-        torso = base_models._Mesh()
-        torso.tube(stops_torso, cap=False)
-        parts = [("torso", torso)]
+        torso_mesh = mesh()
+        torso_mesh.tube(torso_rings(torso[0][0], waist_y), cap=False)         # down to the crotch, so the pelvis is covered between the legs
+        parts = [("torso", torso_mesh)]
         for side in (-1, 1):
-            leg = base_models._Mesh()
+            leg = mesh()
             parts.append(("leg_l" if side == -1 else "leg_r", leg))
-            leg.tube([ring(side * leg_x, hip_y, p["thigh"], p["thigh"]), ring(side * leg_x * 0.95, 0.28 * h, p["thigh"] * 0.72, p["thigh"] * 0.72), ring(side * leg_x * 0.9, ankle_y, p["calf"] * 0.65, p["calf"] * 0.65)], cap=False)
-        length_cm = round((waist_y - ankle_y) * 100, 1)
-        measures = {"waist_cm": _ring_cm(stops_torso[1][1], stops_torso[1][2]), "hips_cm": _ring_cm(stops_torso[0][1], stops_torso[0][2]), "length_cm": length_cm}
+            leg.tube(leg_rings(side), cap=False)
+        hip, waist = torso_ring_at(hip_y), torso_ring_at(waist_y)
+        measures = {"waist_cm": _ring_cm(waist[1], waist[2]), "hips_cm": _ring_cm(hip[1], hip[2]), "length_cm": 0.0}
     elif kind in ("skirt", "dress"):
-        env = skirt_stops(p)                                        # ascending y: knee-ish hem ... waist
-        skirt = base_models._Mesh()
-        skirt.tube([ring(0, y, a, b) for y, a, b in env[::-1]], cap=False)   # rings from the waist down to the hem
+        env = skirt_stops(p, female)                                # ascending y: knee-ish hem ... waist
+        skirt = mesh()
+        skirt.tube([ring(0.0, y, a, b, z) for y, a, b, z in env[::-1]], cap=False)    # rings from the waist down to the hem
         parts = [("skirt", skirt)]
-        hip_ring = ring(0, env[2][0], env[2][1], env[2][2])
-        measures = {"waist_cm": _ring_cm(*(ring(0, waist_y, *p["waist"])[1:])), "hips_cm": _ring_cm(hip_ring[1], hip_ring[2]), "length_cm": 0.0}
+        hip = ring(0.0, hip_y, *env[3][1:3], env[3][3])
+        waist = torso_ring_at(waist_y)
+        measures = {"waist_cm": _ring_cm(waist[1], waist[2]), "hips_cm": _ring_cm(hip[1], hip[2]), "length_cm": 0.0}
         if kind == "dress":
-            torso = base_models._Mesh()
-            top_stops = [ring(0, waist_y, *p["waist"]), ring(0, chest_y, *p["chest"]), ring(0, shoulder_y, p["shoulder"] * 0.72, p["chest"][1] * 0.92)]
-            torso.tube(top_stops[::-1], cap=False)
-            parts = [("torso", torso), ("skirt", skirt)]
-            measures["chest_cm"] = _ring_cm(top_stops[1][1], top_stops[1][2])
+            torso_mesh = mesh()
+            upper = torso_rings(waist_y, shoulder_y)
+            torso_mesh.tube(upper[::-1], cap=False)
+            parts = [("torso", torso_mesh), ("skirt", skirt)]
+            chest = torso_ring_at(chest_y)
+            measures["chest_cm"] = _ring_cm(chest[1], chest[2])
     else:                                                           # jacket: a roomier top that also covers both arms down to the wrist
-        off = (float(ease_cm) + JACKET_EXTRA_EASE_CM) / 100.0 / (2 * math.pi)
-
-        def jring(y: float, a: float, b: float) -> tuple[tuple[float, float, float], float, float]:
-            return ((0.0, y, 0.0), a + off, b + off)
-        stops = [jring(0.46 * h, *p["hip"]), jring(hip_y, *p["hip"]), jring(waist_y, *p["waist"]), jring(chest_y, *p["chest"]), jring(shoulder_y, p["shoulder"] * 0.72, p["chest"][1] * 0.92)]
-        torso = base_models._Mesh()
-        torso.tube(stops, cap=False)
-        parts = [("torso", torso)]
-        arm = arm_stops(p)
+        extra = JACKET_EXTRA_EASE_CM / 100.0 / (2 * math.pi)
+        first = torso[0][0]
+        torso_mesh = mesh()
+        torso_mesh.tube(torso_rings(first, shoulder_y, extra), cap=False)
+        parts = [("torso", torso_mesh)]
+        arm = profile["arm"]                                        # wrist -> shoulder cap top, ascending y
         for side in (-1, 1):
-            sleeve = base_models._Mesh()
+            sleeve = mesh()
             parts.append(("arm_l" if side == -1 else "arm_r", sleeve))
-            sleeve.tube([((side * cx, y, 0.0), r + off, r + off) for y, cx, r in arm], cap=False)
-        path = [(arm[i][1], arm[i][0]) for i in range(len(arm))]
+            sleeve.tube([ring(side * cx, y, a, b, z, extra) for y, cx, a, b, z in arm], cap=False)
+        path = [(row[1], row[0]) for row in arm if row[0] <= shoulder_y - 0.02]         # (x, y) from the wrist up to the top of the upper arm
         sleeve_cm = sum(math.hypot(path[i][0] - path[i + 1][0], path[i][1] - path[i + 1][1]) for i in range(len(path) - 1)) * 100
-        measures = {"chest_cm": _ring_cm(stops[3][1], stops[3][2]), "waist_cm": _ring_cm(stops[2][1], stops[2][2]), "length_cm": 0.0, "sleeve_cm": round(sleeve_cm, 1)}
+        chest, waist = torso_ring_at(chest_y, extra), torso_ring_at(waist_y, extra)
+        measures = {"chest_cm": _ring_cm(chest[1], chest[2]), "waist_cm": _ring_cm(waist[1], waist[2]), "length_cm": 0.0, "sleeve_cm": round(sleeve_cm, 1)}
     glb = _write(parts, kind, colour)
     # the chart's length_cm is the height the mesh really has (a bottom runs from the waist down to the ankles), so chart and mesh cannot disagree
     real_cm = round(inspect_glb(glb)["size"][1] * 100, 1)

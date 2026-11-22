@@ -22,3 +22,8 @@ def build_layers(sex: str, measurements: dict[str, float] | None, garment_kinds:
         layers.append((kind, render3d_soft.triangles_of(fitted, axis_outward=True), GARMENT_COLOURS[kind]))
         reports.append({"kind": kind, "penetrations": report["penetrations"], "method": report["method"]})
     return render3d_soft.triangles_of(body), layers, reports
+
+
+def body_without_arms(sex: str, measurements: dict[str, float] | None) -> list[render3d_soft.Triangle]:
+    """The same plain body minus its arms and hands, for judging sleeveless garments against the torso (``app/render_qc.py``)."""
+    return render3d_soft.triangles_of(base_models.build_base_model(sex, top_style="tank", bottom_style="shorts", skin=SKIN, top=SKIN, bottom=SKIN, measurements=measurements or None, arms=False))

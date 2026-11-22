@@ -2,7 +2,7 @@
 
 For each angle it draws the scene three ways (all with the software renderer, same framing; the label pictures skip back faces, so the inside of a garment's neck or hem opening is not counted): the garments ALONE, body + garments with every object painted in a flat label colour, and the
 normal shaded body + garments. From these it measures, per garment and angle:
-  * ``visible_share`` - (judged from the FRONT and BACK views only, see ``frontal``) silhouette IoU of "the garment's pixels in the full scene" against "the garment's pixels when drawn without the body" (the second contains the first, so the IoU is
+  * ``visible_share`` - (judged from the FRONT and BACK views only, see ``frontal``; a garment without sleeves is judged against the body without its arms, see ``check_cuts``) silhouette IoU of "the garment's pixels in the full scene" against "the garment's pixels when drawn without the body" (the second contains the first, so the IoU is
     the share of the garment that is still in front of the body). Less than 1 means the BODY pokes through the garment somewhere; garments hidden by another garment on purpose (a jacket over a
     top) are compared with the garments-only picture, so they are not counted against it;
   * ``colour_distance`` - how far the garment's mean colour in the shaded picture is from the colour it was asked to have (chromaticity, so the light does not matter);
@@ -48,27 +48,46 @@ def _unit(rgb: Sequence[float]) -> tuple[float, float, float]:
     return (rgb[0] / length, rgb[1] / length, rgb[2] / length)
 
 
+SLEEVED = ("jacket",)           # garment kinds that have sleeves of their own: they are judged against the whole body
+
+
+def _pass(body: list[soft.Triangle], garments: list[Layer], angles: Sequence[int], size: tuple[int, int], height: float):
+    """For every angle: ({garment index: (reference pixels, visible pixels)}, the label picture, the shaded picture)."""
+    black = (0, 0, 0)
+    labelled = [(kind, _label(tris, BODY_LABEL + 1 + k), colour) for k, (kind, tris, colour) in enumerate(garments)]
+    garment_only = [t for _, tris, _ in labelled for t in tris]
+    everything = body + [t for _, tris, _ in garments for t in tris]
+    out = {}
+    for angle in angles:
+        alone = _counts(soft.render(garment_only, angle, size, background=black, height_m=height, flat=True, cull_back=True)) if garment_only else [0] * 256
+        labels = soft.render(_label(body, BODY_LABEL) + garment_only, angle, size, background=black, height_m=height, flat=True, cull_back=True)
+        full = _counts(labels)
+        shaded = soft.render(everything, angle, size, background=black, height_m=height)
+        out[angle] = ({k: (alone[BODY_LABEL + 1 + k], full[BODY_LABEL + 1 + k]) for k in range(len(garments))}, labels, shaded)
+    return out
+
+
 def check_cuts(body: list[soft.Triangle], garments: list[Layer], angles: Sequence[int], *, penetrations: dict[str, int] | None = None, size: tuple[int, int] = SIZE,
-               min_visible_share: float = MIN_VISIBLE_SHARE, max_colour_distance: float = MAX_COLOUR_DISTANCE) -> dict[str, Any]:
-    """The report. ``penetrations`` maps a garment kind to the count the fitting reported (None when unknown)."""
+               min_visible_share: float = MIN_VISIBLE_SHARE, max_colour_distance: float = MAX_COLOUR_DISTANCE, body_without_arms: list[soft.Triangle] | None = None) -> dict[str, Any]:
+    """The report. ``penetrations`` maps a garment kind to the count the fitting reported (None when unknown).
+    ``body_without_arms`` (R-ENGINE-09b): a garment WITHOUT sleeves is judged against the body minus its arms, because in the A-pose the hanging arm overlaps the garment's side edge by about two
+    centimetres in front of it - that is the arm in front, not the body poking through the garment. The number against the whole body is kept next to it as ``visible_share_incl_arms``."""
     everything = body + [t for _, tris, _ in garments for t in tris]
     height = soft.height_of(everything)
-    black = (0, 0, 0)
-    labelled_garments = [(kind, _label(tris, BODY_LABEL + 1 + k), colour) for k, (kind, tris, colour) in enumerate(garments)]
-    reports: list[dict[str, Any]] = [{"kind": kind, "views": []} for kind, _, _ in garments]
+    whole = _pass(body, garments, angles, size, height)
+    bare = _pass(body_without_arms, garments, angles, size, height) if body_without_arms is not None and any(kind not in SLEEVED for kind, _, _ in garments) else None
+    reports: list[dict[str, Any]] = [{"kind": kind, "occluder": "body" if (kind in SLEEVED or bare is None) else "body_without_arms", "views": []} for kind, _, _ in garments]
     for angle in angles:
-        garment_only = [t for _, tris, _ in labelled_garments for t in tris]
-        alone = _counts(soft.render(garment_only, angle, size, background=black, height_m=height, flat=True, cull_back=True)) if garment_only else [0] * 256
-        full_labels = soft.render(_label(body, BODY_LABEL) + garment_only, angle, size, background=black, height_m=height, flat=True, cull_back=True)
-        full = _counts(full_labels)
-        shaded = soft.render(everything, angle, size, background=black, height_m=height)
+        counts, labels, shaded = whole[angle]
         for k, (kind, tris, colour) in enumerate(garments):
             number = BODY_LABEL + 1 + k
-            reference, visible = alone[number], full[number]
-            view: dict[str, Any] = {"angle": angle, "frontal": is_frontal(angle), "reference_pixels": reference, "visible_pixels": visible,
-                                    "visible_share": round(visible / reference, 4) if reference else None, "colour_distance": None}
-            if visible:
-                mask = full_labels.getchannel("R").point(lambda v, n=number: 255 if v == n else 0)
+            reference_w, visible_w = counts[k]
+            judged_ref, judged_vis = (bare[angle][0][k] if reports[k]["occluder"] == "body_without_arms" else (reference_w, visible_w))
+            view: dict[str, Any] = {"angle": angle, "frontal": is_frontal(angle), "reference_pixels": judged_ref, "visible_pixels": judged_vis,
+                                    "visible_share": round(judged_vis / judged_ref, 4) if judged_ref else None,
+                                    "visible_share_incl_arms": round(visible_w / reference_w, 4) if reference_w else None, "colour_distance": None}
+            if visible_w:
+                mask = labels.getchannel("R").point(lambda v, n=number: 255 if v == n else 0)
                 mean = ImageStat.Stat(shaded, mask).mean
                 view["colour_distance"] = round(math.dist(_unit(mean), _unit(colour)), 4)
             reports[k]["views"].append(view)

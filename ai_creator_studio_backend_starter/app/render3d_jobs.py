@@ -165,7 +165,8 @@ def run_job(job_id: str, workspace_id: str, user_id: str, request: dict[str, Any
         shares = {a: round(_painted_share(im, background), 4) for a, im in stills.items()}
         qc = {"passed": all(s >= MIN_PAINTED_SHARE for s in shares.values()), "painted_share": {str(a): s for a, s in shares.items()}, "min_share": MIN_PAINTED_SHARE, "fits": fits}
         # R-ENGINE-11: a RECORD of how the garments look in the pictures (the body poking through, colour). It does not decide delivery: ``qc.passed`` stays the blank-picture check.
-        qc["render_check"] = render_qc.check_cuts(body_tris, layers, request["angles"], penetrations={f["kind"]: f["penetrations"] for f in fits})
+        qc["render_check"] = render_qc.check_cuts(body_tris, layers, request["angles"], penetrations={f["kind"]: f["penetrations"] for f in fits},
+                                                        body_without_arms=render3d_scene.body_without_arms(request["sex"], request.get("measurements")))
         content_mp4, mp4_info = None, None
         if qc["passed"] and request["mp4"]:
             cuts = [picture(a) for a in CUT_ANGLES]
