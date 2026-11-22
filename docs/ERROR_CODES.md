@@ -23,6 +23,7 @@
 | `ASSET_JSON_TOO_LARGE` | file | error | 3D 파일의 설명 부분이 너무 큽니다. | The description part of the 3D file is too large. |
 | `ASSET_KIND_MISMATCH` | file | error | 이 종류의 파일을 여기에 쓸 수 없습니다. | This kind of file cannot be used here. |
 | `ASSET_MEDIA_TYPE_UNSUPPORTED` | file | error | 지원하지 않는 파일 종류입니다. | This kind of file is not supported. |
+| `ASSET_NOT_FOUND` | file | error | 해당 그림을 찾을 수 없습니다. | That picture was not found. |
 | `ASSET_PARSE_FAILED` | file | error | 파일을 읽지 못했습니다. 손상되었을 수 있습니다. | The file could not be read. It may be damaged. |
 | `ASSET_SIGNATURE_INVALID` | file | error | 파일 내용이 형식과 맞지 않습니다. | The file content does not match its format. |
 | `ASSET_TOO_LARGE` | file | error | 파일이 너무 큽니다. | The file is too large. |
@@ -40,6 +41,8 @@
 | `AUDIO_ENCODER_MISSING` | general | error | 이 서버의 영상 도구에 소리를 넣는 기능이 없습니다. | This server's video tool cannot encode sound. |
 | `AUDIO_INVALID` | general | error | 소리 파일은 16비트 WAV(최대 50MB·10분)여야 하고, 영상에 이미 소리가 없어야 합니다. | The sound must be a 16-bit WAV (up to 50 MB and 10 minutes) and the video must have no sound yet. |
 | `AUTO_ROUTING_NOT_APPROVED` | provider | error | 자동 선택은 아직 승인되지 않았습니다. | Automatic selection is not approved yet. |
+| `BATCH_DUPLICATE_ASSET` | general | error | 같은 그림을 두 번 넣을 수 없습니다. | Each picture can be listed once. |
+| `BATCH_RECIPE_REQUIRED` | general | error | 일괄 처리에는 처리 단계 또는 프리셋 중 하나만 지정해 주세요. | Give either the steps or a preset for a batch, not both and not neither. |
 | `CAPABILITY_NOT_VERIFIED` | provider | error | 이 기능은 아직 확인되지 않았습니다. | This capability has not been verified yet. |
 | `COLLECTION_DISABLED` | customers | error | 이 정보는 지금 수집하지 않습니다. | This information is not being collected right now. |
 | `CONTRACT_DATE_INVALID` | customers | error | 날짜는 YYYY-MM-DD 형식이어야 합니다. | Dates must look like YYYY-MM-DD. |
@@ -157,6 +160,7 @@
 | `STEPS_REQUIRED` | photo | error | 처리 단계를 하나 이상 넣어 주세요. | Add at least one processing step. |
 | `STEPS_TOO_MANY` | photo | error | 처리 단계가 너무 많습니다. | Too many processing steps. |
 | `STEP_COLOR_INVALID` | photo | error | 색 값이 올바르지 않습니다. | The colour is not valid. |
+| `STEP_FAILED` | photo | error | 이 그림의 처리에 실패했습니다. | Processing this picture failed. |
 | `STEP_NEEDS_TRANSPARENCY` | photo | error | 이 단계는 배경이 투명한 그림에서만 쓸 수 있습니다. | This step needs a picture with a transparent background. |
 | `STEP_PARAMETER_INVALID` | photo | error | 처리 단계의 값이 올바르지 않습니다. | A step value is not valid. |
 | `STEP_PARAMETER_UNKNOWN` | photo | error | 처리 단계에 없는 설정입니다. | That setting does not exist for this step. |

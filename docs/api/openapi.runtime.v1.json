@@ -750,6 +750,76 @@
         "title": "AuditRow",
         "type": "object"
       },
+      "BatchItem": {
+        "properties": {
+          "asset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssetRecordResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "failed",
+              "not_run"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
+          }
+        },
+        "required": [
+          "asset_id",
+          "status"
+        ],
+        "title": "BatchItem",
+        "type": "object"
+      },
       "Body_putWorkspaceLibraryThumbnail": {
         "properties": {
           "file": {
@@ -6014,6 +6084,108 @@
           "updated_at"
         ],
         "title": "PhotoRunResponse",
+        "type": "object"
+      },
+      "PhotoStepsBatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Asset Ids",
+            "type": "array"
+          },
+          "preset_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset Id"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "maxItems": 12,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
+          }
+        },
+        "required": [
+          "asset_ids"
+        ],
+        "title": "PhotoStepsBatchRequest",
+        "type": "object"
+      },
+      "PhotoStepsBatchResponse": {
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BatchItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "not_run": {
+            "title": "Not Run",
+            "type": "integer"
+          },
+          "preset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset Id"
+          },
+          "succeeded": {
+            "title": "Succeeded",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id",
+          "preset_id",
+          "total",
+          "succeeded",
+          "failed",
+          "not_run",
+          "items"
+        ],
+        "title": "PhotoStepsBatchResponse",
         "type": "object"
       },
       "PhotoStepsRequest": {
@@ -21492,6 +21664,75 @@
           }
         },
         "summary": "Run Photo Steps",
+        "tags": [
+          "photo-steps"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/photo-steps/batch": {
+      "post": {
+        "description": "Apply ONE recipe (the given steps, or a saved preset of this workspace) to up to 20 of the workspace's images. The recipe is checked once before anything runs (a bad recipe changes nothing);\nthen each image is processed on its own: one that fails (missing, not an image, too large after enlarging) is reported and the others still go ahead. Every image counts against the\ngeneration rate limit; when the limit is reached the remaining images are reported as ``not_run`` (nothing is queued). Each result is a NEW asset; the sources are never changed.",
+        "operationId": "runPhotoStepsBatch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoStepsBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoStepsBatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Photo Steps Batch",
         "tags": [
           "photo-steps"
         ]
