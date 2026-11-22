@@ -147,3 +147,15 @@
 - **몸 치수 반영(선택)**: 쿼리 `height_cm`(120~220), `chest_cm`(60~160), `waist_cm`(50~150), `hips_cm`(70~170) — 일부만 보내도 됨. 키는 모델 전체를 비례 확대, 둘레는 그 단면만 조정(근사치·양식화, 실제 몸 형태 아님). 프리셋 둘레는 `GET /v1/base-models`의 `preset_circumferences_cm`.
 - 옷 색 교체: 받은 GLB의 재질 `top`/`bottom`/`skin`의 `baseColorFactor`를 바꾸거나, 위 쿼리로 서버가 색을 입힌 파일을 다시 받는다. 스타일 교체도 같은 쿼리.
 - 한계: 매우 단순한 "나무 인형" 모양, 옷은 색·길이만 바뀌며 실제 의류 메시가 아님.
+
+## 12. 3D 돌려보기 작업 `AIS_API.work.render3d` (R-ENGINE-10, 자체 엔진 own3d · **mock · 기능 플래그 기본 닫힘**)
+서버 플래그 `RENDER3D_ENABLED`가 꺼져 있으면(기본) 아래 세 경로는 로그인·멤버십·역할 검사 뒤 모두 **409 `RENDER3D_CLOSED`**. 켜면:
+
+| 화면 호출 | 서버 | 비고 |
+|---|---|---|
+| `AIS_API.work.render3d({sex, measurements, garments:[{kind, id}], bg, angles})` → `{job_id}` | `POST /v1/workspaces/{id}/render3d-jobs` → **202** `{job_id, status:"queued", …}` | 편집자 이상. `sex` male\|female, `measurements`(선택) `height_cm·chest_cm·waist_cm·hips_cm`, `garments` 최대 3(종류 top·bottom·skirt·dress·jacket, **id는 내장 샘플 `sample`만** — 라이브러리 옷은 아직 불가), `bg` white\|light\|gray\|studio, `angles` 0~345의 15의 배수 최대 8개(기본 `[0,45,90,180,270]`), `mp4`(기본 true) |
+| 폴링 | `GET /v1/workspaces/{id}/render3d-jobs/{job_id}` → `{status: queued→running→succeeded\|failed, images:[{angle, asset_id}], mp4:{asset_id, seconds:5, size:[720,1280], cuts:8}\|null, qc, error_code}` | 열람자도 읽기 가능. 파일은 기존 자산 경로로 받는다(`image/png`, `video/mp4`) |
+| 목록 | `GET /v1/workspaces/{id}/render3d-jobs` | 최신순 100개 |
+
+- 오류 코드: `RENDER3D_CLOSED`(409) · `RENDER3D_MEASUREMENT_INVALID` · `RENDER3D_GARMENT_UNKNOWN` · `RENDER3D_GARMENT_CONFLICT`(422) · `RENDER3D_DAILY_LIMIT`(429, 기본 하루 20건) · `FFMPEG_MISSING`(503, mp4 요청인데 서버에 ffmpeg 없음 — 그림만 받으려면 `mp4:false`) · 작업 실패 시 `FIT_REFUSED`·`QC_FAILED`·`RENDER_FAILED`(`error_code`).
+- **정직한 한계**: 그림은 **소프트웨어 렌더(mock)**: 마네킹·평면 색·조명 1개, 사진 품질 아님. mp4는 45° 간격 8컷을 섞어 만든 5초 회전(겹쳐 보이는 가장자리 있음). 작업은 서버 재시작 시 복구되지 않음. 실제 AI 모델·GPU·외부 호출 없음.
