@@ -10,6 +10,7 @@
 | `BG_REMOVAL_EVAL.md` | E-09a 배경 제거 후보 비교 (2026-11-17, 레인 3) | **범위**: Pillow만 쓰는 고전 영상 처리 후보 2종 + 둘을 섞은 `auto`. AI 컷아웃 모델(U²-Net, rembg, 유료 API)은 새 의존성·모델 파일·외부 전송이 필요해 **이… |
 | `CHANGELOG.md` | BUILD-00157 — Viewer Animation Loop Failure Isolation | - Extracted the Studio3DViewer requestAnimationFrame loop into a dependency-free controller with one-frame own… |
 | `DATA_LIFECYCLE.md` | 데이터 수명주기 — 내보내기·삭제·보관 (R-065) | / 단계 / 어디서 / 상태 / |
+| `EASE_MAP.md` | 여유·압력 맵 — S/M/L 비교 (M4 · 레인 2) | `app/ease_map.py` + `scripts/ease_sheet.py` — 같은 몸에 옷 S·M·L을 입혔을 때 **어디가 끼고 어디가 헐렁한지**를 숫자와 색 지도로 본다(순수 파이썬, 모… |
 | `ERROR_CODES.md` | 오류 코드 → 안내 문구 표 (자동 생성 — 직접 고치지 않음) | 버전 `2026-11-17.1`. 원본은 `ai_creator_studio_backend_starter/app/error_catalog.py`, 같은 내용을 `GET /v1/error-catalog… |
 | `EVENTS_DESIGN.md` | 이벤트·웹훅 설계 초안 (B-18, 초안 — 아무것도 연결되지 않음) | 코드: `ai_creator_studio_backend_starter/app/events.py`, 시험: `tests/test_events.py`. 발송·구독 저장·비밀 관리는 **아직 없음**(결… |
 | `FEATURE_SCOPE_STATUS.md` | AI CREATOR STUDIO — Current Feature Scope | **As of BUILD-00151.** This is the current product-scope reference. Older BUILD-00093/00096 notes describe the… |
