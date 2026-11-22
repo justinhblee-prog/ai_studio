@@ -58,8 +58,10 @@ def height_of(tris: list[Triangle]) -> float:
 
 
 def render(tris: list[Triangle], angle_deg: float, size: tuple[int, int] = (360, 640), elevation_deg: float = 8.0, background: tuple[int, int, int] = (242, 242, 242),
-           height_m: float | None = None) -> Image.Image:
-    """One picture: the scene turned ``angle_deg`` about the vertical axis (0 = seen from the front), the camera ``elevation_deg`` above the horizon."""
+           height_m: float | None = None, flat: bool = False, cull_back: bool = False) -> Image.Image:
+    """One picture: the scene turned ``angle_deg`` about the vertical axis (0 = seen from the front), the camera ``elevation_deg`` above the horizon.
+    ``flat=True`` paints every triangle's colour exactly (no light): used with label colours to ask "which object is in front at this pixel" (``app/render_qc.py``).
+    ``cull_back=True`` skips triangles whose normal points away from the camera, so the inside of an open tube (a garment's neck or hem opening) is not drawn."""
     width, height = size
     if width * height > MAX_PIXELS or width < 16 or height < 16:
         raise ValueError("picture size out of range")
@@ -78,6 +80,8 @@ def render(tris: list[Triangle], angle_deg: float, size: tuple[int, int] = (360,
     for corners, normals, rgb in tris:
         rp = [rot(c) for c in corners]
         rn = [rot(n) for n in normals]
+        if cull_back and rn[0][2] + rn[1][2] + rn[2][2] <= 0:
+            continue
         sx = [cx + q[0] * scale for q in rp]
         sy = [cy - q[1] * scale for q in rp]
         x0, y0, x1, y1, x2, y2 = sx[0], sy[0], sx[1], sy[1], sx[2], sy[2]
@@ -103,7 +107,7 @@ def render(tris: list[Triangle], angle_deg: float, size: tuple[int, int] = (360,
                 nz = w0 * rn[0][2] + w1 * rn[1][2] + w2 * rn[2][2]
                 length = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
                 diffuse = max(0.0, (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / length) if nz >= 0 else 0.0
-                shade = 0.45 + 0.65 * diffuse
+                shade = 1.0 if flat else 0.45 + 0.65 * diffuse
                 zbuf[row + x] = z
-                pixels[x, y] = (min(255, int(rgb[0] * shade)), min(255, int(rgb[1] * shade)), min(255, int(rgb[2] * shade)))
+                pixels[x, y] = rgb if flat else (min(255, int(rgb[0] * shade)), min(255, int(rgb[1] * shade)), min(255, int(rgb[2] * shade)))
     return image

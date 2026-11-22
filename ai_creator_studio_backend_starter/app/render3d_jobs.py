@@ -24,11 +24,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from PIL import Image, ImageChops
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app import base_models, config, garments, render3d_soft, video_mp4
+from app import base_models, config, garments, render3d_scene, render3d_soft, render_qc, video_mp4
 from app.assets import store
 from app.assets.routes import current_user, require_role
 from app.assets.validation import ValidatedAsset
-from app.garment_deform import deform_garment
 
 router = APIRouter(prefix="/v1/workspaces/{workspace_id}/render3d-jobs", tags=["render3d-jobs"])
 EVENT = "asset.render3d_output"
@@ -38,8 +37,6 @@ CUT_ANGLES = [45 * k for k in range(8)]          # the 8 cuts of the rotating vi
 MP4_SECONDS, MP4_ASPECT = 5, "9:16"
 MAX_GARMENTS, MAX_ANGLES = 3, 8
 DAILY_LIMIT_DEFAULT = 20
-SKIN = (214, 168, 128)
-GARMENT_COLOURS = {"top": (60, 90, 160), "bottom": (70, 70, 90), "skirt": (200, 60, 80), "dress": (60, 140, 90), "jacket": (50, 60, 80)}
 EXCLUDES = {"dress": {"top", "bottom", "skirt"}, "skirt": {"bottom", "dress"}, "top": {"dress"}, "bottom": {"skirt", "dress"}, "jacket": set()}
 MIN_PAINTED_SHARE = 0.004                         # a picture where fewer pixels than this differ from the background is blank
 
@@ -137,17 +134,10 @@ def _check_request(body: RenderIn) -> None:
             raise HTTPException(status_code=422, detail={"code": "RENDER3D_GARMENT_CONFLICT", "message": f"a {g.kind} cannot be worn with {sorted(EXCLUDES[g.kind] & set(kinds))}"})
 
 
-def build_scene(sex: str, measurements: dict[str, float] | None, garment_kinds: list[str]) -> tuple[list[render3d_soft.Triangle], list[dict[str, Any]]]:
-    """The body (a plain skin-coloured mannequin) and every garment fitted to it. Raises ``garments.GarmentError`` if a garment cannot be fitted."""
-    body = base_models.build_base_model(sex, top_style="tank", bottom_style="shorts", skin=SKIN, top=SKIN, bottom=SKIN, measurements=measurements or None)
-    tris = render3d_soft.triangles_of(body)
-    reports = []
-    for kind in garment_kinds:
-        glb, spec = garments.build_sample_garment(kind, sex, colour=GARMENT_COLOURS[kind])
-        fitted, report = deform_garment(glb, spec, measurements or None)
-        tris += render3d_soft.triangles_of(fitted, axis_outward=True)
-        reports.append({"kind": kind, "penetrations": report["penetrations"], "method": report["method"]})
-    return tris, reports
+def build_scene(sex: str, measurements: dict[str, float] | None, garment_kinds: list[str]):
+    """(all triangles, fitting reports, (body, garment layers)). Raises ``garments.GarmentError`` if a garment cannot be fitted."""
+    body, layers, reports = render3d_scene.build_layers(sex, measurements, garment_kinds)
+    return body + [t for _, tris, _ in layers for t in tris], reports, (body, layers)
 
 
 def _painted_share(image: Image.Image, background: tuple[int, int, int]) -> float:
@@ -162,7 +152,7 @@ def run_job(job_id: str, workspace_id: str, user_id: str, request: dict[str, Any
         db.execute("UPDATE render3d_jobs SET status='running' WHERE job_id=?", (job_id,))
     status, result, qc, error = "failed", None, None, "RENDER_FAILED"
     try:
-        tris, fits = build_scene(request["sex"], request.get("measurements"), [g["kind"] for g in request["garments"]])
+        tris, fits, (body_tris, layers) = build_scene(request["sex"], request.get("measurements"), [g["kind"] for g in request["garments"]])
         background = render3d_soft.BACKGROUNDS[request["bg"]]
         height = render3d_soft.height_of(tris)
         cache: dict[int, Image.Image] = {}
@@ -174,6 +164,8 @@ def run_job(job_id: str, workspace_id: str, user_id: str, request: dict[str, Any
         stills = {a: picture(a) for a in request["angles"]}
         shares = {a: round(_painted_share(im, background), 4) for a, im in stills.items()}
         qc = {"passed": all(s >= MIN_PAINTED_SHARE for s in shares.values()), "painted_share": {str(a): s for a, s in shares.items()}, "min_share": MIN_PAINTED_SHARE, "fits": fits}
+        # R-ENGINE-11: a RECORD of how the garments look in the pictures (the body poking through, colour). It does not decide delivery: ``qc.passed`` stays the blank-picture check.
+        qc["render_check"] = render_qc.check_cuts(body_tris, layers, request["angles"], penetrations={f["kind"]: f["penetrations"] for f in fits})
         content_mp4, mp4_info = None, None
         if qc["passed"] and request["mp4"]:
             cuts = [picture(a) for a in CUT_ANGLES]

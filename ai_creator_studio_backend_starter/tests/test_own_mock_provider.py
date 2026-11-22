@@ -97,3 +97,12 @@ def test_fitting_goes_through_the_garment_v1_mesh_deformation_only_not_the_ring_
     assert "deform_garment" in source and "import garment_fit" not in source and "from app.garment_fit" not in source
     _, done = _finish({"sex": "female", "garment_kind": "bottom", "measurements": {"height_cm": 165}})
     assert done["status"] == "succeeded" and done["output"]["fit"]["method"] == "profile-ratio.v1"
+
+
+def test_the_output_carries_a_render_based_qc_that_invents_nothing():
+    """R-ENGINE-11: output.qc is the render-cuts.v1 record; the five photo-review items stay None and the review scores stay None."""
+    _, done = _finish({"sex": "female", "garment_kind": "dress", "measurements": {"height_cm": 170, "chest_cm": 92, "waist_cm": 76, "hips_cm": 98}})
+    qc = done["output"]["qc"]
+    assert qc["method"] == "render-cuts.v1" and qc["angles"] == [0, 90, 180, 270] and qc["garments"][0]["kind"] == "dress" and qc["garments"][0]["penetration_points"] == 0
+    assert all(v is None for v in qc["not_judged"].values()) and all(v is None for v in done["output"]["review"]["scores"].values())
+    assert [v["frontal"] for v in qc["garments"][0]["views"]] == [True, False, True, False]

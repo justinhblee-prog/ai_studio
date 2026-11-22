@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from app import config, garments, render3d_jobs, render3d_soft, video_mp4
+from app import config, garments, render3d_jobs, render3d_scene, render3d_soft, video_mp4
 from app.main import app
 from tests.test_photo_steps_api import auth, env  # noqa: F401  (wa: owner a + viewer c, wb: owner b)
 from tests.test_video_mp4 import ffmpeg  # noqa: F401
@@ -122,7 +122,7 @@ def test_the_daily_limit_stops_a_workspace(opened, monkeypatch):
 def test_a_garment_that_cannot_be_fitted_fails_the_job_and_stores_nothing(opened, monkeypatch):
     def refuse(*args, **kwargs):
         raise garments.GarmentError(["the fitted garment would pass through the body at 3 vertices"])
-    monkeypatch.setattr(render3d_jobs, "deform_garment", refuse)
+    monkeypatch.setattr(render3d_scene, "deform_garment", refuse)
     job = poll(create({**FAST, "garments": [{"kind": "top"}]}).json()["job_id"])
     assert job["status"] == "failed" and job["error_code"] == "FIT_REFUSED" and job["images"] == [] and job["mp4"] is None
     assert len(list((opened["tmp"] / "private").glob("*.png"))) == 1, "only the fixture's own upload exists: the failed job stored no picture"
@@ -171,3 +171,13 @@ def test_the_workspace_queries_of_the_job_table_use_its_index(sql):
     render3d_jobs._init(db)
     plan = [r[-1] for r in db.execute("EXPLAIN QUERY PLAN " + sql, ("ws", "2026-01-01")[:sql.count("?")]).fetchall()]
     assert any("USING" in step and "INDEX" in step for step in plan) and not any(step.startswith("SCAN render3d_jobs") for step in plan), plan
+
+
+def test_the_job_records_the_render_check_but_it_does_not_decide_delivery(opened, monkeypatch):
+    """R-ENGINE-11: qc.render_check is a RECORD (the body showing through a garment is a finding, not a failed job); qc.passed stays the blank-picture check."""
+    job = poll(create({**FAST, "garments": [{"kind": "top"}], "angles": [0, 90]}).json()["job_id"])
+    check = job["qc"]["render_check"]
+    assert job["status"] == "succeeded" and check["method"] == "render-cuts.v1" and check["angles"] == [0, 90] and check["garments"][0]["kind"] == "top"
+    assert check["garments"][0]["colour_distance_max"] <= check["thresholds"]["max_colour_distance"] and all(v is None for v in check["not_judged"].values())
+    none = poll(create({**FAST}).json()["job_id"])
+    assert none["status"] == "succeeded" and none["qc"]["render_check"]["garments"] == [] and none["qc"]["render_check"]["passed"] is None, "no garment, nothing to judge"

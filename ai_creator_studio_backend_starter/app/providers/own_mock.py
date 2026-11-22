@@ -15,10 +15,11 @@ import json
 from collections import OrderedDict
 from typing import Any
 
-from app import base_models, garments
+from app import base_models, garments, render3d_scene, render_qc
 from app.garment_deform import deform_garment
 
 REVIEW_ITEMS = ("logo", "text", "pattern", "hands", "length")
+QC_ANGLES = (0, 90, 180, 270)                      # the cuts the render check looks at (R-ENGINE-11)
 MAX_KEPT = 256                                  # results kept in memory (a mock: nothing is stored durably)
 _RESULTS: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
 _GLBS: dict[str, bytes] = {}
@@ -68,9 +69,11 @@ class OwnMockProvider:
             fitted, report = deform_garment(glb, spec, clean["measurements"] or None)
         except garments.GarmentError as exc:
             return {"status": "failed", "charged": False, "error": {"code": "FIT_REFUSED", "message": str(exc)}, "output": None}
+        body_tris, layers, fits = render3d_scene.build_layers(clean["sex"], clean["measurements"] or None, [clean["garment_kind"]], clean["ease_cm"])
+        qc = render_qc.check_cuts(body_tris, layers, QC_ANGLES, penetrations={f["kind"]: f["penetrations"] for f in fits})     # R-ENGINE-11: recorded, never invented
         review = {"mock": True, "scores": {item: None for item in REVIEW_ITEMS}, "note": "the 5-item review is not run in the mock: no score is invented"}
         return {"status": "succeeded", "charged": True, "error": None, "_glb": fitted,
-                "output": {"glb_sha256": hashlib.sha256(fitted).hexdigest(), "glb_bytes": len(fitted), "fit": report, "garment_spec_id": spec["id"], "review": review}}
+                "output": {"glb_sha256": hashlib.sha256(fitted).hexdigest(), "glb_bytes": len(fitted), "fit": report, "garment_spec_id": spec["id"], "review": review, "qc": qc}}
 
     async def status(self, request_id: str) -> dict:
         found = _RESULTS.get(request_id)
