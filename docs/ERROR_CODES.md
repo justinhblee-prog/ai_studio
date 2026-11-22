@@ -71,6 +71,15 @@
 | `IMAGE_EXTENSION_MISMATCH` | file | error | 파일 확장자가 실제 형식과 다릅니다. | The file extension does not match the real format. |
 | `IMAGE_FORMAT_UNSUPPORTED` | file | error | PNG, JPEG, WebP 그림만 올릴 수 있습니다. | Only PNG, JPEG and WebP pictures can be uploaded. |
 | `IMAGE_UNREADABLE` | file | error | 그림을 읽을 수 없습니다. | The picture cannot be read. |
+| `IMPORT_EMPTY` | general | error | 모델에 면(삼각형)이 없습니다. | The model has no triangles. |
+| `IMPORT_KIND` | general | error | 지원하지 않는 옷 종류입니다. | That garment kind is not supported. |
+| `IMPORT_SCALE_AMBIGUOUS` | general | error | 모델의 단위(cm·mm 등)를 확인해 주세요. | Please confirm the unit of the model (cm, mm, ...). |
+| `IMPORT_SCALE_IMPLAUSIBLE` | general | error | 어떤 단위로도 옷 크기로 보이지 않습니다. 파일을 확인해 주세요. | No unit makes this a plausible garment size. Please check the file. |
+| `IMPORT_SCALE_INVALID` | general | error | 배율 값이 올바르지 않습니다. | The scale value is not valid. |
+| `IMPORT_SKINNED` | general | error | 뼈대(스킨)나 모프가 있는 모델은 지원하지 않습니다. | Models with a skin or morph targets are not supported. |
+| `IMPORT_SLEEVE_REQUIRED` | general | error | 재킷은 소매 길이를 입력해 주세요. | A jacket needs its sleeve length. |
+| `IMPORT_TOO_LARGE` | general | error | 모델의 면 수가 너무 많습니다. | The model has too many triangles. |
+| `IMPORT_UNSUPPORTED` | general | error | 이 모델 형식의 일부는 지원하지 않습니다. | Part of this model format is not supported. |
 | `INTERNAL_ADAPTER_ERROR` | general | error | 서비스 내부 오류입니다. 잠시 뒤 다시 시도해 주세요. | An internal error occurred. Please try again shortly. |
 | `INVALID_MONTH` | general | error | 월 형식이 올바르지 않습니다(예: 2026-11). | The month is not valid (for example 2026-11). |
 | `INVALID_RANGE` | general | error | 기간 형식이 올바르지 않습니다. | The date range is not valid. |
