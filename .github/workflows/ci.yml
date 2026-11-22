@@ -293,6 +293,15 @@ jobs:
           cd ai_creator_studio_3d_viewer
           node e2e/video_playback.mjs "$RUNNER_TEMP/fitturn.mp4" 720 1280 5 | tee e2e_fitted_playback.txt
           grep -q "SUMMARY 4/4 video playback checks passed" e2e_fitted_playback.txt
+      - name: own3d mock path - start, status, fitted .glb, server-side render, picture check (R-ENGINE-07)
+        if: matrix.group == 'b'
+        run: |
+          set -o pipefail
+          python ai_creator_studio_backend_starter/scripts/own3d_path.py make "$RUNNER_TEMP/own3d" | tee ai_creator_studio_3d_viewer/own3d_path_make.txt
+          grep -q '"ok": true' ai_creator_studio_3d_viewer/own3d_path_make.txt
+          node ai_creator_studio_3d_viewer/scripts/render_glb.mjs --glb "$RUNNER_TEMP/own3d/own3d.glb" --out "$RUNNER_TEMP/own3d/turn" --size 512 --angles 1 --turntable 120 | tail -n 1
+          python ai_creator_studio_backend_starter/scripts/own3d_path.py check "$RUNNER_TEMP/own3d/turn" 120 | tee ai_creator_studio_3d_viewer/own3d_path_check.txt
+          grep -q '"ok": true' ai_creator_studio_3d_viewer/own3d_path_check.txt
       - name: Legal acceptance gate, AI-training consent and deletion requests in the browser
         if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer
@@ -309,6 +318,23 @@ jobs:
           path: ai_creator_studio_3d_viewer/e2e_screens
           if-no-files-found: ignore
           retention-days: 7
+      - name: Base human models - front, 45 degree and side cuts for the eyes (R-ENGINE-08)
+        if: matrix.group == 'b'
+        run: |
+          set -o pipefail
+          for sex in male female; do
+            node ai_creator_studio_3d_viewer/scripts/render_glb.mjs --glb design_assets/base_models/base_$sex.glb --out "$RUNNER_TEMP/base_cuts/$sex" --size 640 --angles 8 --elevation 5 | tail -n 1
+          done
+          test "$(ls "$RUNNER_TEMP"/base_cuts/male/*.png | wc -l)" -eq 8 && test "$(ls "$RUNNER_TEMP"/base_cuts/female/*.png | wc -l)" -eq 8
+          mkdir -p base_cuts && cp -r "$RUNNER_TEMP"/base_cuts/. base_cuts/
+      - name: Keep the base model cuts (angle_000 = front, angle_001 = 45 degrees, angle_002 = side; looked at by hand, not asserted)
+        if: always() && matrix.group == 'b'
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-model-cuts
+          path: base_cuts
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Account and data-protection API flows (legal, deletion requests, Character guard)
         if: matrix.group == 'b'
         working-directory: ai_creator_studio_3d_viewer

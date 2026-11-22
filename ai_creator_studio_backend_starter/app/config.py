@@ -66,6 +66,8 @@ ASSIST_INTERPRETER_MODE = os.getenv("ASSIST_INTERPRETER_MODE", "rules").strip().
 ASSIST_PER_MINUTE = int(os.getenv("ASSIST_PER_MINUTE", "30"))            # per user, every interpreter
 ASSIST_LLM_DAILY_LIMIT = int(os.getenv("ASSIST_LLM_DAILY_LIMIT", "200"))  # per workspace, only external (llm) interpretations
 VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT", "20"))   # R-050: video jobs per workspace per 24h (proposal; also bounds mock storage)
+RENDER3D_ENABLED = env_flag(os.getenv("RENDER3D_ENABLED"))   # R-ENGINE-10: the own3d 3D render job (mock); default OFF = every route answers 409 RENDER3D_CLOSED
+RENDER3D_DAILY_LIMIT = int(os.getenv("RENDER3D_DAILY_LIMIT", "20"))   # render jobs per workspace per 24h (proposal)
 MARKET_REPORT_DAILY_LIMIT = int(os.getenv("MARKET_REPORT_DAILY_LIMIT", "10"))   # R-064: reports one person may file per day
 WORK_ITEMS_MAX = int(os.getenv("WORK_ITEMS_MAX", "2000"))   # R-069: work items per workspace (archived ones count)
 THREED_DAILY_LIMIT = int(os.getenv("THREED_DAILY_LIMIT", "20"))   # lane 5: 3D jobs per workspace per 24h (mock)

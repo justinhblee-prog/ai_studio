@@ -139,6 +139,11 @@
 | `RATE_LIMITED` | general | limit | 요청이 너무 잦습니다. 잠시 뒤 다시 시도해 주세요. | Too many requests. Please try again shortly. |
 | `REFERENCE_DUPLICATE` | model | error | 같은 참조 사진이 중복되었습니다. | A reference picture is listed twice. |
 | `REFERENCE_INVALID` | model | error | 참조 사진이 올바르지 않습니다. | A reference picture is not valid. |
+| `RENDER3D_CLOSED` | general | error | 3D 돌려보기 작업은 아직 열리지 않았습니다. | The 3D render job is not open yet. |
+| `RENDER3D_DAILY_LIMIT` | general | limit | 오늘 만들 수 있는 3D 돌려보기 작업 수를 모두 썼습니다. | Today's 3D render job limit has been used up. |
+| `RENDER3D_GARMENT_CONFLICT` | general | error | 같이 입을 수 없는 옷 조합이거나 같은 종류를 두 번 골랐습니다. | These garments cannot be worn together, or the same kind was chosen twice. |
+| `RENDER3D_GARMENT_UNKNOWN` | general | error | 지금은 기본 샘플 옷만 3D로 볼 수 있습니다. | Only the built-in sample garments can be shown in 3D for now. |
+| `RENDER3D_MEASUREMENT_INVALID` | general | error | 입력한 몸 치수가 허용 범위를 벗어났습니다. 치수를 확인해 주세요. | A body measurement is out of the allowed range. Please check them. |
 | `REPORT_DAILY_LIMIT` | general | limit | 오늘 접수할 수 있는 신고 수를 모두 썼습니다. | Today's report limit has been used up. |
 | `REVIEW_ALREADY_OPEN` | review | error | 이 파일은 이미 검수 중입니다. | This file is already under review. |
 | `REVIEW_CHANGED` | review | error | 다른 사람이 먼저 처리했습니다. 새로고침해 주세요. | Someone else already handled this. Please reload. |

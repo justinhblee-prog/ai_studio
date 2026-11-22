@@ -2405,6 +2405,34 @@
         "title": "FromJobIn",
         "type": "object"
       },
+      "GarmentRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "default": "sample",
+            "maxLength": 48,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "top",
+              "bottom",
+              "skirt",
+              "dress",
+              "jacket"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "GarmentRef",
+        "type": "object"
+      },
       "GeneratedOutputItemResponse": {
         "additionalProperties": true,
         "properties": {
@@ -2909,6 +2937,24 @@
           "name"
         ],
         "title": "Identity",
+        "type": "object"
+      },
+      "ImageOut": {
+        "properties": {
+          "angle": {
+            "title": "Angle",
+            "type": "integer"
+          },
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "angle",
+          "asset_id"
+        ],
+        "title": "ImageOut",
         "type": "object"
       },
       "InterpretIn": {
@@ -5186,6 +5232,33 @@
         "title": "ModelInfoOut",
         "type": "object"
       },
+      "Mp4Out": {
+        "additionalProperties": true,
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "size": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Size",
+            "type": "array"
+          }
+        },
+        "required": [
+          "asset_id",
+          "seconds",
+          "size"
+        ],
+        "title": "Mp4Out",
+        "type": "object"
+      },
       "NoticeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6735,6 +6808,194 @@
           "reason"
         ],
         "title": "ReconcileProviderSubmission",
+        "type": "object"
+      },
+      "RenderIn": {
+        "additionalProperties": false,
+        "properties": {
+          "angles": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Angles",
+            "type": "array"
+          },
+          "bg": {
+            "default": "light",
+            "enum": [
+              "white",
+              "light",
+              "gray",
+              "studio"
+            ],
+            "title": "Bg",
+            "type": "string"
+          },
+          "garments": {
+            "items": {
+              "$ref": "#/components/schemas/GarmentRef"
+            },
+            "maxItems": 3,
+            "title": "Garments",
+            "type": "array"
+          },
+          "measurements": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "maxProperties": 4,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measurements"
+          },
+          "mp4": {
+            "default": true,
+            "title": "Mp4",
+            "type": "boolean"
+          },
+          "sex": {
+            "enum": [
+              "male",
+              "female"
+            ],
+            "title": "Sex",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sex"
+        ],
+        "title": "RenderIn",
+        "type": "object"
+      },
+      "RenderListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RenderOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "RenderListOut",
+        "type": "object"
+      },
+      "RenderOut": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageOut"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "mp4": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Mp4Out"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner_id": {
+            "title": "Owner Id",
+            "type": "string"
+          },
+          "qc": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qc"
+          },
+          "request": {
+            "additionalProperties": true,
+            "title": "Request",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "workspace_id",
+          "owner_id",
+          "status",
+          "engine",
+          "request",
+          "images",
+          "mp4",
+          "qc",
+          "error_code",
+          "created_at",
+          "finished_at"
+        ],
+        "title": "RenderOut",
         "type": "object"
       },
       "ReportIn": {
@@ -21233,6 +21494,197 @@
         "summary": "Run Photo Steps",
         "tags": [
           "photo-steps"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/render3d-jobs": {
+      "get": {
+        "operationId": "listRender3dJobs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Render3D Jobs",
+        "tags": [
+          "render3d-jobs"
+        ]
+      },
+      "post": {
+        "operationId": "createRender3dJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Render3D Job",
+        "tags": [
+          "render3d-jobs"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/render3d-jobs/{job_id}": {
+      "get": {
+        "operationId": "getRender3dJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Render3D Job",
+        "tags": [
+          "render3d-jobs"
         ]
       }
     },
