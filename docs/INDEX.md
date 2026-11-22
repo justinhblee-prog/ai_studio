@@ -15,6 +15,7 @@
 | `FEATURE_SCOPE_STATUS.md` | AI CREATOR STUDIO — Current Feature Scope | **As of BUILD-00151.** This is the current product-scope reference. Older BUILD-00093/00096 notes describe the… |
 | `GARMENT_DEFORM.md` | 의류 메시 변형 맞춤 (R-ENGINE-03b · 트랙 A 1단계) | `app/garment_deform.py` — `garment.v1` 의류(GLB + 사이즈표, `app/garments.py`)를 **기본 인체(`app/base_models.py`)에 몸 치수를… |
 | `GARMENT_FIT.md` | 상의 껍데기 맞춤 (R-ENGINE-03a · 트랙 A 1단계) | `ai_creator_studio_backend_starter/app/garment_fit.py` — 레인 2의 치수 마네킹(`app/mannequin.py`) 둘레에 **상의 껍데기**를 씌워 한… |
+| `GLB_BUDGET.md` | 3D 모델 성능 예산 (E-04 · 레인 1) | `app/glb_budget.py` + `scripts/glb_budget.py` — `.glb` 한 개가 **폰·노트북·데스크톱에서 얼마나 무거운지** 정적으로 계산한다(순수 파이썬 + Pillo… |
 | `GLTF_COMPRESSION_EVAL.md` | 3D 압축 도구 측정 (2026-11-17, 레인 1 / E-01 후속, 회신 55) | **승인 범위**: glTF-Transform CLI를 **개발 환경·CI에서만** 사용(운영 서버에 설치하지 않음). 이 저장소에는 `tools/gltf_compress/`(package.json… |
 | `INTEGRATION_ENVIRONMENT_STATUS_BUILD-00212.md` | Supabase / Vercel Integration Environment Status — BUILD-00212 | Date: 2026-11-06. This is an environment inventory, not a successful app integration test. |
 | `LAUNCH_CHECKLIST.md` | 출시 체크리스트 (제한된 B2B 파일럿) — 증거 유무 표 | > **초판 2026-11-09, 11/28에 갱신할 것.** 저장소에는 별도의 출시 기준 문서가 없어서 **항목은 이 세션이 구성한 것**이다(법률 항목은 `docs/project-design/i… |
