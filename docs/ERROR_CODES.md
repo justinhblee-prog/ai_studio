@@ -160,6 +160,7 @@
 | `STEP_NEEDS_TRANSPARENCY` | photo | error | 이 단계는 배경이 투명한 그림에서만 쓸 수 있습니다. | This step needs a picture with a transparent background. |
 | `STEP_PARAMETER_INVALID` | photo | error | 처리 단계의 값이 올바르지 않습니다. | A step value is not valid. |
 | `STEP_PARAMETER_UNKNOWN` | photo | error | 처리 단계에 없는 설정입니다. | That setting does not exist for this step. |
+| `STEP_RESULT_TOO_LARGE` | photo | error | 확대하면 결과 그림이 너무 커집니다. 배율을 줄여 주세요. | The enlarged picture would be too large. Please use a smaller factor. |
 | `STEP_UNKNOWN` | photo | error | 알 수 없는 처리 단계입니다. | Unknown processing step. |
 | `SUBTITLE_FONT_MISSING` | general | error | 이 서버에 자막용 글꼴이 설치되어 있지 않아 자막을 넣을 수 없습니다. | The subtitle font is not installed on this server, so subtitles are not available. |
 | `SUBTITLE_GLYPH_MISSING` | general | error | 자막에 이 서비스의 글꼴이 그릴 수 없는 글자가 있습니다. | A subtitle contains a character the service font cannot draw. |
@@ -182,6 +183,7 @@
 | `UNKNOWN_REQUEST` | general | error | 해당 요청을 찾을 수 없습니다. | That request was not found. |
 | `UNSUPPORTED_CAPABILITY` | provider | error | 이 AI 서비스가 지원하지 않는 기능입니다. | This AI service does not support that. |
 | `UNSUPPORTED_PROVIDER` | provider | error | 지원하지 않는 AI 서비스입니다. | This AI service is not supported. |
+| `UPSCALE_METHOD_UNKNOWN` | general | error | 알 수 없는 확대 방식입니다. | That enlargement method is not known. |
 | `VALIDATION_ERROR` | general | error | 입력한 값이 올바르지 않습니다. 내용을 확인해 주세요. | Some of the values are not valid. Please check them. |
 | `VIDEO_ASPECT_INVALID` | video | error | 영상 비율은 9:16, 4:5, 16:9 중에서 고를 수 있습니다. | The video aspect must be 9:16, 4:5 or 16:9. |
 | `VIDEO_COMMENT_INVALID` | video | error | 영상 파일에 넣을 설명 글이 비었거나 너무 길거나 여러 줄입니다. | The text to put inside the video file is empty, too long or more than one line. |

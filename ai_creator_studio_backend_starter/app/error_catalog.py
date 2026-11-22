@@ -108,6 +108,8 @@ CODES: dict[str, tuple[str, str]] = {
     "STEPS_REQUIRED": ("처리 단계를 하나 이상 넣어 주세요.", "Add at least one processing step."),
     "STEPS_TOO_MANY": ("처리 단계가 너무 많습니다.", "Too many processing steps."),
     "STEP_UNKNOWN": ("알 수 없는 처리 단계입니다.", "Unknown processing step."),
+    "UPSCALE_METHOD_UNKNOWN": ("알 수 없는 확대 방식입니다.", "That enlargement method is not known."),
+    "STEP_RESULT_TOO_LARGE": ("확대하면 결과 그림이 너무 커집니다. 배율을 줄여 주세요.", "The enlarged picture would be too large. Please use a smaller factor."),
     "STEP_PARAMETER_INVALID": ("처리 단계의 값이 올바르지 않습니다.", "A step value is not valid."),
     "STEP_PARAMETER_UNKNOWN": ("처리 단계에 없는 설정입니다.", "That setting does not exist for this step."),
     "STEP_COLOR_INVALID": ("색 값이 올바르지 않습니다.", "The colour is not valid."),

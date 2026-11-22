@@ -22,6 +22,8 @@ OPS = {
     "gradient_background": {"top_color": (str, None, None, "#ffffff"), "bottom_color": (str, None, None, "#e6e6e6")},
     "white_balance": {"strength_pct": (int, 0, 100, 100)},
     "drop_shadow": {"offset_x": (int, -200, 200, 0), "offset_y": (int, -200, 200, 12), "blur": (int, 0, 100, 16), "opacity_pct": (int, 0, 100, 40)},
+    # E-09d: enlarge by interpolation (app/upscale.py: Lanczos + a mild unsharp mask; adds no new detail). factor_pct 200 = twice as wide and tall.
+    "upscale": {"factor_pct": (int, 100, 400, 200), "sharpen_pct": (int, 0, 100, 30)},
 }
 
 
@@ -177,6 +179,12 @@ def run_steps(image: Image.Image, steps: Any) -> tuple[Image.Image, list[dict[st
             current = white_balance(current, step["strength_pct"])
         elif step["op"] == "drop_shadow":
             current = drop_shadow(current, step["offset_x"], step["offset_y"], step["blur"], step["opacity_pct"])
+        elif step["op"] == "upscale":
+            from app import upscale as _upscale
+            try:
+                current = _upscale.upscale(current, step["factor_pct"], step["sharpen_pct"])
+            except _upscale.UpscaleError as exc:
+                raise StepError(exc.code, str(exc)) from exc
         records.append({**step, "mode": "local", "size_in": list(before), "size_out": list(current.size),
                         "duration_ms": round((time.perf_counter() - started) * 1000, 2)})
     return current, records
