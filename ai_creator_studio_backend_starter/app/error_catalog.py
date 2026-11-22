@@ -109,6 +109,8 @@ CODES: dict[str, tuple[str, str]] = {
     "STEPS_TOO_MANY": ("처리 단계가 너무 많습니다.", "Too many processing steps."),
     "STEP_UNKNOWN": ("알 수 없는 처리 단계입니다.", "Unknown processing step."),
     "UPSCALE_METHOD_UNKNOWN": ("알 수 없는 확대 방식입니다.", "That enlargement method is not known."),
+    "EXPORT_NOT_GLB": ("3D 모델(.glb)만 내보낼 수 있습니다.", "Only .glb 3D models can be exported."),
+    "EXPORT_FAILED": ("모델을 내보낼 수 있게 준비하지 못했습니다.", "The model could not be prepared for export."),
     "BATCH_RECIPE_REQUIRED": ("일괄 처리에는 처리 단계 또는 프리셋 중 하나만 지정해 주세요.", "Give either the steps or a preset for a batch, not both and not neither."),
     "BATCH_DUPLICATE_ASSET": ("같은 그림을 두 번 넣을 수 없습니다.", "Each picture can be listed once."),
     "ASSET_NOT_FOUND": ("해당 그림을 찾을 수 없습니다.", "That picture was not found."),

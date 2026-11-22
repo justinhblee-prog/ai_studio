@@ -54,8 +54,10 @@
 | `DESIGN_TOO_MANY` | model | error | 속성이 너무 많습니다. | Too many design values. |
 | `DESIGN_VALUE_INVALID` | model | error | 속성 값은 짧은 글이나 0~9999의 정수여야 합니다. | Design values must be short text or a whole number from 0 to 9999. |
 | `DOWNLOAD_MONTHLY_LIMIT` | general | limit | 이번 달 내려받기 한도에 도달했습니다. | The monthly download limit has been reached. |
+| `EXPORT_FAILED` | export | error | 모델을 내보낼 수 있게 준비하지 못했습니다. | The model could not be prepared for export. |
 | `EXPORT_GONE` | export | limit | 내보내기 파일의 보관 기간이 끝났습니다. 새로 만들어 주세요. | This export has expired. Please create a new one. |
 | `EXPORT_LIMIT` | export | limit | 내보내기는 하루에 정해진 횟수까지만 할 수 있습니다. | Exports are limited per day. |
+| `EXPORT_NOT_GLB` | export | error | 3D 모델(.glb)만 내보낼 수 있습니다. | Only .glb 3D models can be exported. |
 | `EXPORT_TOO_LARGE` | export | limit | 내보낼 파일이 너무 큽니다. 지원팀에 나눠서 내보내기를 요청해 주세요. | The files are too large to export at once. Ask support for a split export. |
 | `EXTERNAL_NOTICE_REQUIRED` | legal | error | **[결정 필요: 법무]** | **[decision needed: legal]** |
 | `FFMPEG_FAILED` | general | error | 영상 파일을 만드는 중 오류가 났습니다. 잠시 뒤 다시 시도해 주세요. | The video file could not be encoded. Please try again shortly. |
