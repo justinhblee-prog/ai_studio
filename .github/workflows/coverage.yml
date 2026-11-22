@@ -1,6 +1,7 @@
 # B-22: manual coverage measurement of the backend tests (not part of the pull-request checks: it makes the run slower).
 # Run it from the Actions tab (workflow_dispatch). It only READS the code and prints a table; no secrets, no paid Provider, no Supabase/Vercel.
 # The first run is also triggered by the pull request that adds this file (paths filter) so the table exists right away.
+# B-22 step 3: re-measured by the pull request that adds tests for the five lowest modules (fashn adapter, prometheus metrics, outbox worker, postgres primitives; the credit-ledger Protocol has no code to cover).
 name: coverage
 on:
   workflow_dispatch:
