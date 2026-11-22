@@ -13,6 +13,19 @@ jobs:
   backend-coverage:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: acs_live
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      PGPASSWORD: ci
+      ACS_TEST_DATABASE_URL: postgresql://postgres:ci@localhost:5432/acs_live     # a disposable database inside this job, the same as the pull-request checks
     defaults:
       run:
         working-directory: ai_creator_studio_backend_starter
@@ -26,7 +39,12 @@ jobs:
       - run: pip install -r requirements.txt coverage==7.6.10
       - name: "Install ffmpeg and the open Korean subtitle font (the video tests need them)"
         run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fonts-noto-cjk
-      - name: "pytest under coverage (live PostgreSQL tests are skipped, there is no database service here)"
+      - name: Prepare Supabase-compatible roles (stubs for the disposable CI database; the same as the pull-request checks)
+        run: >-
+          psql -h localhost -U postgres -d acs_live -v ON_ERROR_STOP=1 -c
+          "create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
+          create schema auth; create function auth.uid() returns uuid language sql stable as 'select null::uuid';"
+      - name: "pytest under coverage (WITH the live PostgreSQL tests: without them every PostgreSQL adapter shows as untested, which it is not)"
         env:
           REQUIRE_FFMPEG: "1"
           REQUIRE_SUBTITLE_FONT: "1"
@@ -38,3 +56,11 @@ jobs:
           coverage report --sort=cover --skip-covered -m --fail-under=0 | tee coverage.txt | head -n 70
           echo "---- total ----"
           tail -n 2 coverage.txt
+      - name: Keep the whole table
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-table
+          path: ai_creator_studio_backend_starter/coverage.txt
+          if-no-files-found: ignore
+          retention-days: 14
