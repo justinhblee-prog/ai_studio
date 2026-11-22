@@ -165,3 +165,10 @@
 한 가지 레시피를 최대 **20장**에 적용. 본문 `{asset_ids:[…], steps:[…] | preset_id}` — **steps 또는 preset_id 중 정확히 하나**(둘 다·둘 다 없음 = 422 `BATCH_RECIPE_REQUIRED`), 같은 그림 두 번 = 422 `BATCH_DUPLICATE_ASSET`, 레시피가 잘못되면 **시작 전에 통째로 422**(아무것도 저장 안 됨). 편집자 이상.
 응답 201: `{batch_id, preset_id, total, succeeded, failed, not_run, items:[{asset_id, status: ok|failed|not_run, asset, steps, error_code, message}]}` — 이미지마다 따로 처리해 **일부 실패는 나머지를 막지 않는다**(없는 그림 `ASSET_NOT_FOUND`, 확대 결과가 너무 큼 `STEP_RESULT_TOO_LARGE` 등). 이미지 1장이 생성 속도 제한 1회로 센다; 한도에 닿으면 **나머지는 `not_run`(`RATE_LIMITED`)** 으로 보고하고 대기열에 쌓지 않는다(나중에 다시 호출). 결과는 모두 새 자산, 원본 불변, 출처 기록에 `batch_id`(+`preset_id`).
 새 단계 `upscale`(E-09d)도 이 레시피에 쓸 수 있다(`docs/UPSCALE_EVAL.md`).
+
+## 14. 3D 모델 내보내기 `GET /v1/assets/{asset_id}/versions/{version_id}/export` (E-05)
+저장된 `.glb` 한 버전을 **출처 정보가 든 파일**로 내려준다. 편집자 이상(열람자는 미리보기는 되지만 내보내기는 403), 로그인 필수, 다른 작업공간은 403/404, 보류(takedown)된 자산은 404, `.glb`가 아니면 422 `EXPORT_NOT_GLB`, 내려주기 전에 **저장 파일의 크기·SHA-256을 기록과 대조**(어긋나면 409, 아무것도 안 보내고 기록도 안 남김), `download` 속도 제한 적용.
+- 파일 = 저장된 GLB + **`asset.extras.acs_export` 한 블록**(`schema: acs-3d-export.v1`, `asset_id`, `version_id`, `version_number`, `source_sha256`(저장 파일의 해시), `exported_at`, `ai_disclosure{is_ai_generated, digital_source_type(IPTC), text}`). **형상·재질·텍스처 등 나머지는 한 바이트도 안 바뀐다**(시험: BIN 바이트·메시·재질·접근자 동일, 기존 `asset.extras` 보존). 저장 파일은 불변.
+- AI 표시는 출처 기록으로 판정(AI 공급자 결과면 표시, 업로드·로컬 처리·내장 mock은 표시 안 함); 문구는 그림 표시와 같은 설정(`AI_MARK_TEXT_*`, 최종 법무 문구는 대기).
+- 응답 머리: `ETag`·`X-Content-SHA256` = **보내는 파일**의 해시, `Content-Disposition: attachment`, `Cache-Control: private, no-store`. 내보낸 사실은 출처 기록(`asset.exported`: 누가·어느 버전·원본 해시·내보낸 파일 해시·바이트 수)에 남는다.
+- **USDZ는 만들지 않는다**(변환 도구 미승인). `.gltf`(분리형)도 내보내기 대상 아님.

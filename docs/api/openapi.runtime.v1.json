@@ -11618,6 +11618,69 @@
         ]
       }
     },
+    "/v1/assets/{asset_id}/versions/{version_id}/export": {
+      "get": {
+        "operationId": "exportAssetVersionGlb",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "model/gltf-binary": {}
+            },
+            "description": "The stored .glb with its provenance block"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Asset Version",
+        "tags": [
+          "asset-export"
+        ]
+      }
+    },
     "/v1/assets/{asset_id}/versions/{version_id}/preview": {
       "get": {
         "operationId": "preview_asset_version_v1_assets__asset_id__versions__version_id__preview_get",
