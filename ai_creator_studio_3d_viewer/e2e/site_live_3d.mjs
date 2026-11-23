@@ -32,17 +32,20 @@ const run = async (name, fn) => {
   catch (e) { results.push({ name, ok: false }); console.log(`FAIL  ${name}\n      ${String(e && e.message || e).split('\n').slice(0, 6).join('\n      ')}`); }
 };
 
+// page.evaluate shows a thrown plain object as "Object": carry it through as JSON text so a failure says WHAT the server answered
+const live = (fn, arg) => page.evaluate(async ([src, a]) => { try { return await (0, eval)('(' + src + ')')(a); } catch (e) { throw new Error('LIVE ' + JSON.stringify(e && e.code ? e : String(e && e.message || e))); } }, [fn.toString(), arg]);
 const auth = { Authorization: `Bearer ${USERS.owner.token}` };
 const WS = 'ws-live-3d';
 const created = await fetch(`${stack.apiUrl}/v1/workspaces`, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace_id: WS }) });
 assert.equal(created.status, 201, 'workspace created');
 
+let page;
 const browser = await chromium.launch();
 let timings = {};
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await context.route(url => !/^(http:\/\/127\.0\.0\.1|data:|blob:)/.test(url.href), route => route.abort());      // hermetic
-  const page = await context.newPage();
+  page = await context.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e.message || e).slice(0, 300)));
   await page.goto(`${ORIGIN}/ko/studio-3d.html`);
@@ -74,7 +77,7 @@ try {
   const stills = {};
   await run('render(): model + 2 garments + a pose + 5 angles -> five real pictures from the server (lit renderer)', async () => {
     const t0 = Date.now();
-    const r = await page.evaluate(() => AIS_API.studio3d.render({ modelId: 'mf0', garments: ['top', 'bottom'], pose: 'walking', angles: [0, 45, 90, 180, 270], renderer: 'photo' }));
+    const r = await live(() => AIS_API.studio3d.render({ modelId: 'mf0', garments: ['top', 'bottom'], pose: 'walking', angles: [0, 45, 90, 180, 270], renderer: 'photo' }));
     timings.photo5 = Date.now() - t0;
     assert.equal(r.images.length, 5);
     assert.deepEqual(r.images.map(i => i.angle), [0, 45, 90, 180, 270]);
@@ -87,7 +90,7 @@ try {
 
   await run('render(): the fast mock renderer in the standing pose gives the "before" pictures; both differ', async () => {
     const t0 = Date.now();
-    const r = await page.evaluate(() => AIS_API.studio3d.render({ sex: 'female', garments: ['top', 'bottom'], pose: 'standing', angles: [0, 90], renderer: 'soft' }));
+    const r = await live(() => AIS_API.studio3d.render({ sex: 'female', garments: ['top', 'bottom'], pose: 'standing', angles: [0, 90], renderer: 'soft' }));
     timings.soft2 = Date.now() - t0;
     assert.equal(r.images.length, 2);
     stills.before = await page.evaluate(async imgs => Promise.all(imgs.map(async im => { const img = new Image(); img.src = im.url; await img.decode(); const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img, 0, 0); return c.toDataURL('image/png'); })), r.images);
@@ -106,7 +109,7 @@ try {
   });
 
   await run('toVideo(): the saved pictures go to a video job (library item -> video) and it succeeds', async () => {
-    const job = await page.evaluate(ids => AIS_API.studio3d.toVideo({ itemIds: ids.slice(0, 3), aspect: '9:16', duration: 6 }), itemIds);
+    const job = await live(ids => AIS_API.studio3d.toVideo({ itemIds: ids.slice(0, 3), aspect: '9:16', duration: 6 }), itemIds);
     assert.equal(job.status, 'succeeded', JSON.stringify(job).slice(0, 300));
   });
 
