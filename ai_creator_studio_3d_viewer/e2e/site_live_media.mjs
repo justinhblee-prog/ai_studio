@@ -6,7 +6,7 @@ import { createReadStream, existsSync, statSync, writeFileSync, mkdirSync } from
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
-import { chromium, startStack, USERS } from './harness.mjs';
+import { chromium, startStack, USERS, makePng } from './harness.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SITE = resolve(here, '..', '..', 'site');
@@ -91,13 +91,47 @@ try {
     await assert.rejects(live(() => AIS_API.tryon.couple({ photo: window.__couple, rightsConfirmed: true, slots: { a: ['top'], b: ['top'] } })), /COUPLE_OVERLAP_TOO_LARGE|COUPLE_PERSON_NOT_FOUND/);
   });
 
+  // ---------- D-4 story -> video ----------
+  const upIds = [];
+  for (const rgb of [[200, 60, 60], [60, 200, 60], [60, 60, 200]]) {
+    const form = new FormData(); form.append('workspace_id', WS); form.append('rights_confirmed', 'true'); form.append('file', new Blob([makePng(120, 160, rgb)], { type: 'image/png' }), 'scene.png');
+    const up = await fetch(`${stack.apiUrl}/v1/assets/images`, { method: 'POST', headers: auth, body: form });
+    assert.equal(up.status, 201, await up.clone().text());
+    upIds.push((await up.json()).asset_id);
+  }
+  const STORY = '아침에 일어났다. 커피를 마셨다. 길을 걸었다.';
+
+  await run('video.story(): a 3-sentence story over 3 pictures, 6 s, becomes a real MP4 with one cut and caption per sentence', async () => {
+    const t0 = Date.now();
+    const r = await live(([ids, story]) => AIS_API.video.story({ story, length: 6, sources: ids, aspect: '9:16', captions: 'auto' }), [upIds, STORY]);
+    timings.story = Date.now() - t0;
+    assert.equal(r.cuts.length, 3);
+    assert.deepEqual(r.cuts.map(c => c.caption), ['아침에 일어났다.', '커피를 마셨다.', '길을 걸었다.']);
+    assert.deepEqual(r.cuts.map(c => [c.start, c.end]), [[0, 2], [2, 4], [4, 6]]);
+    assert.equal(r.mp4.seconds, 6); assert.equal(r.mp4.frames, 144);
+    const head = await page.evaluate(async url => { const b = new Uint8Array(await (await fetch(url)).arrayBuffer()); return { size: b.length, brand: String.fromCharCode(...b.slice(4, 12)) }; }, r.url);
+    assert.ok(head.size > 2000 && head.brand.startsWith('ftyp'), JSON.stringify(head));
+  });
+
+  await run('video.story(): length "auto" is 3 s per scene, and fewer pictures than sentences share a picture across scenes', async () => {
+    const r = await live(([ids, story]) => AIS_API.video.story({ story, length: 'auto', sources: [ids[0]], captions: null }), [upIds, STORY]);
+    assert.equal(r.mp4.seconds, 9);
+    assert.deepEqual([...new Set(r.cuts.map(c => c.asset_id))], [upIds[0]]);
+  });
+
+  await run('video.story(): bad length, an AI engine and a caption list of the wrong size are refused with STORY_* codes the screen can translate', async () => {
+    await assert.rejects(live(ids => AIS_API.video.story({ story: 'a. b.', length: 61, sources: ids }), upIds), /STORY_SECONDS_INVALID/);
+    await assert.rejects(live(ids => AIS_API.video.story({ story: 'a. b.', length: 6, sources: ids, engine: 'ai' }), upIds), /STORY_ENGINE_CLOSED/);
+    await assert.rejects(live(ids => AIS_API.video.story({ story: 'a. b.', length: 6, sources: ids, captions: ['one'] }), upIds), /STORY_CAPTIONS_INVALID/);
+  });
+
   assert.deepEqual(errors, [], 'no script error on the page');
 } finally {
   await browser.close();
   await stack.stop();
   web.close();
 }
-console.log(`TIMINGS (CI runner) couple job: ${timings.couple} ms; pictures in ${OUT}`);
+console.log(`TIMINGS (CI runner) couple job: ${timings.couple} ms; story video 6 s: ${timings.story} ms; pictures in ${OUT}`);
 const passed = results.filter(r => r.ok).length;
 console.log(`SUMMARY ${passed}/${results.length} live media steps passed`);
 process.exit(passed === results.length ? 0 : 1);
