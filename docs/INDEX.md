@@ -31,6 +31,7 @@
 | `POSTGRES_RACE_PRIMITIVES.md` | PostgreSQL 전환: 경합 보호 대체표 (B-05 · D-66c 1단계) | SQLite 전용 모듈 43개가 "확인 후 쓰기"를 지키는 방식과, PostgreSQL(기본 READ COMMITTED, 읽기는 막지 않음)에서 그것을 대체할 구성. **모든 행은 `tests/te… |
 | `RATE_LIMITS.md` | 속도 제한·남용 방지 현황표 (R-067) | / 구간 / 상태 / 값(기본) / 설정(환경 변수) / 단위 / |
 | `README.md` | 문서 인덱스 | 문서는 문서의 목적과 수명에 따라 관리합니다. 매 작업마다 README, 개발기록, 인수인계 파일을 각각 새 버전으로 복제하지 않습니다. |
+| `RENDER_PHOTO.md` | 사진 느낌 렌더 (E-03) — `app/render3d_photo.py` | 순수 파이썬 + Pillow(GPU·모델·새 의존성 없음). 기존 `render3d_soft`(빠른 모형)는 그대로 두고, 같은 장면을 **조금 더 사진처럼** 그리는 별도 렌더러다. 비교 PNG:… |
 | `RESTORE_DRILL.md` | 복구 훈련 (RTO 측정) — R-077 | `scripts/restore_drill.py`가 **백업 → 검증 → 새 빈 폴더로 복원 → 복원본 무결성 검사**를 한 번에 돌리고 단계별 시간을 JSON으로 냅니다. 운영 백업·운영 DB는 쓰… |
 | `RUNBOOK.md` | 운영 런북 (제한된 B2B 파일럿, SQLite 단일 인스턴스) | > **상태**: 이 문서의 명령과 설정은 코드에서 확인했고, 점검·백업·복구 절차는 시험으로 검증했다. 그러나 **실제 배포 환경에서 실행해 본 적은 없다**(배포 대상 정보 없음 — `docs/… |
 | `THIRD_PARTY_FONTS.md` | 서드파티 글꼴 (자막용) | / 항목 / 내용 / |
