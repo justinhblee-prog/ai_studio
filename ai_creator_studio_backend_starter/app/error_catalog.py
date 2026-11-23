@@ -172,6 +172,7 @@ CODES: dict[str, tuple[str, str]] = {
     "RENDER3D_GARMENT_CONFLICT": ("같이 입을 수 없는 옷 조합이거나 같은 종류를 두 번 골랐습니다.", "These garments cannot be worn together, or the same kind was chosen twice."),
     "RENDER3D_GARMENT_UNKNOWN": ("지금은 기본 샘플 옷만 3D로 볼 수 있습니다.", "Only the built-in sample garments can be shown in 3D for now."),
     "RENDER3D_MEASUREMENT_INVALID": ("입력한 몸 치수가 허용 범위를 벗어났습니다. 치수를 확인해 주세요.", "A body measurement is out of the allowed range. Please check them."),
+    "FIT_CHECK_INVALID": ("사이즈 비교에 넣은 값을 확인해 주세요(몸 치수나 기준 둘레가 허용 범위를 벗어났습니다).", "Please check the values for the size comparison (a measurement or the reference circumference is out of range)."),
     "VIDEO_NOT_CANCELLABLE": ("이미 끝난 영상 작업이라 취소할 것이 없습니다.", "The video job has already finished, so there is nothing to cancel."),
     "VIDEO_RETRY_NOT_FAILED": ("실패한 영상만 다시 시도할 수 있습니다.", "Only a failed video can be retried."),
     "VIDEO_INPUT_DUPLICATE": ("같은 그림을 두 번 넣을 수 없습니다.", "Each picture can be used once."),

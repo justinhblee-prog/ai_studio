@@ -2406,6 +2406,66 @@
         "title": "FeaturesResponse",
         "type": "object"
       },
+      "FitCheckIn": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "top",
+              "bottom",
+              "skirt",
+              "dress",
+              "jacket"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "measurements": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "maxProperties": 4,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measurements"
+          },
+          "nominal": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "maxProperties": 3,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nominal"
+          },
+          "sex": {
+            "enum": [
+              "male",
+              "female"
+            ],
+            "title": "Sex",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sex",
+          "kind"
+        ],
+        "title": "FitCheckIn",
+        "type": "object"
+      },
       "FromJobIn": {
         "additionalProperties": false,
         "properties": {
@@ -20028,6 +20088,72 @@
         "summary": "Create Workspace Export",
         "tags": [
           "data-export"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/fit-check": {
+      "post": {
+        "operationId": "createFitCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FitCheckIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fit Check",
+        "tags": [
+          "fit-check"
         ]
       }
     },
