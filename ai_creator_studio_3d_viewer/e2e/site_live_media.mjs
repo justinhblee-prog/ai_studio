@@ -185,7 +185,7 @@ try {
     const one = await live(id => AIS_API.team.get(id), mine.id);
     assert.equal(one.cm, 1); assert.deepEqual(one.events.map(e => e.to), ['draft', 'review', 'changes']); assert.equal(one.comments[0].body, '확인했어요');
     await as(USERS.editor);
-    await assert.rejects(live(id => AIS_API.team.transition(id, 'approved'), theirs.id), /FORBIDDEN/);
+    await assert.rejects(live(id => AIS_API.team.transition(id, 'review'), theirs.id), /FORBIDDEN/);        // an editor cannot move someone else's job (a valid step, the wrong person)
   });
 
   await run('team.bulk()/summary(): bulk results per job (part may fail), the weekly summary counts members, statuses and jobs due within 24 h', async () => {
