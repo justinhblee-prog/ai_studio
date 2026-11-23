@@ -47,6 +47,7 @@ from app.render3d_jobs import router as render3d_jobs_router
 from app.model_export import router as model_export_router
 from app.ease_api import router as ease_router
 from app.team_jobs import router as team_jobs_router
+from app.photo_psd import router as photo_psd_router
 from app.edit_provenance import router as edit_provenance_router
 from app.ops_usage import router as ops_usage_router
 from app.customers import router as customers_router
@@ -164,6 +165,7 @@ app.include_router(video_jobs_router)
 app.include_router(render3d_jobs_router)
 app.include_router(ease_router)
 app.include_router(team_jobs_router)
+app.include_router(photo_psd_router)
 app.include_router(edit_provenance_router)
 app.include_router(model_export_router)
 app.include_router(ops_usage_router)
