@@ -2064,6 +2064,71 @@
         "title": "DraftOut",
         "type": "object"
       },
+      "EditOut": {
+        "properties": {
+          "at": {
+            "title": "At",
+            "type": "string"
+          },
+          "by": {
+            "enum": [
+              "user",
+              "ai"
+            ],
+            "title": "By",
+            "type": "string"
+          },
+          "op": {
+            "title": "Op",
+            "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          }
+        },
+        "required": [
+          "op",
+          "by",
+          "at"
+        ],
+        "title": "EditOut",
+        "type": "object"
+      },
+      "EditsOut": {
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "decision": {
+            "additionalProperties": true,
+            "title": "Decision",
+            "type": "object"
+          },
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/EditOut"
+            },
+            "title": "Edits",
+            "type": "array"
+          }
+        },
+        "required": [
+          "asset_id",
+          "edits",
+          "decision"
+        ],
+        "title": "EditsOut",
+        "type": "object"
+      },
       "EngineInfo": {
         "properties": {
           "configured": {
@@ -11037,6 +11102,64 @@
         "summary": "Asset Detail",
         "tags": [
           "assets"
+        ]
+      }
+    },
+    "/v1/assets/{asset_id}/edits": {
+      "get": {
+        "operationId": "getAssetEdits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Edits",
+        "tags": [
+          "asset-provenance"
         ]
       }
     },
