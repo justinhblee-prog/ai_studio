@@ -1530,6 +1530,44 @@
         "title": "Controls",
         "type": "object"
       },
+      "CoupleIn": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "match": {
+            "anyOf": [
+              {
+                "enum": [
+                  "same",
+                  "color"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match"
+          },
+          "sexes": {
+            "$ref": "#/components/schemas/Sexes"
+          },
+          "slots": {
+            "$ref": "#/components/schemas/Slots"
+          }
+        },
+        "required": [
+          "asset_id",
+          "slots"
+        ],
+        "title": "CoupleIn",
+        "type": "object"
+      },
       "CreateTryOnJob": {
         "properties": {
           "category": {
@@ -8017,6 +8055,68 @@
           }
         },
         "title": "SettingsPatch",
+        "type": "object"
+      },
+      "Sexes": {
+        "additionalProperties": false,
+        "properties": {
+          "a": {
+            "default": "female",
+            "enum": [
+              "male",
+              "female"
+            ],
+            "title": "A",
+            "type": "string"
+          },
+          "b": {
+            "default": "male",
+            "enum": [
+              "male",
+              "female"
+            ],
+            "title": "B",
+            "type": "string"
+          }
+        },
+        "title": "Sexes",
+        "type": "object"
+      },
+      "Slots": {
+        "additionalProperties": false,
+        "properties": {
+          "a": {
+            "items": {
+              "enum": [
+                "top",
+                "bottom",
+                "skirt",
+                "dress",
+                "jacket"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "A",
+            "type": "array"
+          },
+          "b": {
+            "items": {
+              "enum": [
+                "top",
+                "bottom",
+                "skirt",
+                "dress",
+                "jacket"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "B",
+            "type": "array"
+          }
+        },
+        "title": "Slots",
         "type": "object"
       },
       "Survey": {
@@ -20386,6 +20486,203 @@
         "summary": "Update Character",
         "tags": [
           "characters"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/couple-tryon": {
+      "get": {
+        "operationId": "listCoupleTryons",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Listcoupletryons",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Jobs",
+        "tags": [
+          "couple-tryon"
+        ]
+      },
+      "post": {
+        "operationId": "createCoupleTryon",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoupleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Createcoupletryon",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Job",
+        "tags": [
+          "couple-tryon"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/couple-tryon/{job_id}": {
+      "get": {
+        "operationId": "getCoupleTryon",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Getcoupletryon",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job",
+        "tags": [
+          "couple-tryon"
         ]
       }
     },

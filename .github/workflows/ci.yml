@@ -176,6 +176,13 @@ jobs:
           set -o pipefail
           E2E_OUT="$RUNNER_TEMP/d1-3d" node e2e/site_live_3d.mjs | tee e2e_site_live_3d.txt
           grep -q "SUMMARY 9/9 live 3D steps passed" e2e_site_live_3d.txt
+      - name: "Homepage live layer (D-3..D-7): couple try-on, story video, PSD, team board, library against a REAL local backend"
+        if: matrix.group == 'a'
+        working-directory: ai_creator_studio_3d_viewer
+        run: |
+          set -o pipefail
+          E2E_OUT="$RUNNER_TEMP/live-media" node e2e/site_live_media.mjs | tee e2e_site_live_media.txt
+          grep -q "SUMMARY 4/4 live media steps passed" e2e_site_live_media.txt
       - name: Pilot flow
         if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
