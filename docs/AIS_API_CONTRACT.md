@@ -201,3 +201,6 @@
 
 ## 18. 팀 작업 보드 `…/jobs` · `…/team/summary` (R-TEAM-01)
 상세·권한 표·상태 전이 표는 `docs/TEAM_JOBS.md`. 요약: `POST/GET /v1/workspaces/{id}/jobs`, `GET …/jobs/{job}`(이력·의견 포함), `POST …/jobs/{job}/transition {to,note}`, `POST …/jobs/{job}/comments {body}`, `POST …/jobs:bulk-transition {ids,to,note}`(항목별 결과), `GET …/team/summary?period=`. 상태 `draft|review|changes|approved|rejected`, 작업실 `photo|tryon|character|3d|video`. 오류 `JOB_TRANSITION_INVALID`(409)·`JOB_NOTE_REQUIRED`(422)·`JOB_DATE_INVALID`·`JOB_TITLE_REQUIRED`·`JOB_COMMENT_REQUIRED`·`JOB_BULK_DUPLICATE`. 한계: `credits_used`는 null(원장에 사용자 없음), 기존 작업실이 이 레코드를 자동으로 만들지는 않는다.
+
+## 19. Photo PSD 주고받기 (R-PSD-01)
+`POST /v1/workspaces/{id}/photo-psd`(레이어 PSD 내려받기, 원본 해상도, 8·16비트, ICC) · `POST …/photo-psd/import`(고친 PSD 올리기 → 새 원본 자산 + 출처 기록 `asset.psd_import`). 레이어 구성·오류 코드(`PSD_*`)·한계는 `docs/PSD_ROUNDTRIP.md`. **포토샵·Photopea 등 실제 프로그램에서 열어 본 시험은 미실행.**

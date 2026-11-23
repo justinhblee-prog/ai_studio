@@ -820,6 +820,53 @@
         "title": "BatchItem",
         "type": "object"
       },
+      "Body_importPhotoPsd": {
+        "properties": {
+          "depicts_person": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depicts Person"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "likeness_consent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Likeness Consent"
+          },
+          "rights_confirmed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rights Confirmed"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_importPhotoPsd",
+        "type": "object"
+      },
       "Body_putWorkspaceLibraryThumbnail": {
         "properties": {
           "file": {
@@ -2245,6 +2292,49 @@
           "total"
         ],
         "title": "EventListResponse",
+        "type": "object"
+      },
+      "ExportIn": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "cutout": {
+            "default": true,
+            "title": "Cutout",
+            "type": "boolean"
+          },
+          "depth": {
+            "default": 8,
+            "enum": [
+              8,
+              16
+            ],
+            "title": "Depth",
+            "type": "integer"
+          },
+          "final_asset_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Asset Id"
+          }
+        },
+        "required": [
+          "asset_id"
+        ],
+        "title": "ExportIn",
         "type": "object"
       },
       "ExportOut": {
@@ -22597,6 +22687,140 @@
         "summary": "Delete Preset",
         "tags": [
           "photo-presets"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/photo-psd": {
+      "post": {
+        "operationId": "exportPhotoPsd",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "image/vnd.adobe.photoshop": {}
+            },
+            "description": "The layered PSD"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Psd",
+        "tags": [
+          "photo-psd"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/photo-psd/import": {
+      "post": {
+        "operationId": "importPhotoPsd",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_importPhotoPsd"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Importphotopsd",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Psd",
+        "tags": [
+          "photo-psd"
         ]
       }
     },

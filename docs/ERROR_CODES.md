@@ -169,6 +169,10 @@
 | `PROVIDER_NOT_PRODUCTION_READY` | provider | error | 이 AI 서비스는 아직 실제로 쓸 수 없습니다. | This AI service is not ready for real use. |
 | `PROVIDER_RATE_LIMITED` | provider | limit | AI 서비스가 바빠 잠시 뒤 다시 시도합니다. | The AI service is busy and will be retried shortly. |
 | `PROVIDER_SUSPENDED` | provider | error | 이 AI 서비스는 지금 중지되어 있습니다. | This AI service is currently suspended. |
+| `PSD_CORRUPT` | general | error | PSD 파일이 손상되었거나 끝이 잘렸습니다. 원본 프로그램에서 다시 저장해 올려 주세요. | The PSD file is damaged or cut short. Please save it again from the original program and upload it. |
+| `PSD_NOT_PSD` | general | error | PSD 또는 PSB 파일이 아닙니다. 포토샵 등에서 저장한 .psd 파일을 올려 주세요. | This is not a PSD or PSB file. Please upload a .psd saved from Photoshop or a similar program. |
+| `PSD_TOO_LARGE` | general | error | PSD 파일 또는 그림이 너무 큽니다(300MB·1.2억 화소 이하). | The PSD file or picture is too large (300 MB / 120 megapixels at most). |
+| `PSD_UNSUPPORTED` | general | error | 이 PSD 형식은 읽지 못합니다. RGB 8·16비트로 바꿔 저장해 주세요(CMYK·Lab·32비트는 지원하지 않습니다). | This PSD format cannot be read. Please save it as RGB, 8 or 16 bits (CMYK, Lab and 32-bit are not supported). |
 | `RATE_LIMITED` | general | limit | 요청이 너무 잦습니다. 잠시 뒤 다시 시도해 주세요. | Too many requests. Please try again shortly. |
 | `REFERENCE_DUPLICATE` | model | error | 같은 참조 사진이 중복되었습니다. | A reference picture is listed twice. |
 | `REFERENCE_INVALID` | model | error | 참조 사진이 올바르지 않습니다. | A reference picture is not valid. |
