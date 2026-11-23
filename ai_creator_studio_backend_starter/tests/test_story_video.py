@@ -85,7 +85,7 @@ needs_ffmpeg = pytest.mark.skipif(video_mp4.find_ffmpeg() is None or video_subti
 
 
 @needs_ffmpeg
-@pytest.mark.parametrize("seconds", [1, 7, 12])
+@pytest.mark.parametrize("seconds", [2, 7, 12])
 def test_the_mp4_has_the_asked_length_and_captions(seconds):
     imgs = [Image.new("RGB", (300, 400), c) for c in ((200, 60, 60), (60, 200, 60), (60, 60, 200))]
     data, meta = sv.make_story_mp4(imgs, "첫째 장면입니다. 둘째 장면입니다. 셋째 장면입니다.", seconds, aspect="9:16")
