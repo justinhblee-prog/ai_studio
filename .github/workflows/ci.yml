@@ -183,7 +183,7 @@ jobs:
           set -o pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fonts-noto-cjk
           E2E_OUT="$RUNNER_TEMP/live-media" node e2e/site_live_media.mjs | tee e2e_site_live_media.txt
-          grep -q "SUMMARY 7/7 live media steps passed" e2e_site_live_media.txt
+          grep -q "SUMMARY 10/10 live media steps passed" e2e_site_live_media.txt
       - name: Pilot flow
         if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer
