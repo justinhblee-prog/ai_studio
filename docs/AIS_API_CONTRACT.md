@@ -192,3 +192,9 @@
 | 저장·목록·삭제 | `POST …/library`(업로드) · `GET …/library?kind=&attr=키:값` · `PATCH`(`attrs` 통째 교체) · `DELETE`(편집자 이상, 열람자는 읽기만) · `GET …/library/facets` |
 - 범위는 **작업공간**(다른 작업공간은 404, 시험으로 확인). 화면의 `L.scope`(전체/기본 제공/우리 자료)는 지금 브라우저 저장값이며 서버 연결 시 `origin`·`/v1/library`(공용)로 나뉜다 — 화면 쪽 연결은 미실행.
 - 한계: 대표색 "자동" 추출·썸네일은 화면이 하고 서버는 값만 저장한다.
+
+## 17. AI 편집 이력 `GET /v1/assets/{asset_id}/edits` (답신 69 C.7)
+자산마다 **편집 목록** `edits:[{op, by:'user'|'ai', provider?, at}]`과 거기서 **자동 판정한 AI 표시**를 돌려준다(`app/edit_provenance.py`). 열람자 이상, 다른 작업공간 403/404, 보류 자산 404. **새로 저장하지 않는다** — 출처 기록(`asset_provenance`)에서 만든다: AI 공급자 작업 결과 가져오기(`asset.generated_output_imported`) → `generate`(AI가 만듦) 또는 `ai_edit`(고객 사진을 AI가 고침), 로컬 사진 단계(`asset.photo_steps`) → 단계마다 `by:'user'`, 명시 기록(`asset.edit`, `record_edit()`: 앞으로의 AI 보정 단계용). 원본 자산(`source_asset_id`)의 이력을 앞에 이어 붙인다(깊이 10).
+- `decision`: `is_ai_generated`(AI가 만듦) · `ai_assisted`(고객 원본을 AI 단계가 바꿈) · `ai_steps` · `mark_kind`(`generated`|`edited`|null, 사진 표시 `ai_marking`과 같은 값) · `digital_source_type`(IPTC) · `basis` · **`status:"temporary_pending_legal_review"`**. 규칙: AI의 `generate` 있음 → 생성; 그 밖의 AI 단계가 하나라도 있음 → 보조; AI 단계 없음(자르기·크기·색·고전 배경 제거 등 사용자·로컬 편집, 또는 편집 없음) → 표시 없음. 이후의 로컬 자르기는 판정을 바꾸지 않는다.
+- **판정 기준은 임시**: "보조"가 어디서 시작하는지(AI 단계 하나라도? 눈에 보이는 것만?)와 문구는 법무 질문 Q11-5·Q11-6 대기 → 지금은 **가장 엄격한 해석**(AI 단계 하나라도 보조). 응답의 `rule`에 그대로 적힘.
+- 한계: ① 지금 서버에 있는 AI 단계는 공급자 작업 결과뿐이라 `ai_retouch` 등 개별 AI 단계는 아직 **기록하는 곳이 없다**(`record_edit`만 준비됨, 호출처 미연결). ② 그림 내려받기 표시(`ai_marking`)와 3D 내보내기의 `ai_disclosure`는 아직 이 판정이 아니라 기존 규칙을 쓴다(연결은 법무 답 이후, 미실행). ③ 작업 결과 파일에서의 `edits` 노출은 이 경로뿐이다.
