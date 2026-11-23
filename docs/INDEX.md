@@ -38,6 +38,7 @@
 | `RESTORE_DRILL.md` | 복구 훈련 (RTO 측정) — R-077 | `scripts/restore_drill.py`가 **백업 → 검증 → 새 빈 폴더로 복원 → 복원본 무결성 검사**를 한 번에 돌리고 단계별 시간을 JSON으로 냅니다. 운영 백업·운영 DB는 쓰… |
 | `RUNBOOK.md` | 운영 런북 (제한된 B2B 파일럿, SQLite 단일 인스턴스) | > **상태**: 이 문서의 명령과 설정은 코드에서 확인했고, 점검·백업·복구 절차는 시험으로 검증했다. 그러나 **실제 배포 환경에서 실행해 본 적은 없다**(배포 대상 정보 없음 — `docs/… |
 | `STORY_VIDEO.md` | 스토리 → 영상(길이 지정) (R-ENGINE-17) — `app/story_video.py` | 자체 코드(AI·네트워크 없음). 이야기를 문장으로 나눠 장면을 만들고, **전체 길이(1~60초)** 를 장면에 나눠 주고, 문장을 자막으로 넣어 **서버에서 MP4**(H.264, `video_… |
+| `TEAM_JOBS.md` | 팀 작업 보드 서버 (R-TEAM-01) — `app/team_jobs.py` | 홈페이지 작업실 홈 "팀 작업 보드"(`#tb`)가 읽고 쓰는 **작업(job) 레코드·상태 이력·의견·팀 조회·주간 요약**. 화면 필드 대응: `t→title, w→workroom, u→owne… |
 | `THIRD_PARTY_FONTS.md` | 서드파티 글꼴 (자막용) | / 항목 / 내용 / |
 | `UPSCALE_EVAL.md` | 업스케일 (E-09d · 레인 3) | `app/upscale.py` — 사진 단계(`photo-steps`)의 새 연산 `upscale`(`factor_pct` 100~400, 기본 200 = 가로세로 2배 / `sharpen_pct`… |
 | `VERSIONING.md` | 버전 및 문서 관리 규칙 | / 식별자 / 형식 / 목적 / 증가 기준 / |

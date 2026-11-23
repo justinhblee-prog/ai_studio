@@ -88,8 +88,14 @@
 | `INVALID_MONTH` | general | error | 월 형식이 올바르지 않습니다(예: 2026-11). | The month is not valid (for example 2026-11). |
 | `INVALID_RANGE` | general | error | 기간 형식이 올바르지 않습니다. | The date range is not valid. |
 | `INVALID_ROUTING_MODE` | provider | error | 선택 방식이 올바르지 않습니다. | The selection mode is not valid. |
+| `JOB_BULK_DUPLICATE` | tryon | error | 같은 작업을 두 번 선택할 수 없습니다. | Each job can be chosen once. |
+| `JOB_COMMENT_REQUIRED` | tryon | error | 의견을 입력해 주세요. | Please write a comment. |
+| `JOB_DATE_INVALID` | tryon | error | 날짜 형식이 올바르지 않습니다. | The date format is not valid. |
+| `JOB_NOTE_REQUIRED` | tryon | error | 변경 요청이나 반려에는 사유를 적어 주세요. | Please write a reason when requesting changes or rejecting. |
 | `JOB_NOT_FINISHED` | tryon | error | 작업이 아직 끝나지 않았습니다. | The job has not finished yet. |
 | `JOB_QC_FAILED` | tryon | error | 결과가 품질 검사를 통과하지 못했습니다. | The result did not pass the quality check. |
+| `JOB_TITLE_REQUIRED` | tryon | error | 작업 제목을 입력해 주세요. | Please enter a job title. |
+| `JOB_TRANSITION_INVALID` | tryon | error | 이 작업은 지금 상태에서 그 상태로 바꿀 수 없습니다. 목록을 새로 고쳐 확인해 주세요. | This job cannot move to that status from where it is. Please refresh and check. |
 | `LEGAL_ACCEPTANCE_REQUIRED` | legal | error | **[결정 필요: 법무]** | **[decision needed: legal]** |
 | `LIBRARY_3D_FULL` | library | limit | 3D 항목을 더 넣을 수 없습니다. | No more 3D items can be added. |
 | `LIBRARY_ALREADY_FILED` | library | error | 이미 라이브러리에 있는 항목입니다. | This is already in the library. |
