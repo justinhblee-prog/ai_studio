@@ -172,3 +172,10 @@
 - AI 표시는 출처 기록으로 판정(AI 공급자 결과면 표시, 업로드·로컬 처리·내장 mock은 표시 안 함); 문구는 그림 표시와 같은 설정(`AI_MARK_TEXT_*`, 최종 법무 문구는 대기).
 - 응답 머리: `ETag`·`X-Content-SHA256` = **보내는 파일**의 해시, `Content-Disposition: attachment`, `Cache-Control: private, no-store`. 내보낸 사실은 출처 기록(`asset.exported`: 누가·어느 버전·원본 해시·내보낸 파일 해시·바이트 수)에 남는다.
 - **USDZ는 만들지 않는다**(변환 도구 미승인). `.gltf`(분리형)도 내보내기 대상 아님.
+
+## 15. 사이즈 비교 `POST /v1/workspaces/{id}/fit-check` (M4 화면 계약, 레인 2)
+같은 몸에 옷 S·M·L을 입혔을 때 **어디가 얼마나 여유 있는지**와 추천 사이즈를 돌려준다(`app/ease_api.py` → `app/ease_map.py`, 설명 `docs/EASE_MAP.md`). 열람자 이상(작업공간에서 읽는 것도 쓰는 것도 없음), 로그인 필수, **own3d 기능 플래그 `RENDER3D_ENABLED` 뒤**(기본 닫힘 → 409 `RENDER3D_CLOSED`). 호출 한 번 약 0.2초, 저장 없음, 결정적.
+- 본문 `{sex: male|female, kind: top|bottom|skirt|dress|jacket, measurements?: {height_cm,chest_cm,waist_cm,hips_cm 중 일부}, nominal?: {chest_cm,waist_cm,hips_cm 중 일부(40~200)}}` — `nominal`은 M 사이즈가 맞춰진 기준 몸(없으면 프리셋 둘레). 모르는 필드 422.
+- 응답 200: `{kind, sex, measurements, nominal, sizes:{S|M|L: {zones:{chest_cm|waist_cm|hips_cm: {ease_cm, class: tight|fitted|regular|loose, …}}, tight_zones[], below_min_ease_zones[], clearance_cm:{min,median,p95}, pressure_share}}, recommended: "S"|"M"|"L"|null, limits:{min_ease_cm, max_pressure_share, source:"proposal"}, proposal_class_limits_cm[], note, engine:"own3d"}`. `recommended` = 모든 부위에 여유가 충분하고 몸을 누르는 꼭짓점 비율이 한도 이하인 **가장 작은** 사이즈, 맞는 것이 없으면 null.
+- 오류: `RENDER3D_CLOSED`(409) · `FIT_CHECK_INVALID`(422: 몸 치수나 기준 둘레가 범위 밖) · 권한 403/404.
+- **정직한 한계**: 정형화된 마네킹 위의 기하 안내이며 천의 늘어남·실제 사이즈표 표준이 아니다. 여유 한도(2 cm 등)와 등급 경계(0/4/10 cm)는 **제안값**(`limits.source`). 사진 일괄 처리는 §13, 3D 모델 내보내기는 §14에 이미 있다.

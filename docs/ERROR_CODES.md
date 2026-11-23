@@ -62,6 +62,7 @@
 | `EXTERNAL_NOTICE_REQUIRED` | legal | error | **[결정 필요: 법무]** | **[decision needed: legal]** |
 | `FFMPEG_FAILED` | general | error | 영상 파일을 만드는 중 오류가 났습니다. 잠시 뒤 다시 시도해 주세요. | The video file could not be encoded. Please try again shortly. |
 | `FFMPEG_MISSING` | general | error | 이 서버에 영상 변환 도구가 설치되어 있지 않아 MP4를 만들 수 없습니다. | The video encoder is not installed on this server, so MP4 output is not available. |
+| `FIT_CHECK_INVALID` | general | error | 사이즈 비교에 넣은 값을 확인해 주세요(몸 치수나 기준 둘레가 허용 범위를 벗어났습니다). | Please check the values for the size comparison (a measurement or the reference circumference is out of range). |
 | `FIT_REFUSED` | general | error | 입력한 몸 치수에 옷을 맞출 수 없습니다. 치수를 확인해 주세요. | The garment cannot be fitted to the measurements entered. Please check them. |
 | `GLB_INVALID` | general | error | 만들어진 3D 파일이 검사를 통과하지 못했습니다. | The generated 3D file did not pass the check. |
 | `GLOBAL_MONTHLY_LIMIT` | general | limit | 이번 달 서비스 전체 작업 한도에 도달했습니다. | The service-wide job limit for this month has been reached. |
