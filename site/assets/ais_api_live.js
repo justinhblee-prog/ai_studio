@@ -67,9 +67,12 @@ async function poll(url){
   }
 }
 async function blobUrl(assetId){
-  var x=await call('GET',CFG.base+'/v1/assets/'+encodeURIComponent(assetId)+'/preview',null,{raw:true});
-  if(x.unavailable)return null;
-  var b=await x.response.blob();
+  /* 사진 바이트는 서명된 짧은 수명 주소로 받는다(POST …/preview-url → GET 그 주소). */
+  var u=await call('POST',CFG.base+'/v1/assets/'+encodeURIComponent(assetId)+'/preview-url');
+  if(u.unavailable)return null;
+  var r=await fetch(CFG.base+u.json.url);
+  if(!r.ok)throw fail('SERVER','HTTP '+r.status,r.status);
+  var b=await r.blob();
   return {blob:b,url:URL.createObjectURL(b)};
 }
 

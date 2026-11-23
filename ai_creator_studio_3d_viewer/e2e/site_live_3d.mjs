@@ -123,7 +123,7 @@ try {
     const up = await fetch(`${stack.apiUrl}/v1/assets`, { method: 'POST', headers: auth, body: form });
     assert.equal(up.status, 201, await up.clone().text());
     const assetId = (await up.json()).asset_id;
-    const r = await page.evaluate(async id => { const x = await AIS_API.studio3d.export({ assetId: id, format: 'glb' }); const buf = new Uint8Array(await x.blob.arrayBuffer()); return { sha: x.sha256, bytes: x.bytes, magic: String.fromCharCode(...buf.slice(0, 4)), text: new TextDecoder().decode(buf), name: x.filename }; }, assetId);
+    const r = await live(async id => { const x = await AIS_API.studio3d.export({ assetId: id, format: 'glb' }); if (!x) return { sha: null, bytes: 0, magic: 'null', text: '', name: '' }; const buf = new Uint8Array(await x.blob.arrayBuffer()); return { sha: x.sha256, bytes: x.bytes, magic: String.fromCharCode(...buf.slice(0, 4)), text: new TextDecoder().decode(buf), name: x.filename }; }, assetId);
     assert.equal(r.magic, 'glTF');
     assert.ok(r.text.includes('acs_export') && r.sha && r.sha.length === 64 && r.name.endsWith('.glb'));
   });
