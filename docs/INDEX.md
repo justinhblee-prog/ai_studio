@@ -9,6 +9,7 @@
 | `AUDIO_RESEARCH.md` | 영상 음원 조사 (레인 4 · 6c, 회신 56 ⑫ · 답신 61) | **이 문서는 조사다.** 어떤 소리를 쓸 수 있게 할지는 **법무·대표 결정**이라 정하지 않았다(답신 61). 기술적으로 가능한 것만 코드(`app/video_mp4.py::add_audio`)… |
 | `BG_REMOVAL_EVAL.md` | E-09a 배경 제거 후보 비교 (2026-11-17, 레인 3) | **범위**: Pillow만 쓰는 고전 영상 처리 후보 2종 + 둘을 섞은 `auto`. AI 컷아웃 모델(U²-Net, rembg, 유료 API)은 새 의존성·모델 파일·외부 전송이 필요해 **이… |
 | `CHANGELOG.md` | BUILD-00157 — Viewer Animation Loop Failure Isolation | - Extracted the Studio3DViewer requestAnimationFrame loop into a dependency-free controller with one-frame own… |
+| `CLOTH_XPBD.md` | XPBD 천 — 1단계 조사 메모 + 최소 데모 (M3) | `app/cloth_xpbd.py` + `scripts/cloth_demo.py` — **연구용 데모**. 상의 1벌(민소매 통)이 어깨 고리에 고정된 채 중력으로 늘어지고, 몸통(몸 메시와 같은 … |
 | `DATA_LIFECYCLE.md` | 데이터 수명주기 — 내보내기·삭제·보관 (R-065) | / 단계 / 어디서 / 상태 / |
 | `EASE_MAP.md` | 여유·압력 맵 — S/M/L 비교 (M4 · 레인 2) | `app/ease_map.py` + `scripts/ease_sheet.py` — 같은 몸에 옷 S·M·L을 입혔을 때 **어디가 끼고 어디가 헐렁한지**를 숫자와 색 지도로 본다(순수 파이썬, 모… |
 | `ERROR_CODES.md` | 오류 코드 → 안내 문구 표 (자동 생성 — 직접 고치지 않음) | 버전 `2026-11-17.1`. 원본은 `ai_creator_studio_backend_starter/app/error_catalog.py`, 같은 내용을 `GET /v1/error-catalog… |
