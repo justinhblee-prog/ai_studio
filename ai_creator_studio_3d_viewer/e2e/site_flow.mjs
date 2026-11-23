@@ -33,6 +33,13 @@ const run = async (name, fn) => {
   catch (e) { results.push({ name, ok: false }); console.log(`FAIL  ${name}\n      ${String(e && e.message || e).split('\n').slice(0, 6).join('\n      ')}`); }
 };
 
+// The site keeps its side panels collapsed behind toolbar toggles (fan mode: opacity 0, off-canvas), so Playwright's "visible, stable,
+// receives events" check never passes for them. The flow therefore drives each control's own handler (click / value + change event) once the
+// element is in the DOM - the same thing the site's dock buttons do - and then asserts the visible RESULT (state classes, messages, library).
+const tap = loc => loc.evaluate(e => e.click());
+const attached = loc => loc.first().waitFor({ state: 'attached', timeout: 20000 });
+const setSelect = (loc, v) => loc.evaluate((e, val) => { e.value = val; e.dispatchEvent(new Event('change', { bubbles: true })); }, v);
+
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -47,7 +54,7 @@ try {
   // ---------- 3D studio ----------
   await run('3D studio opens with a session: stage, canvas, library tabs, no script error', async () => {
     await page.goto(`${ORIGIN}/en/studio-3d.html`);
-    await page.locator('#lp3 .lp-tab').first().waitFor({ timeout: 20000 });
+    await attached(page.locator('#lp3 .lp-tab'));
     assert.equal(await page.locator('#lp3 .lp-tab').count(), 5);
     assert.ok(await page.locator('#lp3 .lp-card').count() >= 1, 'the library lists models');
     assert.equal(await $('cv3').count(), 1);
@@ -56,20 +63,20 @@ try {
   });
 
   await run('change the model: female/male, look, skin, top style and top colour are applied', async () => {
-    await $('fgm').click(); assert.ok(await $('fgm').evaluate(e => e.classList.contains('on'))); assert.ok(!(await $('fgf').evaluate(e => e.classList.contains('on'))));
-    await $('fgf').click(); assert.ok(await $('fgf').evaluate(e => e.classList.contains('on')));
-    await $('flook').selectOption('1'); await $('fskin').selectOption('1');
+    await tap($('fgm')); assert.ok(await $('fgm').evaluate(e => e.classList.contains('on'))); assert.ok(!(await $('fgf').evaluate(e => e.classList.contains('on'))));
+    await tap($('fgf')); assert.ok(await $('fgf').evaluate(e => e.classList.contains('on')));
+    await setSelect($('flook'), '1'); await setSelect($('fskin'), '1');
     assert.equal(await $('flook').inputValue(), '1'); assert.equal(await $('fskin').inputValue(), '1');
-    await $('fts').selectOption('long'); assert.equal(await $('fts').inputValue(), 'long');
+    await setSelect($('fts'), 'long'); assert.equal(await $('fts').inputValue(), 'long');
     await $('ftop').evaluate(e => { e.value = '#c42834'; e.dispatchEvent(new Event('input', { bubbles: true })); });
     assert.equal(await $('cc').inputValue(), '#c42834', 'the top colour is mirrored in the view panel');
   });
 
   await run('accessories toggle on and off; the background chip and background colour change', async () => {
     const chip = $('facs').locator('.chip').first();
-    await chip.click(); assert.ok(await chip.evaluate(e => e.classList.contains('on')));
-    await chip.click(); assert.ok(!(await chip.evaluate(e => e.classList.contains('on'))));
-    const white = $('bgp').locator('[data-id="white"]'); await white.click(); assert.ok(await white.evaluate(e => e.classList.contains('on')));
+    await tap(chip); assert.ok(await chip.evaluate(e => e.classList.contains('on')));
+    await tap(chip); assert.ok(!(await chip.evaluate(e => e.classList.contains('on'))));
+    const white = $('bgp').locator('[data-id="white"]'); await tap(white); assert.ok(await white.evaluate(e => e.classList.contains('on')));
     await $('bg').evaluate(e => { e.value = '#ffffff'; e.dispatchEvent(new Event('input', { bubbles: true })); });
     assert.equal(await $('bg').inputValue(), '#ffffff');
   });
@@ -91,7 +98,7 @@ try {
   });
 
   await run('picking a photo model from the library shows its photo card on the stage', async () => {
-    await page.locator('#lp3 .lp-card').first().click();
+    await tap(page.locator('#lp3 .lp-card').first());
     await page.locator('#phRef').waitFor({ timeout: 10000 });
     assert.match(await $('wbpick').innerText(), /Picked/);
   });
@@ -99,14 +106,14 @@ try {
   // ---------- virtual try-on workroom ----------
   await run('try-on workroom: generating with nothing picked asks for a model and a garment', async () => {
     await page.goto(`${ORIGIN}/en/tryon-studio.html`);
-    await page.locator('#lpmount .lp-tab').first().waitFor({ timeout: 20000 });
-    await $('go').click();
+    await attached(page.locator('#lpmount .lp-tab'));
+    await tap($('go'));
     assert.match(await $('msg').innerText(), /Pick both a model photo and a garment photo/);
   });
 
   await run('try-on workroom: uploading without the rights confirmation is refused', async () => {
     await $('msg').evaluate(e => { e.textContent = ''; });
-    await page.locator('#lpmount button', { hasText: 'Upload mine' }).first().click();
+    await tap(page.locator('#lpmount button', { hasText: 'Upload mine' }).first());
     assert.match(await $('msg').innerText(), /Confirm usage rights first/);
   });
 
@@ -115,11 +122,11 @@ try {
     await page.evaluate(() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.fillStyle = '#c42834'; x.fillRect(0, 0, 64, 64); AISLIB.addUser('garment', 'E2E tee', c.toDataURL('image/png'), { type: 'Top', shape: 'tee' }); });
     await page.goto(`${ORIGIN}/en/tryon-studio.html`);
     const tab = name => page.locator('#lpmount .lp-tab').filter({ hasText: name });
-    await tab('Models').click(); await page.locator('#lpmount .lp-card').first().click();
+    await attached(page.locator('#lpmount .lp-tab')); await tap(tab('Models')); await tap(page.locator('#lpmount .lp-card').first());
     await page.waitForFunction(() => !document.getElementById('pm').hidden, null, { timeout: 15000 });
-    await tab('Clothing').click(); await page.locator('#lpmount .lp-card', { hasText: 'E2E tee' }).click();
+    await tap(tab('Clothing')); await tap(page.locator('#lpmount .lp-card', { hasText: 'E2E tee' }));
     await page.waitForFunction(() => !document.getElementById('pg').hidden, null, { timeout: 15000 });
-    await $('go').click();
+    await tap($('go'));
     await page.waitForFunction(() => /works once the server/.test(document.getElementById('msg').textContent), null, { timeout: 15000 });
     const last = await page.evaluate(() => JSON.parse(localStorage.getItem('ais_usage') || '[]').pop());
     assert.equal(last.service, 'tryon'); assert.equal(last.status, 'blocked');
