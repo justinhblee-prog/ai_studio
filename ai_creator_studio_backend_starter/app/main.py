@@ -50,6 +50,7 @@ from app.team_jobs import router as team_jobs_router
 from app.photo_psd import router as photo_psd_router
 from app.photo_body_api import router as photo_body_router
 from app.couple_jobs import router as couple_jobs_router
+from app.story_video_jobs import router as story_video_router
 from app.edit_provenance import router as edit_provenance_router
 from app.ops_usage import router as ops_usage_router
 from app.customers import router as customers_router
@@ -170,6 +171,7 @@ app.include_router(team_jobs_router)
 app.include_router(photo_psd_router)
 app.include_router(photo_body_router)
 app.include_router(couple_jobs_router)
+app.include_router(story_video_router)
 app.include_router(edit_provenance_router)
 app.include_router(model_export_router)
 app.include_router(ops_usage_router)

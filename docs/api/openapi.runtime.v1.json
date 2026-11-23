@@ -8119,6 +8119,102 @@
         "title": "Slots",
         "type": "object"
       },
+      "StoryIn": {
+        "additionalProperties": false,
+        "properties": {
+          "aspect": {
+            "default": "9:16",
+            "enum": [
+              "9:16",
+              "4:5",
+              "16:9"
+            ],
+            "title": "Aspect",
+            "type": "string"
+          },
+          "captions": {
+            "anyOf": [
+              {
+                "const": "auto",
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "auto",
+            "title": "Captions"
+          },
+          "engine": {
+            "default": "local",
+            "enum": [
+              "local",
+              "ai"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "const": "auto",
+                "type": "string"
+              }
+            ],
+            "default": "auto",
+            "title": "Length"
+          },
+          "motion": {
+            "default": "zoom",
+            "enum": [
+              "zoom",
+              "pan",
+              "rotate"
+            ],
+            "title": "Motion",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Sources",
+            "type": "array"
+          },
+          "story": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Story",
+            "type": "string"
+          },
+          "transitions": {
+            "default": "crossfade",
+            "enum": [
+              "cut",
+              "crossfade"
+            ],
+            "title": "Transitions",
+            "type": "string"
+          }
+        },
+        "required": [
+          "story",
+          "sources"
+        ],
+        "title": "StoryIn",
+        "type": "object"
+      },
       "Survey": {
         "additionalProperties": false,
         "properties": {
@@ -25461,6 +25557,203 @@
         "summary": "Retry Video Job",
         "tags": [
           "video-jobs"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/video/story": {
+      "get": {
+        "operationId": "listStoryVideos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Liststoryvideos",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Story Videos",
+        "tags": [
+          "story-video"
+        ]
+      },
+      "post": {
+        "operationId": "createStoryVideo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Createstoryvideo",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Story Video",
+        "tags": [
+          "story-video"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/video/story/{job_id}": {
+      "get": {
+        "operationId": "getStoryVideo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Getstoryvideo",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Story Video",
+        "tags": [
+          "story-video"
         ]
       }
     },

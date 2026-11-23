@@ -13,6 +13,7 @@
      AIS_API.studio3d.export({assetId, versionId?, format:'glb'}) → {blob,url,sha256,filename} | null   (§14 E-05)
      AIS_API.studio3d.bodyFromPhoto({assetId, sex?|modelId, heightCm?}) → {estimated:true, measurements:{height_cm,chest_cm,waist_cm,hips_cm}, warnings[], …} | null   (D-2, POST …/photo-body)
      AIS_API.tryon.couple({photo:assetId|File, rightsConfirmed?, slots:{a:[kind],b:[kind]}, match?, sexes?}) → {job_id,asset_id,url,qc,ms} | null   (D-3, POST …/couple-tryon; 지금은 own3d 모의: 사람 영역을 옷 입힌 마네킹으로 바꿈)
+     AIS_API.video.story({story, length:'auto'|6|10|15|30|60, sources:[assetId], aspect?, transitions?, captions?}) → {job_id,asset_id,url,cuts,mp4,ms} | null   (D-4, POST …/video/story → MP4)
      AIS_API.studio3d.saveToLibrary(images, {name?})→ [library item]                           (POST …/library/attach, kind=render)
      AIS_API.studio3d.toVideo({itemIds, aspect?, duration?, motion?}) → {job_id,status,…} | null (POST …/video-jobs, 라이브러리 항목 → 영상) */
 (function(){
@@ -184,6 +185,26 @@ var TRY={
   }
 };
 
+/* D-4: 스토리 → 영상(길이 지정). 화면 #stapply 가 만든 값과 같은 모양: story(글), length('auto'|6|10|15|30|60, 1~60 정수 허용), captions('auto'|[글]|null), sources=[자산 id].
+   → {job_id, asset_id, url(mp4 blob 주소), cuts:[{scene,asset_id,start,end,caption}], mp4:{seconds,size,frames,bytes}, ms} | null. 잘못된 값은 STORY_* 코드로 던진다. engine:'ai' 는 STORY_ENGINE_CLOSED. */
+var VID={
+  story:async function(o){
+    if(!ready())return null;
+    o=o||{};var t0=Date.now();
+    var body={story:o.story,length:o.length==null?'auto':o.length,sources:o.sources||[],aspect:o.aspect||'9:16',transitions:o.transitions||'crossfade',captions:o.captions===undefined?'auto':o.captions};
+    if(o.motion)body.motion=o.motion;
+    if(o.engine)body.engine=o.engine;
+    var x=await call('POST',wsUrl('/video/story'),body);
+    if(x.unavailable)return null;
+    var done=await poll(wsUrl('/video/story/'+encodeURIComponent(x.json.job_id)));
+    if(done.unavailable)return null;
+    var job=done.json;
+    if(job.status!=='succeeded')throw fail(job.error_code||'STORY_VIDEO_FAILED','The story video could not be made');
+    var b=await blobUrl(job.asset_id);
+    return {job_id:job.job_id,asset_id:job.asset_id,url:b?b.url:null,blob:b?b.blob:null,cuts:job.cuts,mp4:job.mp4,plan:job.plan,ms:Date.now()-t0};
+  }
+};
+
 window.AIS_LIVE={
   configure:function(c){CFG=normalize(c);STATE.up=null;return !!CFG},
   enabled:function(){return !!cfg()},
@@ -196,4 +217,5 @@ window.AIS_LIVE={
 window.AIS_API=window.AIS_API||{};
 window.AIS_API.studio3d=Object.assign(window.AIS_API.studio3d||{},S3);
 window.AIS_API.tryon=Object.assign(window.AIS_API.tryon||{},TRY);
+window.AIS_API.video=Object.assign(window.AIS_API.video||{},VID);
 })();
