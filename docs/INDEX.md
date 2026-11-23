@@ -37,6 +37,7 @@
 | `RENDER_PHOTO.md` | 사진 느낌 렌더 (E-03) — `app/render3d_photo.py` | 순수 파이썬 + Pillow(GPU·모델·새 의존성 없음). 기존 `render3d_soft`(빠른 모형)는 그대로 두고, 같은 장면을 **조금 더 사진처럼** 그리는 별도 렌더러다. 비교 PNG:… |
 | `RESTORE_DRILL.md` | 복구 훈련 (RTO 측정) — R-077 | `scripts/restore_drill.py`가 **백업 → 검증 → 새 빈 폴더로 복원 → 복원본 무결성 검사**를 한 번에 돌리고 단계별 시간을 JSON으로 냅니다. 운영 백업·운영 DB는 쓰… |
 | `RUNBOOK.md` | 운영 런북 (제한된 B2B 파일럿, SQLite 단일 인스턴스) | > **상태**: 이 문서의 명령과 설정은 코드에서 확인했고, 점검·백업·복구 절차는 시험으로 검증했다. 그러나 **실제 배포 환경에서 실행해 본 적은 없다**(배포 대상 정보 없음 — `docs/… |
+| `STORY_VIDEO.md` | 스토리 → 영상(길이 지정) (R-ENGINE-17) — `app/story_video.py` | 자체 코드(AI·네트워크 없음). 이야기를 문장으로 나눠 장면을 만들고, **전체 길이(1~60초)** 를 장면에 나눠 주고, 문장을 자막으로 넣어 **서버에서 MP4**(H.264, `video_… |
 | `THIRD_PARTY_FONTS.md` | 서드파티 글꼴 (자막용) | / 항목 / 내용 / |
 | `UPSCALE_EVAL.md` | 업스케일 (E-09d · 레인 3) | `app/upscale.py` — 사진 단계(`photo-steps`)의 새 연산 `upscale`(`factor_pct` 100~400, 기본 200 = 가로세로 2배 / `sharpen_pct`… |
 | `VERSIONING.md` | 버전 및 문서 관리 규칙 | / 식별자 / 형식 / 목적 / 증가 기준 / |

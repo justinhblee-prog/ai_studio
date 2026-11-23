@@ -190,6 +190,14 @@
 | `STEP_PARAMETER_UNKNOWN` | photo | error | 처리 단계에 없는 설정입니다. | That setting does not exist for this step. |
 | `STEP_RESULT_TOO_LARGE` | photo | error | 확대하면 결과 그림이 너무 커집니다. 배율을 줄여 주세요. | The enlarged picture would be too large. Please use a smaller factor. |
 | `STEP_UNKNOWN` | photo | error | 알 수 없는 처리 단계입니다. | Unknown processing step. |
+| `STORY_CAPTIONS_INVALID` | general | error | 자막 목록이 장면 수와 맞지 않습니다. | The caption list does not match the number of scenes. |
+| `STORY_EMPTY` | general | error | 이야기에서 문장을 찾지 못했습니다. 한 문장 이상 입력해 주세요. | No sentence was found in the story. Please enter at least one. |
+| `STORY_ENGINE_CLOSED` | general | error | AI 영상 생성은 아직 열려 있지 않습니다. | AI video generation is not open yet. |
+| `STORY_ENGINE_INVALID` | general | error | 영상 방식은 local 또는 ai 중에서 골라 주세요. | The video engine must be local or ai. |
+| `STORY_IMAGES_INVALID` | general | error | 사진은 1장에서 8장까지 고를 수 있습니다. | You can choose from 1 to 8 pictures. |
+| `STORY_INVALID` | general | error | 이야기는 글로 입력해 주세요. | The story must be text. |
+| `STORY_SECONDS_INVALID` | general | error | 영상 길이는 1초에서 60초 사이로 정해 주세요. | Please choose a video length from 1 to 60 seconds. |
+| `STORY_TOO_MANY_SCENES` | general | error | 장면이 너무 많거나 장면당 시간이 너무 짧습니다. 문장·사진을 줄이거나 영상 길이를 늘려 주세요. | There are too many scenes, or each would be too short. Use fewer sentences or pictures, or a longer video. |
 | `SUBTITLE_FONT_MISSING` | general | error | 이 서버에 자막용 글꼴이 설치되어 있지 않아 자막을 넣을 수 없습니다. | The subtitle font is not installed on this server, so subtitles are not available. |
 | `SUBTITLE_GLYPH_MISSING` | general | error | 자막에 이 서비스의 글꼴이 그릴 수 없는 글자가 있습니다. | A subtitle contains a character the service font cannot draw. |
 | `SUBTITLE_INVALID` | general | error | 자막은 글, 시작 시각, 끝 시각으로 이루어지며 영상 길이 안에 있어야 합니다. | A subtitle needs text, a start and an end time inside the video. |
