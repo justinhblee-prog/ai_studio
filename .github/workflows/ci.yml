@@ -175,7 +175,7 @@ jobs:
         run: |
           set -o pipefail
           E2E_OUT="$RUNNER_TEMP/d1-3d" node e2e/site_live_3d.mjs | tee e2e_site_live_3d.txt
-          grep -q "SUMMARY 8/8 live 3D steps passed" e2e_site_live_3d.txt
+          grep -q "SUMMARY 9/9 live 3D steps passed" e2e_site_live_3d.txt
       - name: Pilot flow
         if: matrix.group == 'a'
         working-directory: ai_creator_studio_3d_viewer

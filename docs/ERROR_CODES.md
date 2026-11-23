@@ -151,6 +151,12 @@
 | `OUTPUT_NOT_LINKED` | tryon | error | 결과가 아직 저장되지 않았습니다. 잠시 뒤 다시 시도해 주세요. | The result is not saved yet. Please try again shortly. |
 | `OUTPUT_SAVE_REQUIRES_REVIEW` | tryon | error | 결과는 검수를 거친 뒤에 저장됩니다. | Results are saved after review. |
 | `OUTPUT_UNAVAILABLE` | tryon | error | 결과 파일이 더는 없습니다. | The result file is no longer available. |
+| `PHOTO_BODY_CLIPPED` | photo | error | 사람이 사진 가장자리에 닿아 있습니다. 머리부터 발끝까지 사진 안에 들어오게 찍어 주세요. | The person touches the edge of the photo. The whole body, head to feet, must be inside. |
+| `PHOTO_BODY_HEIGHT` | photo | error | 키 값이 허용 범위(120~220 cm)를 벗어났습니다. | The height is out of range (120-220 cm). |
+| `PHOTO_BODY_NOT_FOUND` | photo | error | 사진에서 사람을 찾지 못했습니다. 배경이 단순한 전신 사진을 올려 주세요. | No person was found in the photo. Please use a full-body photo with a plain background. |
+| `PHOTO_BODY_POSE` | photo | error | 정면으로 선 한 사람의 전신 사진이 아닌 것 같습니다. | This does not look like a standing front view of one person. |
+| `PHOTO_BODY_SEX` | photo | error | 성별은 male 또는 female 이어야 합니다. | Choose male or female for the sex. |
+| `PHOTO_BODY_UNREADABLE` | photo | error | 사진을 읽을 수 없습니다. | The photo could not be read. |
 | `PHOTO_GARMENT_CLIPPED` | photo | error | 옷이 사진 가장자리에 닿았습니다. 옷 전체가 보이게 물러서서 찍어 주세요. | The garment touches the edge of the photo. Step back so the whole garment is in view. |
 | `PHOTO_GARMENT_FRAGMENTED` | photo | error | 옷이 여러 조각으로 잘리거나 다른 물건이 함께 찍혔습니다. 옷 전체와 대비되는 배경에서 다시 찍어 주세요. | The garment came out in pieces, or something else is in the photo. Shoot it on a background that contrasts with the whole garment. |
 | `PHOTO_GARMENT_NOT_FOUND` | photo | error | 배경과 옷이 구분되지 않습니다. 단색 배경에서 다시 찍어 주세요. | The garment cannot be told from the background. Shoot it on a plain background. |

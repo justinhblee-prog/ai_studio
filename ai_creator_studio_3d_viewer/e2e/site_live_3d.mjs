@@ -93,6 +93,7 @@ try {
     const r = await live(() => AIS_API.studio3d.render({ sex: 'female', garments: ['top', 'bottom'], pose: 'standing', angles: [0, 90], renderer: 'soft' }));
     timings.soft2 = Date.now() - t0;
     assert.equal(r.images.length, 2);
+    stills.softAsset = r.images[0].asset_id;
     stills.before = await page.evaluate(async imgs => Promise.all(imgs.map(async im => { const img = new Image(); img.src = im.url; await img.decode(); const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img, 0, 0); return c.toDataURL('image/png'); })), r.images);
     for (const [i, name] of ['before_front', 'before_side'].entries()) writeFileSync(join(OUT, `d1_${name}.png`), Buffer.from(stills.before[i].split(',')[1], 'base64'));
     for (const [i, a] of [0, 45, 90, 180, 270].entries()) writeFileSync(join(OUT, `d1_after_${a}.png`), Buffer.from(stills.after[i].split(',')[1], 'base64'));
@@ -126,6 +127,14 @@ try {
     const r = await live(async id => { const x = await AIS_API.studio3d.export({ assetId: id, format: 'glb' }); if (!x) return { sha: null, bytes: 0, magic: 'null', text: '', name: '' }; const buf = new Uint8Array(await x.blob.arrayBuffer()); return { sha: x.sha256, bytes: x.bytes, magic: String.fromCharCode(...buf.slice(0, 4)), text: new TextDecoder().decode(buf), name: x.filename }; }, assetId);
     assert.equal(r.magic, 'glTF');
     assert.ok(r.text.includes('acs_export') && r.sha && r.sha.length === 64 && r.name.endsWith('.glb'));
+  });
+
+  await run('bodyFromPhoto(): a full-body picture of the workspace becomes ESTIMATED measurements that a render accepts (D-2)', async () => {
+    const e = await live(id => AIS_API.studio3d.bodyFromPhoto({ assetId: id, sex: 'female', heightCm: 166 }), stills.softAsset);
+    assert.equal(e.estimated, true);
+    for (const k of ['height_cm', 'chest_cm', 'waist_cm', 'hips_cm']) assert.ok(typeof e.measurements[k] === 'number' && e.measurements[k] > 40, k);
+    const again = await live(m => AIS_API.studio3d.render({ sex: 'female', garments: ['top'], angles: [0], renderer: 'soft', measurements: m }), e.measurements);
+    assert.equal(again.images.length, 1);
   });
 
   assert.deepEqual(errors, [], 'no script error on the page');

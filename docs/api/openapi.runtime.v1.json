@@ -5794,6 +5794,44 @@
         "title": "PatchIn",
         "type": "object"
       },
+      "PhotoBodyIn": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "height_cm": {
+            "anyOf": [
+              {
+                "maximum": 220.0,
+                "minimum": 120.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Cm"
+          },
+          "sex": {
+            "enum": [
+              "male",
+              "female"
+            ],
+            "title": "Sex",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id",
+          "sex"
+        ],
+        "title": "PhotoBodyIn",
+        "type": "object"
+      },
       "PhotoDraftInput": {
         "additionalProperties": false,
         "properties": {
@@ -22524,6 +22562,76 @@
         "summary": "Select Candidate",
         "tags": [
           "model-drafts"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/photo-body": {
+      "post": {
+        "operationId": "estimatePhotoBody",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoBodyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Estimatephotobody",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Estimate Body",
+        "tags": [
+          "photo-body"
         ]
       }
     },
