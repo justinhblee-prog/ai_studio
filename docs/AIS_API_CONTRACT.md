@@ -179,3 +179,16 @@
 - 응답 200: `{kind, sex, measurements, nominal, sizes:{S|M|L: {zones:{chest_cm|waist_cm|hips_cm: {ease_cm, class: tight|fitted|regular|loose, …}}, tight_zones[], below_min_ease_zones[], clearance_cm:{min,median,p95}, pressure_share}}, recommended: "S"|"M"|"L"|null, limits:{min_ease_cm, max_pressure_share, source:"proposal"}, proposal_class_limits_cm[], note, engine:"own3d"}`. `recommended` = 모든 부위에 여유가 충분하고 몸을 누르는 꼭짓점 비율이 한도 이하인 **가장 작은** 사이즈, 맞는 것이 없으면 null.
 - 오류: `RENDER3D_CLOSED`(409) · `FIT_CHECK_INVALID`(422: 몸 치수나 기준 둘레가 범위 밖) · 권한 403/404.
 - **정직한 한계**: 정형화된 마네킹 위의 기하 안내이며 천의 늘어남·실제 사이즈표 표준이 아니다. 여유 한도(2 cm 등)와 등급 경계(0/4/10 cm)는 **제안값**(`limits.source`). 사진 일괄 처리는 §13, 3D 모델 내보내기는 §14에 이미 있다.
+
+## 16. 자료 등록(우리 자료) 대화상자 ↔ 서버 (D-01, 답신 69 C.6)
+홈페이지 `site/assets/lib.js`의 `L.register`(등록 대화상자)는 이미 있는 작업공간 라이브러리 API(R-045·R-058, §3)로 **그대로** 저장된다 — 새 API는 필요 없었다. 대응(`tests/test_library_register_contract.py`가 고정):
+| 화면 필드 | 서버 |
+|---|---|
+| 종류 model/garment/prop/bg/pose(/3d/render) | `kind` |
+| 이름(30자 이하) | `name`(서버 상한 120) |
+| 세부 종류(shape)·종류(type)·대표색(`#rrggbb`)·계절 등 선택 항목·품번(SKU)·컬렉션 | `attrs` = `{shape, type, color, season, …, sku, collection}`(키는 소문자·숫자·밑줄, 값은 60자 이하 글자 또는 0~9999 정수; 어기면 422 `ATTR_*`) |
+| 사용 권리 확인(업로드 체크박스) | 업로드 시 `rights_confirmed`(+`depicts_person`·`likeness_consent`) → `asset_provenance`(L-04와 동일, 서버 설정 `ASSET_REQUIRE_RIGHTS_CONFIRMATION` 켜면 없을 때 거부) |
+| 출처 origin(ai/upload/work) | **서버가 자산 출처 기록으로 정함**(화면이 보내는 값은 쓰지 않음) |
+| 저장·목록·삭제 | `POST …/library`(업로드) · `GET …/library?kind=&attr=키:값` · `PATCH`(`attrs` 통째 교체) · `DELETE`(편집자 이상, 열람자는 읽기만) · `GET …/library/facets` |
+- 범위는 **작업공간**(다른 작업공간은 404, 시험으로 확인). 화면의 `L.scope`(전체/기본 제공/우리 자료)는 지금 브라우저 저장값이며 서버 연결 시 `origin`·`/v1/library`(공용)로 나뉜다 — 화면 쪽 연결은 미실행.
+- 한계: 대표색 "자동" 추출·썸네일은 화면이 하고 서버는 값만 저장한다.
