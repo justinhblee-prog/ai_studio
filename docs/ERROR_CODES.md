@@ -48,6 +48,9 @@
 | `CONTRACT_DATE_INVALID` | customers | error | 날짜는 YYYY-MM-DD 형식이어야 합니다. | Dates must look like YYYY-MM-DD. |
 | `CONTRACT_PLAN_INVALID` | customers | error | 요금제 값이 올바르지 않습니다. | The plan value is not valid. |
 | `CONTRACT_REASON_INVALID` | customers | error | 사유 값이 올바르지 않습니다. | The reason value is not valid. |
+| `COUPLE_OVERLAP_TOO_LARGE` | general | error | 두 사람이 너무 많이 겹쳐 있어 따로 입힐 수 없습니다. 나란히 서서 몸이 닿지 않는 사진을 올려 주세요. | The two people overlap too much to dress separately. Please use a photo where they stand side by side without touching. |
+| `COUPLE_PERSON_NOT_FOUND` | general | error | 사진에서 두 사람을 찾지 못했습니다. 두 사람이 모두 나온 사진인지 확인해 주세요. | Two people were not found in the photo. Please check that both are in the picture. |
+| `COUPLE_RUNNER_SIZE` | general | error | 한 사람씩 처리한 결과의 크기가 맞지 않습니다. 잠시 후 다시 시도해 주세요. | A per-person result came back at the wrong size. Please try again shortly. |
 | `DAILY_JOB_LIMIT_EXCEEDED` | general | limit | 오늘 만들 수 있는 작업 수를 모두 썼습니다. | Today's job limit for this workspace has been used up. |
 | `DESIGN_KEY_INVALID` | model | error | 속성 이름이 올바르지 않습니다. | A design value name is not valid. |
 | `DESIGN_REQUIRED` | model | error | 속성을 하나 이상 지정해 주세요. | Give at least one design value. |
