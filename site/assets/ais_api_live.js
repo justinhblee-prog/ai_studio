@@ -205,6 +205,38 @@ var VID={
   }
 };
 
+/* D-5: Photo `PSD ▾` — 서버가 켜져 있으면 원본 해상도 PSD(R-PSD-01). 현재 작업의 자산 id 는 o.assetId, 없으면 window.__phx(화면이 현재 작업 id·설정을 노출하는 객체)의 assetId|asset_id|id.
+   psdExport({assetId?, finalAssetId?, cutout?=true, depth?=8|16}) → {blob, url, sha256, filename, bytes} | null       (POST …/photo-psd)
+   psdImport({file, rightsConfirmed, depictsPerson?, likenessConsent?}) → {asset, psd:{layers,layer_names,…}, source:'merged'|'layers', work_size, reduced, url} | null   (POST …/photo-psd/import)
+   서버가 닿지 않으면 null → 화면은 지금의 브라우저 축소본 PSD 로 계속한다. 서버가 거절하면 PSD_* 코드({code,message})로 던진다. */
+var PHO={
+  psdExport:async function(o){
+    if(!ready())return null;
+    o=o||{};var phx=window.__phx||{};
+    var assetId=o.assetId||phx.assetId||phx.asset_id||phx.id;
+    if(!assetId)return null;
+    var body={asset_id:assetId,cutout:o.cutout!==false,depth:o.depth===16?16:8};
+    if(o.finalAssetId)body.final_asset_id=o.finalAssetId;
+    var x=await call('POST',wsUrl('/photo-psd'),body,{raw:true});
+    if(x.unavailable)return null;
+    var b=await x.response.blob();
+    var cd=x.response.headers.get('content-disposition')||'';var m=/filename="?([^";]+)"?/.exec(cd);
+    return {blob:b,url:URL.createObjectURL(b),sha256:x.response.headers.get('x-content-sha256'),filename:m?m[1]:'photo.psd',bytes:b.size};
+  },
+  psdImport:async function(o){
+    if(!ready())return null;
+    o=o||{};
+    var fd=new FormData();fd.append('file',o.file,o.file.name||'edited.psd');
+    fd.append('rights_confirmed',o.rightsConfirmed?'true':'false');
+    if(o.depictsPerson!=null)fd.append('depicts_person',o.depictsPerson?'true':'false');
+    if(o.likenessConsent!=null)fd.append('likeness_consent',o.likenessConsent?'true':'false');
+    var x=await call('POST',wsUrl('/photo-psd/import'),fd);
+    if(x.unavailable)return null;
+    var b=await blobUrl(x.json.asset.asset_id);
+    return Object.assign({},x.json,{url:b?b.url:null});
+  }
+};
+
 window.AIS_LIVE={
   configure:function(c){CFG=normalize(c);STATE.up=null;return !!CFG},
   enabled:function(){return !!cfg()},
@@ -218,4 +250,5 @@ window.AIS_API=window.AIS_API||{};
 window.AIS_API.studio3d=Object.assign(window.AIS_API.studio3d||{},S3);
 window.AIS_API.tryon=Object.assign(window.AIS_API.tryon||{},TRY);
 window.AIS_API.video=Object.assign(window.AIS_API.video||{},VID);
+window.AIS_API.photo=Object.assign(window.AIS_API.photo||{},PHO);
 })();

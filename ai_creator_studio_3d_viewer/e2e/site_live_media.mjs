@@ -125,6 +125,34 @@ try {
     await assert.rejects(live(ids => AIS_API.video.story({ story: 'a. b.', length: 6, sources: ids, captions: ['one'] }), upIds), /STORY_CAPTIONS_INVALID/);
   });
 
+  // ---------- D-5 PSD at the ORIGINAL resolution ----------
+  const big = makePng(480, 360, [90, 140, 200]);
+  const formBig = new FormData(); formBig.append('workspace_id', WS); formBig.append('rights_confirmed', 'true'); formBig.append('file', new Blob([big], { type: 'image/png' }), 'photo.png');
+  const upBig = await fetch(`${stack.apiUrl}/v1/assets/images`, { method: 'POST', headers: auth, body: formBig });
+  assert.equal(upBig.status, 201);
+  const bigId = (await upBig.json()).asset_id;
+  let psdBytes = null;
+
+  await run('photo.psdExport(): the stored photo comes back as a layered PSD at its ORIGINAL size (480x360), hash matches, 4 layers', async () => {
+    const r = await live(id => AIS_API.photo.psdExport({ assetId: id }).then(async x => { const buf = new Uint8Array(await x.blob.arrayBuffer()); const h = await crypto.subtle.digest('SHA-256', buf); return { sha: x.sha256, calc: [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join(''), magic: String.fromCharCode(...buf.slice(0, 4)), width: new DataView(buf.buffer).getUint32(18), height: new DataView(buf.buffer).getUint32(14), bytes: buf.length, name: x.filename, all: Array.from(buf) }; }), bigId);
+    assert.equal(r.magic, '8BPS'); assert.equal(r.width, 480); assert.equal(r.height, 360);
+    assert.equal(r.sha, r.calc); assert.ok(r.name.endsWith('.psd'));
+    psdBytes = Buffer.from(r.all);
+    assert.ok(psdBytes.length > 1000);
+  });
+
+  await run('photo.psdImport(): the edited PSD goes back as a NEW original asset (PSD 수정본 trail) with its layers counted', async () => {
+    const r = await live(arr => AIS_API.photo.psdImport({ file: new File([new Uint8Array(arr)], '수정본.psd'), rightsConfirmed: true }).then(x => ({ source: x.source, layers: x.psd.layers, names: x.psd.layer_names, reduced: x.reduced, work: x.work_size, id: x.asset.asset_id, url: !!x.url })), Array.from(psdBytes));
+    assert.equal(r.layers, 4); assert.ok(r.names.some(n => n.includes('피사체'))); assert.equal(r.source, 'merged'); assert.equal(r.reduced, false);
+    assert.deepEqual(r.work, [480, 360]); assert.notEqual(r.id, bigId); assert.ok(r.url);
+  });
+
+  await run('photo.psdExport()/psdImport(): an unreachable server answers null; and a non-PSD upload is refused with PSD_NOT_PSD', async () => {
+    assert.equal(await page.evaluate(() => { AIS_LIVE.configure({ base: 'http://127.0.0.1:1', token: 'x', workspaceId: 'w' }); return AIS_API.photo.psdExport({ assetId: 'ast_x' }); }), null);
+    await page.evaluate(([base, token, ws]) => AIS_LIVE.configure({ base, token: () => token, workspaceId: ws }), [stack.apiUrl, USERS.owner.token, WS]);
+    await assert.rejects(live(() => AIS_API.photo.psdImport({ file: new File([new Uint8Array([1, 2, 3])], 'x.psd'), rightsConfirmed: true })), /PSD_NOT_PSD/);
+  });
+
   assert.deepEqual(errors, [], 'no script error on the page');
 } finally {
   await browser.close();
