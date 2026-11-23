@@ -141,8 +141,17 @@
 | `OUTPUT_NOT_LINKED` | tryon | error | 결과가 아직 저장되지 않았습니다. 잠시 뒤 다시 시도해 주세요. | The result is not saved yet. Please try again shortly. |
 | `OUTPUT_SAVE_REQUIRES_REVIEW` | tryon | error | 결과는 검수를 거친 뒤에 저장됩니다. | Results are saved after review. |
 | `OUTPUT_UNAVAILABLE` | tryon | error | 결과 파일이 더는 없습니다. | The result file is no longer available. |
+| `PHOTO_GARMENT_CLIPPED` | photo | error | 옷이 사진 가장자리에 닿았습니다. 옷 전체가 보이게 물러서서 찍어 주세요. | The garment touches the edge of the photo. Step back so the whole garment is in view. |
+| `PHOTO_GARMENT_FRAGMENTED` | photo | error | 옷이 여러 조각으로 잘리거나 다른 물건이 함께 찍혔습니다. 옷 전체와 대비되는 배경에서 다시 찍어 주세요. | The garment came out in pieces, or something else is in the photo. Shoot it on a background that contrasts with the whole garment. |
+| `PHOTO_GARMENT_NOT_FOUND` | photo | error | 배경과 옷이 구분되지 않습니다. 단색 배경에서 다시 찍어 주세요. | The garment cannot be told from the background. Shoot it on a plain background. |
 | `PHOTO_IMAGE_ASSET_REQUIRED` | photo | error | 사진 작업에는 그림 파일이 필요합니다. | Photo work needs a picture file. |
+| `PHOTO_KIND` | photo | error | 지원하지 않는 옷 종류입니다. | That garment kind is not supported. |
 | `PHOTO_LOCAL_PROCESSING_FAILED` | photo | error | 사진 처리에 실패했습니다. 다른 사진으로 시도해 주세요. | Photo processing failed. Try another picture. |
+| `PHOTO_REFERENCE_NOT_FOUND` | photo | error | 옷 옆에 놓은 카드(또는 A4)를 찾지 못했습니다. 옷과 겹치지 않게 옆에 평평하게 놓아 주세요. | The card (or A4) beside the garment was not found. Lay it flat next to the garment, not overlapping. |
+| `PHOTO_REFERENCE_UNKNOWN` | photo | error | 기준 물체는 카드 또는 A4 중에서 골라 주세요. | Choose the reference object: card or A4. |
+| `PHOTO_SIZE_IMPLAUSIBLE` | photo | error | 사진에서 잰 치수가 옷으로는 비정상입니다. 기준 물체와 촬영 조건을 확인해 주세요. | The size measured from the photo is not plausible for a garment. Check the reference object and the shooting conditions. |
+| `PHOTO_TOO_LARGE` | photo | error | 사진이 너무 큽니다. | The photo is too large. |
+| `PHOTO_UNREADABLE` | photo | error | 읽을 수 없는 사진 파일입니다. | The photo file cannot be read. |
 | `PRESET_LIMIT` | photo | limit | 저장할 수 있는 프리셋 수를 넘었습니다. | The preset limit has been reached. |
 | `PRESET_NAME_REQUIRED` | photo | error | 프리셋 이름을 입력해 주세요. | Please enter a preset name. |
 | `PRESET_NAME_TAKEN` | photo | error | 같은 이름의 프리셋이 이미 있습니다. | A preset with this name already exists. |
