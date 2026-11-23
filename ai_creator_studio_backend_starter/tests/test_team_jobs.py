@@ -135,3 +135,13 @@ def test_other_workspaces_never_see_these_jobs_and_anonymous_is_refused(team):
     assert client.post(f"/v1/workspaces/wb/jobs/{job['job_id']}/transition", headers=auth("b"), json={"to": "review"}).status_code == 404
     assert client.get(J).status_code in (401, 403)
     assert team_jobs.TRANSITIONS["approved"] == set() and team_jobs.TRANSITIONS["rejected"] == set()
+
+
+def test_the_list_and_the_job_carry_the_comment_count_for_the_board(team):
+    job = make()
+    for who in ("d", "e"):
+        assert client.post(f"{J}/{job['job_id']}/comments", headers=auth(who), json={"body": "의견"}).status_code == 201
+    listed = {i["job_id"]: i for i in client.get(J, headers=auth("e")).json()["items"]}
+    assert listed[job["job_id"]]["comment_count"] == 2
+    assert client.get(f"{J}/{job['job_id']}", headers=auth("e")).json()["comment_count"] == 2
+    assert make(title="no comments")["comment_count"] == 0

@@ -97,12 +97,18 @@ class TeamJobBulkIn(BaseModel):
     note: str | None = Field(default=None, max_length=MAX_NOTE)
 
 
+COMMENT_COUNT = "(SELECT COUNT(*) FROM team_job_comments c WHERE c.job_id=team_jobs.job_id)"
+
+
 def _job(row) -> dict[str, Any]:
-    return {k: row[k] for k in ("job_id", "workspace_id", "owner_user_id", "workroom", "title", "status", "thumb_asset_id", "due_at", "created_at", "updated_at")}
+    out = {k: row[k] for k in ("job_id", "workspace_id", "owner_user_id", "workroom", "title", "status", "thumb_asset_id", "due_at", "created_at", "updated_at")}
+    if "comment_count" in row.keys():
+        out["comment_count"] = row["comment_count"]                                   # D-6: the board shows how many comments a job has (the screen's "cm")
+    return out
 
 
 def _get(db, workspace_id: str, job_id: str):
-    row = db.execute("SELECT * FROM team_jobs WHERE workspace_id=? AND job_id=?", (workspace_id, job_id)).fetchone()
+    row = db.execute(f"SELECT team_jobs.*, {COMMENT_COUNT} AS comment_count FROM team_jobs WHERE workspace_id=? AND job_id=?", (workspace_id, job_id)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return row
@@ -172,7 +178,7 @@ async def list_jobs(workspace_id: str, owner: str | None = None, workroom: Workr
     with store._connect() as db:
         _init(db)
         total = db.execute(f"SELECT COUNT(*) FROM team_jobs WHERE {' AND '.join(where)}", args).fetchone()[0]
-        rows = db.execute(f"SELECT * FROM team_jobs WHERE {' AND '.join(where)} ORDER BY updated_at DESC, job_id LIMIT ? OFFSET ?", [*args, limit, offset]).fetchall()
+        rows = db.execute(f"SELECT team_jobs.*, {COMMENT_COUNT} AS comment_count FROM team_jobs WHERE {' AND '.join(where)} ORDER BY updated_at DESC, job_id LIMIT ? OFFSET ?", [*args, limit, offset]).fetchall()
     return {"items": [_job(r) for r in rows], "total": total}
 
 
