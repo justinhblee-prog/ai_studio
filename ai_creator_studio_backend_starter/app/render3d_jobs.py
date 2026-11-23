@@ -66,6 +66,8 @@ class RenderIn(BaseModel):
     bg: Literal["white", "light", "gray", "studio"] = "light"
     angles: list[int] = Field(default_factory=lambda: list(DEFAULT_ANGLES), min_length=1, max_length=MAX_ANGLES)
     mp4: bool = True
+    pose: Literal["standing", "walking", "hand_on_hip", "sitting", "arms_raised"] = "standing"       # D-1: M5 poses (app/pose_rig.py)
+    renderer: Literal["soft", "photo"] = "soft"                                                       # D-1: "photo" = E-03 lit renderer (app/render3d_photo.py), slower
 
     @field_validator("angles")
     @classmethod
@@ -153,20 +155,32 @@ def run_job(job_id: str, workspace_id: str, user_id: str, request: dict[str, Any
     status, result, qc, error = "failed", None, None, "RENDER_FAILED"
     try:
         tris, fits, (body_tris, layers) = build_scene(request["sex"], request.get("measurements"), [g["kind"] for g in request["garments"]])
+        pose = request.get("pose") or "standing"
+        if pose != "standing":                                              # D-1: move the body AND its garments with the rig (weights from the vertex positions)
+            from app import pose_rig
+            moved, _ = pose_rig.skin_triangles(pose_rig.Skeleton(request["sex"], request.get("measurements")), [body_tris] + [t for _, t, _ in layers], pose)
+            body_tris = moved[0]
+            layers = [(k, moved[1 + i], c) for i, (k, _, c) in enumerate(layers)]
+            tris = body_tris + [t for _, g, _ in layers for t in g]
         background = render3d_soft.BACKGROUNDS[request["bg"]]
         height = render3d_soft.height_of(tris)
         cache: dict[int, Image.Image] = {}
+        lit = request.get("renderer") == "photo"
 
         def picture(angle: int) -> Image.Image:
             if angle not in cache:
-                cache[angle] = render3d_soft.render(tris, angle, STILL_SIZE, background=background, height_m=height)
+                if lit:
+                    from app import render3d_photo
+                    cache[angle] = render3d_photo.render_photo([(body_tris, "skin")] + [(g, "cloth") for _, g, _ in layers], angle, STILL_SIZE, background=background, height_m=height, ss=2)
+                else:
+                    cache[angle] = render3d_soft.render(tris, angle, STILL_SIZE, background=background, height_m=height)
             return cache[angle]
         stills = {a: picture(a) for a in request["angles"]}
         shares = {a: round(_painted_share(im, background), 4) for a, im in stills.items()}
         qc = {"passed": all(s >= MIN_PAINTED_SHARE for s in shares.values()), "painted_share": {str(a): s for a, s in shares.items()}, "min_share": MIN_PAINTED_SHARE, "fits": fits}
         # R-ENGINE-11: a RECORD of how the garments look in the pictures (the body poking through, colour). It does not decide delivery: ``qc.passed`` stays the blank-picture check.
         qc["render_check"] = render_qc.check_cuts(body_tris, layers, request["angles"], penetrations={f["kind"]: f["penetrations"] for f in fits},
-                                                        body_without_arms=render3d_scene.body_without_arms(request["sex"], request.get("measurements")))
+                                                        body_without_arms=render3d_scene.body_without_arms(request["sex"], request.get("measurements")) if pose == "standing" else None)
         content_mp4, mp4_info = None, None
         if qc["passed"] and request["mp4"]:
             cuts = [picture(a) for a in CUT_ANGLES]
@@ -185,7 +199,7 @@ def run_job(job_id: str, workspace_id: str, user_id: str, request: dict[str, Any
                 data = buf.getvalue()
                 saved = store.save_asset(owner_id=user_id, workspace_id=workspace_id, filename=f"render3d-{job_id[-6:]}-{angle:03d}.png", content=data,
                                          validated=ValidatedAsset(media_type="image/png", size_bytes=len(data), gltf_version=None, embedded_binary=False), provenance_event=EVENT,
-                                         provenance_extra={"job_id": job_id, "mode": "mock", "engine": "own3d-soft", "is_ai_generated": False, "angle": angle, "qc_passed": True})
+                                         provenance_extra={"job_id": job_id, "mode": "mock", "engine": "own3d-photo" if lit else "own3d-soft", "pose": pose, "is_ai_generated": False, "angle": angle, "qc_passed": True})
                 images.append({"angle": angle, "asset_id": saved["asset_id"]})
             mp4 = None
             if content_mp4 is not None:
@@ -232,6 +246,18 @@ async def create_render3d_job(workspace_id: str, body: RenderIn, background: Bac
         out = _public(row)
     background.add_task(run_job, job_id, workspace_id, user_id, request)
     return out
+
+
+POSE_LABELS = {"standing": ("서 있기", "Standing"), "walking": ("걷기", "Walking"), "hand_on_hip": ("손 허리", "Hand on hip"), "sitting": ("앉기", "Sitting"), "arms_raised": ("팔 들기", "Arms raised")}
+
+
+@router.get("/poses", operation_id="listRender3dPoses")
+async def list_poses(workspace_id: str, user_id: str = Depends(current_user)) -> dict[str, Any]:
+    """D-1: the poses a render job accepts (M5, ``app/pose_rig.py``) and the renderers - what the 3D studio's pose picker lists."""
+    require_role(workspace_id, user_id, {"owner", "admin", "editor", "viewer"})
+    _closed()
+    return {"poses": [{"id": k, "label_ko": ko, "label_en": en} for k, (ko, en) in POSE_LABELS.items()], "renderers": [{"id": "soft", "note": "fast mock"}, {"id": "photo", "note": "lit, with floor shadow, slower"}],
+            "engine": "own3d"}
 
 
 @router.get("", response_model=RenderListOut, operation_id="listRender3dJobs")
