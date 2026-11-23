@@ -12,6 +12,7 @@
      AIS_API.studio3d.fitCheck({sex,kind,measurements?,nominal?}) → §15 응답 | null            (POST …/fit-check)
      AIS_API.studio3d.export({assetId, versionId?, format:'glb'}) → {blob,url,sha256,filename} | null   (§14 E-05)
      AIS_API.studio3d.bodyFromPhoto({assetId, sex?|modelId, heightCm?}) → {estimated:true, measurements:{height_cm,chest_cm,waist_cm,hips_cm}, warnings[], …} | null   (D-2, POST …/photo-body)
+     AIS_API.tryon.couple({photo:assetId|File, rightsConfirmed?, slots:{a:[kind],b:[kind]}, match?, sexes?}) → {job_id,asset_id,url,qc,ms} | null   (D-3, POST …/couple-tryon; 지금은 own3d 모의: 사람 영역을 옷 입힌 마네킹으로 바꿈)
      AIS_API.studio3d.saveToLibrary(images, {name?})→ [library item]                           (POST …/library/attach, kind=render)
      AIS_API.studio3d.toVideo({itemIds, aspect?, duration?, motion?}) → {job_id,status,…} | null (POST …/video-jobs, 라이브러리 항목 → 영상) */
 (function(){
@@ -154,6 +155,35 @@ var S3={
   }
 };
 
+/* D-3: 커플 착장. photo = 이미 올린 자산 id(문자열) 또는 File/Blob(이 경우 권리 확인 rightsConfirmed:true 필요 — 화면의 체크박스 값을 그대로 넘긴다).
+   slots={a:[kind..], b:[kind..]} (a=왼쪽 사람, b=오른쪽 사람), match:'same'|'color'|null, sexes:{a,b}.
+   → {job_id, asset_id, url, qc:{overlap_px,overlap_share,people}, ms} | null.  너무 많이 겹치면 {code:'COUPLE_OVERLAP_TOO_LARGE'} 를 던진다(화면 문구는 오류 코드 표). */
+var TRY={
+  couple:async function(o){
+    if(!ready())return null;
+    o=o||{};var t0=Date.now();
+    var assetId=o.photo;
+    if(assetId&&typeof assetId!=='string'){
+      var fd=new FormData();fd.append('workspace_id',CFG.workspaceId);fd.append('file',assetId,assetId.name||'couple.png');
+      fd.append('rights_confirmed',o.rightsConfirmed?'true':'false');
+      var up=await call('POST',CFG.base+'/v1/assets/images',fd);
+      if(up.unavailable)return null;
+      assetId=up.json.asset_id;
+    }
+    var body={asset_id:assetId,slots:{a:(o.slots&&o.slots.a)||[],b:(o.slots&&o.slots.b)||[]}};
+    if(o.match)body.match=o.match;
+    if(o.sexes)body.sexes=o.sexes;
+    var x=await call('POST',wsUrl('/couple-tryon'),body);
+    if(x.unavailable)return null;
+    var done=await poll(wsUrl('/couple-tryon/'+encodeURIComponent(x.json.job_id)));
+    if(done.unavailable)return null;
+    var job=done.json;
+    if(job.status!=='succeeded')throw fail(job.error_code||'COUPLE_FAILED','The couple outfit could not be made');
+    var b=await blobUrl(job.asset_id);
+    return {job_id:job.job_id,asset_id:job.asset_id,url:b?b.url:null,blob:b?b.blob:null,qc:job.qc,mock:true,ms:Date.now()-t0};
+  }
+};
+
 window.AIS_LIVE={
   configure:function(c){CFG=normalize(c);STATE.up=null;return !!CFG},
   enabled:function(){return !!cfg()},
@@ -165,4 +195,5 @@ window.AIS_LIVE={
 };
 window.AIS_API=window.AIS_API||{};
 window.AIS_API.studio3d=Object.assign(window.AIS_API.studio3d||{},S3);
+window.AIS_API.tryon=Object.assign(window.AIS_API.tryon||{},TRY);
 })();

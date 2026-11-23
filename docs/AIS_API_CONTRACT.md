@@ -222,3 +222,9 @@
 
 ## 21. 사진 → 몸 치수 추정 `POST /v1/workspaces/{id}/photo-body` (D-2)
 `{asset_id, sex: male|female, height_cm?(120~220)}` → `{estimated:true, label, measurements:{height_cm,chest_cm,waist_cm,hips_cm}, silhouette_px, warnings[], chest_from_prior, assumptions[]}`. 편집자 이상, own3d 플래그 뒤(닫힘 409 `RENDER3D_CLOSED`), 저장 없음. 오류 `PHOTO_BODY_NOT_FOUND|CLIPPED|POSE|UNREADABLE|SEX|HEIGHT`(422). 화면 함수 `AIS_API.studio3d.bodyFromPhoto`(§20). **합성 사진에서만 시험, 실제 사람 사진은 미실행**; 방법·한계는 `docs/PHOTO_BODY.md`.
+
+## 22. 커플 착장 `POST /v1/workspaces/{id}/couple-tryon` (D-3, R-ENGINE-16 뒤)
+`{asset_id, slots:{a:[kind..], b:[kind..]}, match?: "same"|"color"|null, sexes?:{a,b}}` → **202** 작업 → 폴링 `GET …/couple-tryon/{job_id}` → `{status, asset_id, qc:{overlap_px, overlap_share, max_overlap_share, cut_x, people[]}, error_code, mock:true, note}`; 목록 `GET …/couple-tryon`. 편집자 이상(읽기는 열람자도), own3d 플래그 뒤(닫힘 409 `RENDER3D_CLOSED`). `a`=사진의 **왼쪽 사람**, `b`=**오른쪽 사람**; `match:"same"`=둘째가 첫째의 옷, `"color"`=같은 종류는 한 색. 오류: `COUPLE_SLOTS_EMPTY`(422)·`RENDER3D_GARMENT_CONFLICT`(422)·작업 실패 시 `COUPLE_OVERLAP_TOO_LARGE`·`COUPLE_PERSON_NOT_FOUND`·`FIT_REFUSED`·`COUPLE_FAILED`.
+- **지금의 실행기는 own3d 모의**: 사람마다 그 사람의 영역을 옷 입은 3D 마네킹(슬롯의 성별·옷)으로 바꾼다(진짜 착장이 아님; 경계에 원본 윤곽이 희미하게 남음). 진짜 사람별 착장 모델은 평가 모델 승인(NEED_USER) 뒤.
+- 화면 함수: `AIS_API.tryon.couple({photo: 자산 id | File, rightsConfirmed?, slots, match?, sexes?})` → `{job_id, asset_id, url, qc, ms} | null`(`ais_api_live.js`, §20). File이면 권리 확인 값이 필요하다.
+- **시험은 합성 커플 사진**(마네킹 2명 나란히)과 겹침 거부뿐, 실제 커플 사진(라이브러리 mc0–8)은 이 환경에 없어 **미실행**.

@@ -200,6 +200,8 @@ CODES: dict[str, tuple[str, str]] = {
     "PHOTO_BODY_UNREADABLE": ("사진을 읽을 수 없습니다.", "The photo could not be read."),
     "PHOTO_BODY_SEX": ("성별은 male 또는 female 이어야 합니다.", "Choose male or female for the sex."),
     "PHOTO_BODY_HEIGHT": ("키 값이 허용 범위(120~220 cm)를 벗어났습니다.", "The height is out of range (120-220 cm)."),
+    "COUPLE_SLOTS_EMPTY": ("한 사람 이상의 옷을 골라 주세요.", "Please choose garments for at least one person."),
+    "COUPLE_FAILED": ("커플 착장을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.", "The couple outfit could not be made. Please try again shortly."),
     "VIDEO_NOT_CANCELLABLE": ("이미 끝난 영상 작업이라 취소할 것이 없습니다.", "The video job has already finished, so there is nothing to cancel."),
     "VIDEO_RETRY_NOT_FAILED": ("실패한 영상만 다시 시도할 수 있습니다.", "Only a failed video can be retried."),
     "VIDEO_INPUT_DUPLICATE": ("같은 그림을 두 번 넣을 수 없습니다.", "Each picture can be used once."),
