@@ -31,7 +31,7 @@ function fail(code,message,status){var e={code:code,message:message||code};if(st
 function detail(r,body){
   var d=body&&body.detail;
   if(d&&typeof d==='object'&&d.code)return fail(d.code,d.message,r.status);
-  return fail(r.status===401||r.status===403?'FORBIDDEN':'SERVER',typeof d==='string'?d:('HTTP '+r.status),r.status);
+  return fail(r.status===401||r.status===403?'FORBIDDEN':(r.status===422?'INVALID':'SERVER'),typeof d==='string'?d:(d?JSON.stringify(d).slice(0,300):('HTTP '+r.status)),r.status);   /* 422 의 본문(필드별 오류)을 그대로 싣는다 */
 }
 /* 서버를 부를 수 없는 경우(설정 없음·꺼짐·플래그 닫힘)와 거절을 구분한다. */
 async function call(method,url,body,opts){
