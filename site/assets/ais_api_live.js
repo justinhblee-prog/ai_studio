@@ -1,7 +1,7 @@
 /* AIS_API 실연결(라이브) — 3D 작업실 ↔ 서버 (답신 73 D-1)
    원칙(설계 창 지시): 화면 HTML은 고치지 않고, 화면이 부르는 함수 이름에 서버 구현을 끼운다.
-   서버가 꺼져 있거나 설정이 없거나 기능 플래그(RENDER3D_ENABLED)가 닫혀 있으면 **조용히 null** 을 돌려준다 → 호출한 쪽은 "지금 로컬 동작 그대로" 진행한다(오류 화면 금지).
-   서버가 일부러 거절한 것(잘못된 값 422 등)은 {code,message} 로 던진다.
+   서버가 꺼져 있거나 설정이 없거나 로그인이 없거나 기능 플래그(RENDER3D_ENABLED)가 닫혀 있으면 **조용히 null** 을 돌려준다 → 호출한 쪽은 "지금 로컬 동작 그대로" 진행한다(오류 화면 금지).
+   서버가 일부러 거절한 것(잘못된 값 422, 권한 없음 403→FORBIDDEN, 없음 404→NOT_FOUND 등)은 {code,message} 로 던진다.
 
    설정: AIS_LIVE.configure({ base:'https://api…', token:'…' | function(){return '…'}, workspaceId:'ws…' })
          (이 파일은 키·URL·비밀을 갖지 않는다. 부트스트랩이 넣는다. window.AIS_LIVE_CONFIG 가 있으면 첫 호출 때 읽는다.)
@@ -34,7 +34,7 @@ function fail(code,message,status){var e={code:code,message:message||code};if(st
 function detail(r,body){
   var d=body&&body.detail;
   if(d&&typeof d==='object'&&d.code)return fail(d.code,d.message,r.status);
-  return fail(r.status===401||r.status===403?'FORBIDDEN':(r.status===422?'INVALID':'SERVER'),typeof d==='string'?d:(d?JSON.stringify(d).slice(0,300):('HTTP '+r.status)),r.status);   /* 422 의 본문(필드별 오류)을 그대로 싣는다 */
+  return fail(r.status===401||r.status===403?'FORBIDDEN':(r.status===404?'NOT_FOUND':(r.status===422?'INVALID':'SERVER')),typeof d==='string'?d:(d?JSON.stringify(d).slice(0,300):('HTTP '+r.status)),r.status);   /* 422 의 본문(필드별 오류)을 그대로 싣는다 */
 }
 /* 서버를 부를 수 없는 경우(설정 없음·꺼짐·플래그 닫힘)와 거절을 구분한다. */
 async function call(method,url,body,opts){
@@ -47,7 +47,7 @@ async function call(method,url,body,opts){
   var j=null;try{j=await r.json()}catch(e){}
   if(r.ok)return {ok:true,json:j,response:r};
   if(r.status===409&&j&&j.detail&&j.detail.code==='RENDER3D_CLOSED')return {unavailable:true,why:'CLOSED'};
-  if(r.status===401||r.status===403||r.status===404)return {unavailable:true,why:'NOACCESS',status:r.status};   // 로그인·권한·작업공간이 없으면 로컬로 대체
+  if(r.status===401)return {unavailable:true,why:'NOSESSION',status:r.status};   // 로그인이 없으면 로컬로 대체. 403(권한 없음)·404(없는 것)는 서버의 진짜 답이라 던진다
   throw detail(r,j);
 }
 function ready(){return !!cfg()}
@@ -237,6 +237,57 @@ var PHO={
   }
 };
 
+/* D-6: 작업실 홈 "팀 작업 보드"(#tb). 화면 필드: t=title, w=workroom, u=owner, st=status, due, cm=의견 수. 서버가 닿지 않으면 null → 화면은 "예시" 데이터와 "예시" 띠를 그대로 둔다.
+   team.list({owner?, workroom?, status?, since?, q?, limit?, offset?}) → {items:[{id,t,w,u,st,due,cm,thumb,updated,raw}], total} | null     (GET …/jobs: 관리자·소유자=전체, 편집자=본인 것만)
+   team.get(id) → {…, events:[{from,to,by,note,at}], comments:[{by,body,at}]} | null
+   team.create({workroom,title,thumbAssetId?,due?}) → 새 작업 | null          team.transition(id,to,note?) → 작업 | null (changes·rejected 는 note 필수 → {code:'JOB_NOTE_REQUIRED'})
+   team.comment(id,body) → 의견 | null     team.bulk(ids,to,note?) → {results:[{id,ok,status,error_code}],succeeded,failed} | null     team.summary(period='week') → {members,by_status,due_soon_24h,…} | null */
+function boardItem(j){return {id:j.job_id,t:j.title,w:j.workroom,u:j.owner_user_id,st:j.status,due:j.due_at,cm:j.comment_count==null?0:j.comment_count,thumb:j.thumb_asset_id||null,updated:j.updated_at,raw:j}}
+var TEAM={
+  list:async function(o){
+    if(!ready())return null;
+    o=o||{};var q=[];
+    ['owner','workroom','status','since','q','limit','offset'].forEach(function(k){if(o[k]!=null&&o[k]!=='')q.push(k+'='+encodeURIComponent(o[k]))});
+    var x=await call('GET',wsUrl('/jobs'+(q.length?'?'+q.join('&'):'')));
+    return x.unavailable?null:{items:x.json.items.map(boardItem),total:x.json.total};
+  },
+  get:async function(id){
+    if(!ready())return null;
+    var x=await call('GET',wsUrl('/jobs/'+encodeURIComponent(id)));
+    return x.unavailable?null:Object.assign(boardItem(x.json),{events:x.json.events,comments:x.json.comments});
+  },
+  create:async function(o){
+    if(!ready())return null;
+    o=o||{};var b={workroom:o.workroom,title:o.title};
+    if(o.thumbAssetId)b.thumb_asset_id=o.thumbAssetId;
+    if(o.due)b.due_at=o.due;
+    var x=await call('POST',wsUrl('/jobs'),b);
+    return x.unavailable?null:boardItem(x.json);
+  },
+  transition:async function(id,to,note){
+    if(!ready())return null;
+    var b={to:to};if(note)b.note=note;
+    var x=await call('POST',wsUrl('/jobs/'+encodeURIComponent(id)+'/transition'),b);
+    return x.unavailable?null:boardItem(x.json);
+  },
+  comment:async function(id,body){
+    if(!ready())return null;
+    var x=await call('POST',wsUrl('/jobs/'+encodeURIComponent(id)+'/comments'),{body:body});
+    return x.unavailable?null:x.json;
+  },
+  bulk:async function(ids,to,note){
+    if(!ready())return null;
+    var b={ids:ids,to:to};if(note)b.note=note;
+    var x=await call('POST',wsUrl('/jobs:bulk-transition'),b);
+    return x.unavailable?null:x.json;
+  },
+  summary:async function(period){
+    if(!ready())return null;
+    var x=await call('GET',wsUrl('/team/summary?period='+encodeURIComponent(period||'week')));
+    return x.unavailable?null:x.json;
+  }
+};
+
 window.AIS_LIVE={
   configure:function(c){CFG=normalize(c);STATE.up=null;return !!CFG},
   enabled:function(){return !!cfg()},
@@ -251,4 +302,5 @@ window.AIS_API.studio3d=Object.assign(window.AIS_API.studio3d||{},S3);
 window.AIS_API.tryon=Object.assign(window.AIS_API.tryon||{},TRY);
 window.AIS_API.video=Object.assign(window.AIS_API.video||{},VID);
 window.AIS_API.photo=Object.assign(window.AIS_API.photo||{},PHO);
+window.AIS_API.team=Object.assign(window.AIS_API.team||{},TEAM);
 })();

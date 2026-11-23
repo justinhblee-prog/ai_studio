@@ -234,3 +234,9 @@
 
 ## 24. Photo `PSD ▾` 원본 해상도 연결 (D-5, R-PSD-01)
 서버가 켜져 있으면 화면의 `PSD ▾`는 브라우저 축소본 대신 서버 경로를 쓴다: **`AIS_API.photo.psdExport({assetId?, finalAssetId?, cutout?, depth?})`** → `POST …/photo-psd`(§19)로 원본 해상도 레이어 PSD(`{blob,url,sha256,filename,bytes}`), **`AIS_API.photo.psdImport({file, rightsConfirmed, depictsPerson?, likenessConsent?})`** → `POST …/photo-psd/import`로 새 원본 자산(`{asset, psd, source, work_size, reduced, url}`). 현재 작업의 자산 id는 `o.assetId` 또는 화면이 노출하는 `window.__phx`의 `assetId|asset_id|id`. 서버 꺼짐·설정 없음·플래그/권한 없음이면 **null → 화면은 지금의 브라우저 PSD로 계속**한다. 서버 거절은 `PSD_NOT_PSD|CORRUPT|TOO_LARGE|UNSUPPORTED`·`IMAGE_UNREADABLE` 등 `{code,message}`. (`ais_api_live.js`, §20) **포토샵·Photopea에서 연 시험은 아직 미실행**(§19).
+
+## 25. 팀 작업 보드 화면 연결 `AIS_API.team.*` (D-6, R-TEAM-01)
+작업실 홈 `#tb`의 예시 데이터를 §18 서버 경로로 바꾸는 화면 함수(`ais_api_live.js`). 화면 필드: `t=title, w=workroom, u=owner(owner_user_id), st=status, due=due_at, cm=의견 수(comment_count), thumb, updated`, 원본은 `raw`. **서버 꺼짐·설정 없음·로그인 없음(401) → null → 화면은 "예시" 데이터와 "예시" 띠를 그대로 둔다.** 권한 없음(403)은 `{code:'FORBIDDEN'}`, 없는 것(404)은 `{code:'NOT_FOUND'}`로 **던진다**(서버의 진짜 답이라 예시로 덮지 않음).
+`team.list({owner,workroom,status,since,q,limit,offset})`(관리자·소유자=전체, 편집자=본인 것만) · `team.get(id)`(+`events`·`comments`) · `team.create({workroom,title,thumbAssetId?,due?})` · `team.transition(id,to,note?)`(`changes`·`rejected`는 사유 필수 → `JOB_NOTE_REQUIRED`) · `team.comment(id,body)` · `team.bulk(ids,to,note?)`(항목별 `{id,ok,status,error_code}`) · `team.summary(period='week')`(`credits_used`는 null; 편집자는 403).
+- 서버 변경: 작업 목록·상세에 **`comment_count`** 추가(§18). `ais_api_live.js` 공통: 401만 조용한 null, 403·404는 던짐(§20의 "권한 없음 → null"을 이렇게 정정).
+- 한계: 기존 작업실이 작업을 자동으로 올리지 않는다(화면이 `team.create`를 불러야 함); 화면 HTML에 합쳐지지 않아 e2e는 주입 호출.

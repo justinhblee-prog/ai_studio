@@ -153,6 +153,55 @@ try {
     await assert.rejects(live(() => AIS_API.photo.psdImport({ file: new File([new Uint8Array([1, 2, 3])], 'x.psd'), rightsConfirmed: true })), /PSD_NOT_PSD/);
   });
 
+  // ---------- D-6 team board ----------
+  for (const [id, role] of [[USERS.editor.id, 'editor'], [USERS.viewer.id, 'viewer']]) {
+    const r = await fetch(`${stack.apiUrl}/v1/workspaces/${WS}/members`, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: id, role }) });
+    assert.equal(r.status, 201, await r.clone().text());
+  }
+  const as = who => page.evaluate(([base, token, ws]) => AIS_LIVE.configure({ base, token: () => token, workspaceId: ws }), [stack.apiUrl, who.token, WS]);
+  let mine, theirs;
+
+  await run('team.create()/list(): jobs are written in the screen\'s own fields (t,w,u,st,due,cm); the owner sees all, an editor only their own', async () => {
+    await as(USERS.editor);
+    mine = await live(() => AIS_API.team.create({ workroom: 'photo', title: '촬영 A', due: new Date(Date.now() + 5 * 3600e3).toISOString() }));
+    assert.deepEqual([mine.t, mine.w, mine.u, mine.st, mine.cm], ['촬영 A', 'photo', USERS.editor.id, 'draft', 0]);
+    await as(USERS.owner);
+    theirs = await live(() => AIS_API.team.create({ workroom: 'video', title: '영상 B' }));
+    const all = await live(() => AIS_API.team.list({}));
+    assert.deepEqual(all.items.map(i => i.t).sort(), ['영상 B', '촬영 A']);
+    assert.deepEqual((await live(() => AIS_API.team.list({ workroom: 'video' }))).items.map(i => i.t), ['영상 B']);
+    await as(USERS.editor);
+    assert.deepEqual((await live(() => AIS_API.team.list({}))).items.map(i => i.t), ['촬영 A']);
+  });
+
+  await run('team.transition()/comment(): review, a note is REQUIRED to ask for changes, comments are counted (cm), history is kept', async () => {
+    await as(USERS.editor);
+    await live(id => AIS_API.team.transition(id, 'review'), mine.id);
+    await as(USERS.owner);
+    await assert.rejects(live(id => AIS_API.team.transition(id, 'changes'), mine.id), /JOB_NOTE_REQUIRED/);
+    const changed = await live(id => AIS_API.team.transition(id, 'changes', '색을 바꿔 주세요'), mine.id);
+    assert.equal(changed.st, 'changes');
+    await live(id => AIS_API.team.comment(id, '확인했어요'), mine.id);
+    const one = await live(id => AIS_API.team.get(id), mine.id);
+    assert.equal(one.cm, 1); assert.deepEqual(one.events.map(e => e.to), ['draft', 'review', 'changes']); assert.equal(one.comments[0].body, '확인했어요');
+    await as(USERS.editor);
+    await assert.rejects(live(id => AIS_API.team.transition(id, 'review'), theirs.id), /FORBIDDEN/);        // an editor cannot move someone else's job (a valid step, the wrong person)
+  });
+
+  await run('team.bulk()/summary(): bulk results per job (part may fail), the weekly summary counts members, statuses and jobs due within 24 h', async () => {
+    await as(USERS.owner);
+    const r = await live(ids => AIS_API.team.bulk(ids, 'review'), [theirs.id, mine.id, 'job_nope']);
+    const byId = Object.fromEntries(r.results.map(x => [x.id, x]));
+    assert.equal(byId[theirs.id].ok, true); assert.equal(byId.job_nope.error_code, 'NOT_FOUND');
+    assert.equal(byId[mine.id].ok, true);                                            // "changes" -> "review": an owner/admin may move any job
+    const s = await live(() => AIS_API.team.summary('week'));
+    assert.ok(s.members.some(m => m.user_id === USERS.editor.id && m.jobs === 1));
+    assert.equal(s.due_soon_24h, 1);
+    assert.ok(s.members.every(m => m.credits_used === null));
+    await as(USERS.editor);
+    assert.equal(await live(() => AIS_API.team.summary('week').then(() => 'allowed').catch(e => e.code)), 'FORBIDDEN');
+  });
+
   assert.deepEqual(errors, [], 'no script error on the page');
 } finally {
   await browser.close();
