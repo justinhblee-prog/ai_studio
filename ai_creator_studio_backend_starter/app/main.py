@@ -190,9 +190,9 @@ if config.APP_CORS_ORIGINS:
         CORSMiddleware,
         allow_origins=list(config.APP_CORS_ORIGINS),
         allow_credentials=False,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
-        expose_headers=["Content-Disposition"],
+        expose_headers=["Content-Disposition", "X-Content-SHA256", "ETag"],     # D-1: the browser export reads the file hash
     )
 # Durable SQLite persistence for jobs/executions/events/output metadata/idempotency.
 # Workspace membership and asset metadata remain in their existing asset store.
