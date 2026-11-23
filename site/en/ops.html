@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Operator console — AI CREATOR STUDIO</title>
+<meta name="description" content="Operators handle reports, deletion requests, limits, kill switch and alerts in one place.">
+<meta property="og:title" content="Operator console — AI CREATOR STUDIO"><meta property="og:description" content="Operators handle reports, deletion requests, limits, kill switch and alerts in one place."><meta property="og:type" content="website">
+<meta property="og:image" content="../img/og.jpg"><meta property="og:locale" content="en_US"><meta name="twitter:card" content="summary_large_image">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/png" href="../assets/logo-96.png">
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "AI CREATOR STUDIO", "inLanguage": "en"}</script>
+<script>(function(){var R=document.documentElement,t=null;function g(){var v=null;try{v=localStorage.getItem("theme")}catch(e){}if(v!=="dark"&&v!=="light"){var m=/(?:^|;)aisTheme=(dark|light)/.exec(window.name||"");v=m?m[1]:null}return v}function w(v){try{localStorage.setItem("theme",v)}catch(e){}window.name=(window.name||"").replace(/(?:^|;)aisTheme=(dark|light)/,"")+";aisTheme="+v}var q=/[?&]th=(dark|light)/.exec(location.search);t=q?q[1]:g();if(q)w(t);if(t===null){t="light";w(t)}window.__aisTheme=t;R.setAttribute("data-theme",t);try{new MutationObserver(function(){var v=window.__aisTheme;if(v&&R.getAttribute("data-theme")!==v)R.setAttribute("data-theme",v)}).observe(R,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}window.addEventListener("pageshow",function(){var v=g();if(v){window.__aisTheme=v;R.setAttribute("data-theme",v)}});window.addEventListener("storage",function(e){if(e.key==="theme"&&(e.newValue==="dark"||e.newValue==="light")){window.__aisTheme=e.newValue;R.setAttribute("data-theme",e.newValue)}})})()</script>
+<script src="../assets/ais.js"></script>
+<script src="../assets/lib.js"></script>
+</head>
+<body data-app="1" data-ops="1">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav"><div class="wrap nav-in">
+  <a class="brand" href="index.html"><img class="blogo" src="../assets/logo-96.png" srcset="../assets/logo-96.png 1x,../assets/logo-192.png 2x" width="32" height="32" alt="">AI CREATOR STUDIO</a>
+  <ul><li><a href="services.html"><svg class="ni" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>Services</a></li><li class="dd"><details><summary><svg class="ni" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5 12 4l8 3.5v9L12 20l-8-3.5z"/><path d="M4 7.5 12 11l8-3.5M12 11v9"/></svg>Workspaces</summary><div class="ddp"><a href="studio.html"><b>Photo Studio</b><span>Product photo drafts, review, lookbooks</span></a><a href="tryon-studio.html"><b>Virtual Try-on</b><span>Garments on models</span></a><a href="character-studio.html"><b>Character Studio</b><span>Brand models and characters</span></a><a href="studio-3d.html"><b>3D Studio</b><span>View in 3D, place in scenes</span></a><a href="studio-video.html"><b>Video Studio</b><span>Short video content</span></a><a href="market.html"><b>Marketplace</b><span>Share and trade templates and presets</span></a><a class="ddall" href="workspace.html">Workspace home →</a></div></details></li><li><a href="pilot.html"><svg class="ni" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.4 6.8 19.2l1-5.9L3.5 9.2l5.9-.8z"/></svg>Pricing & launch</a></li><li><a href="faq.html"><svg class="ni" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8M12 16.8v.1"/></svg>FAQ</a></li><li><a href="contact.html"><svg class="ni" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4 7.5 8 6 8-6"/></svg>Contact</a></li>
+    <li class="keep" id="acct"><a href="login.html">Log in</a> <a class="btn btn-primary" href="signup.html" style="color:var(--violet-ink);min-height:44px;padding:8px 20px">Sign up</a></li>
+    <li class="keep"><nav class="lang" aria-label="Language"><a href="../ko/ops.html" lang="ko" hreflang="ko" data-set-lang="ko">KO</a><a href="../en/ops.html" lang="en" hreflang="en" data-set-lang="en" aria-current="true">EN</a></nav></li>
+    <li class="keep"><button class="theme" id="theme" aria-label="Toggle light and dark" title="Toggle light and dark"><svg class="ti" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="ti-moon"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></g><g class="ti-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g></svg></button></li>
+    <li class="keep" id="opsbtn"><a class="btn btn-ghost opsb" href="ops-login.html">Operator login</a></li>
+  </ul>
+  <details class="mnav"><summary aria-label="Menu">☰</summary><div class="mpanel"><a href="services.html"><b>Services</b></a><a href="workspace.html"><b>Workspaces</b></a><a href="studio.html">· Photo Studio</a><a href="tryon-studio.html">· Virtual Try-on</a><a href="character-studio.html">· Character Studio</a><a href="studio-3d.html">· 3D Studio</a><a href="studio-video.html">· Video Studio</a><a href="market.html">· Marketplace</a><a href="pilot.html">Pricing & launch</a><a href="faq.html">FAQ</a><a href="contact.html">Contact</a><a href="ops-login.html">Operator login</a></div></details>
+</div></header>
+<div class="pvband">Preview of the launched site · some features are still in development.<span class="pvsep"> · </span>People shown on this site are AI-generated images. <a href="ai-disclosure.html">Details</a></div>
+<main id="main"><div class="page-head"><div class="wrap"><div class="eyebrow">Workspace</div><h1>Operator console</h1><p>Operators handle reports, deletion requests, limits, kill switch and alerts in one place.</p></div></div>
+<section style="padding-block:20px 56px"><div class="wrap">
+<div id="opsmain" class="opsgrid"><nav class="opnav" id="opnav" aria-label="Operator menu"></nav><div><p class="msg" id="msg" role="status"></p><div id="opbody"></div></div></div>
+</div></section>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var KO=document.documentElement.lang==='ko';
+function g(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
+function s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function say(x){$('msg').textContent=x||''}
+function fd(t){return t?new Date(t).toLocaleDateString(KO?'ko-KR':'en-US'):'-'}
+function aud(a){var l=g('ais_ops_audit',[]),u=AIS.ops.session();l.unshift({t:Date.now(),by:u?u.email:'',a:a});s('ais_ops_audit',l.slice(0,300))}
+function addBiz(t,n){var d=new Date(t);while(n>0){d.setDate(d.getDate()+1);var w=d.getDay();if(w!==0&&w!==6)n--}return d.getTime()}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function li(ul,txt,btns){var e=el('li');e.appendChild(el('span',null,txt));(btns||[]).forEach(function(b){var x=el('button','x',b[0]);x.type='button';x.onclick=b[1];e.appendChild(x)});ul.appendChild(e)}
+function box(h){var f=el('div','fgrp');f.appendChild(el('h3',null,h));return f}
+function note(t){return el('p','fine',t)}
+function code(t){var p=el('p');var c=el('code',null,t);p.appendChild(c);return p}
+function fld(id,label,type,opts,val){var l=el('label','fld');l.appendChild(document.createTextNode(label+' '));var i;
+ if(type==='select'){i=el('select');opts.forEach(function(o){var op=el('option',null,o[1]);op.value=o[0];i.appendChild(op)})}
+ else if(type==='textarea'){i=el('textarea');i.rows=3;i.style.cssText='width:100%;max-width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);padding:8px;font:inherit'}
+ else if(type==='check'){i=el('input');i.type='checkbox';i.checked=!!val}
+ else{i=el('input');i.type=type||'text';i.maxLength=300}
+ i.id=id;if(type!=='check'&&val!=null)i.value=val;l.appendChild(i);return l}
+function val(id){var e=$(id);return e.type==='checkbox'?e.checked:e.value.trim()}
+function row(){var r=el('div','row');for(var i=0;i<arguments.length;i++)r.appendChild(arguments[i]);return r}
+function btn(t,fn,primary){var b=el('button','btn '+(primary?'btn-primary':'btn-ghost')+' sm',t);b.type='button';if(primary)b.style.color='var(--violet-ink)';b.onclick=fn;return b}
+function bar(n,max){var p=max>0?Math.min(100,Math.round(n/max*100)):0;var d=el('div');d.innerHTML='<div style="height:10px;border-radius:6px;background:var(--line);overflow:hidden"><i style="display:block;height:100%;width:'+p+'%;background:'+(p>=80?'#c0392b':'var(--violet)')+'"></i></div>';d.appendChild(note(n+' / '+(max||'∞')+' jobs ('+p+'%)'));return d}
+function monthUse(){var l=g('ais_usage',[]),d=new Date(),m=d.getFullYear()*12+d.getMonth();return l.filter(function(e){var x=new Date(e.t);return x.getFullYear()*12+x.getMonth()===m})}
+var OFF='Not connected';
+
+/* ---- generic settings form ---- */
+function settings(key,title,fields,hint,after){return function(m){var cfg=g(key,{});var b=box(title);fields.forEach(function(f){b.appendChild(fld('f_'+f[0],f[1],f[2],f[3],cfg[f[0]]!=null?cfg[f[0]]:f[4]))});
+ b.appendChild(row(btn('Save and publish',function(){var o={};fields.forEach(function(f){o[f[0]]=val('f_'+f[0])});o._t=Date.now();s(key,o);aud('save '+key);say('Saved.');if(after)after()},true)));
+ if(hint)b.appendChild(note(hint));m.appendChild(b)}}
+/* ---- generic CRUD list ---- */
+function crud(key,title,fields,fmt,st,hint,seed){return function(m){var l=g(key,null);if(l==null){l=seed||[];s(key,l)}var b=box(title);var fr=el('div');fields.forEach(function(f){fr.appendChild(fld('c_'+f[0],f[1],f[2],f[3],f[4]))});
+ b.appendChild(fr);b.appendChild(row(btn('Add',function(){var o={id:'I'+Date.now().toString(36),t:Date.now()};var ok=true;fields.forEach(function(f){o[f[0]]=val('c_'+f[0]);if(f[5]&&!o[f[0]])ok=false});if(!ok)return say('Fill in the required fields.');if(st)o.st=st[0][0];l.unshift(o);s(key,l);aud('add '+key);say('');render()},true)));
+ var u=el('ul','plist');if(!l.length)li(u,'None');l.forEach(function(x,i){var btns=[];if(st){st.forEach(function(o){if(x.st!==o[0])btns.push([o[1],function(){if(x.gate&&0){}x.st=o[0];s(key,l);aud(key+' '+x.id+' → '+o[0]);render()}])})}btns.push(['Delete',function(){l.splice(i,1);s(key,l);aud('del '+key);render()}]);li(u,fmt(x),btns)});b.appendChild(u);if(hint)b.appendChild(note(hint));m.appendChild(b)}}
+function stn(st,v){for(var i=0;i<st.length;i++)if(st[i][0]===v)return st[i][2]||st[i][1];return v||''}
+
+/* ---- sections ---- */
+var SECS=[];
+function S(id,grp,name,fn){SECS.push({id:id,grp:grp,name:name,fn:fn})}
+var G={a:'Status',u:'Usage and cost',b:'Customers',m:'Marketing and customers',c:'Safety and legal',d:'Site management',e:'System'};
+
+S('ov','a','Overview',function(m){
+ var d=el('div','dgrid');var b1=box('Server status');var u=el('ul','plist');['/health','Worker heartbeat','Queue backlog','Last backup'].forEach(function(x){li(u,x+' — '+OFF)});b1.appendChild(u);b1.appendChild(note('Values from AIS_API.ops appear here once the server is connected.'));
+ var b2=box('To handle today');var t=el('ul','plist');var rp=g('ais_ops_reports',[]).filter(function(x){return x.st==='hidden'||x.st==='objected'}).length,pg=g('ais_ops_purges',[]).filter(function(x){return x.st==='pending'&&Date.now()>=x.grace}).length,iq=g('ais_ops_inq',[]).filter(function(x){return x.st==='new'}).length,lb=g('ais_ops_lib',[]).filter(function(x){return x.st==='review'}).length,mk=g('ais_market_local',[]).filter(function(x){return !x.review}).length;
+ [['New inquiries',iq,'inq'],['Open reports',rp,'rp'],['Deletions ready',pg,'pg'],['Library items to review',lb,'lib'],['Market items to review',mk,'mkt']].forEach(function(x){li(t,x[0]+': '+x[1],[['Open',function(){go(x[2])}]])});b2.appendChild(t);
+ var b3=box('Usage this month');var L=g('ais_ops_limits',{team:100,global:500});b3.appendChild(bar(monthUse().length,L.global));
+ var ur=usageRows(),t0=new Date();t0.setHours(0,0,0,0);var td=ur.filter(function(e){return e.t>=t0.getTime()}),wk=ur.filter(function(e){return e.t>=Date.now()-7*864e5}),mo=ur.filter(function(e){return e.t>=Date.now()-30*864e5});
+ var hd=el('div','row');hd.style.cssText='justify-content:space-between;margin-bottom:6px';hd.appendChild(el('b',null,'Usage at a glance'));hd.appendChild(btn('Open usage',function(){go('us')}));m.appendChild(hd);
+ var kb=box('');kb.firstChild.remove();kpi(kb,[['Jobs today',td.length],['Jobs 7 days',wk.length],['Est. cost 30 days',money(sum(mo).cost)],['Active companies 30 days',Object.keys(sum(mo).cos).length],['Failed 7 days',sum(wk).bad]]);
+ if(uDemo||ur.length){kb.appendChild(el('h3',null,'Last 7 days'));var sp=uPer;uPer='w';kb.appendChild(trend(wk,'n'));uPer=sp}else{kb.appendChild(note('No usage yet. Values for all companies fill in once the server is connected. To preview, turn on sample data under Usage overview.'))}
+ m.appendChild(kb);
+ var tg=box('Top companies, last 30 days');var gg=groupBy(mo,'company').slice(0,5);tg.appendChild(tbl(['Company','Jobs','Est. cost','Failed'],gg.map(function(a){return [a.k,a.n,money(a.cost),a.bad]})));tg.appendChild(row(btn('By company and user',function(){go('uc')})));
+ d.appendChild(b2);d.appendChild(b3);d.appendChild(b1);m.appendChild(d);m.appendChild(tg)});
+
+S('inq','b','Inquiries',crud('ais_ops_inq','Inquiry inbox',[['name','Name, company','text',null,'',1],['ch','Channel','select',[['email','Email'],['phone','Phone'],['form','Site form']]],['body','Details','textarea',null,'',1],['note','Internal note','text']],
+ function(x){return stn(INQ,x.st)+' · '+x.name+' — '+x.body+(x.note?' · Note: '+x.note:'')+' · '+fd(x.t)},INQ,'Acknowledge within 1 business day; weekdays 10:00–18:00. Once the server is connected, the site contact forms and launch-update forms land here.'));
+var INQ=[['new','New'],['doing','In progress'],['done','Done']];
+
+S('acc','b','Companies and accounts',function(m){var b=box('Companies and accounts');var a=g('ais_accounts',[]);var arr=Array.isArray(a)?a:Object.keys(a).map(function(k){return a[k]});var sus=g('ais_ops_susp',{});var u=el('ul','plist');if(!arr.length)li(u,'None');
+ arr.forEach(function(x){var k=x.email;li(u,(x.company||'-')+' · '+(x.name||'')+' · '+k+' · '+AIS.roleName(x.role)+(sus[k]?' · Suspended':''),[[sus[k]?'Reinstate':'Suspend',function(){if(sus[k])delete sus[k];else sus[k]=1;s('ais_ops_susp',sus);aud((sus[k]?'suspend ':'reinstate ')+k);render()}]])});
+ b.appendChild(u);b.appendChild(note('Suspension blocks sign-in and workspace use (applied once the server is connected). Only accounts registered on this device show now.'));m.appendChild(b)});
+
+S('pilot','b','Pilot',crud('ais_ops_pilot','Pilot teams',[['team','Team or company','text',null,'',1],['owner','Contact person','text']],
+ function(x){return stn(PIL,x.st)+' · '+x.team+(x.owner?' · '+x.owner:'')+' · Weekly call '+(x.iv||0)+'/4'},PIL,'Recruit 3 teams (max 5), 4 weeks, ends 2026-12-28, starts after the 2026-11-30 effective date. Free, no auto-billing. 100 jobs per team and 500 overall per month.'));
+var PIL=[['rec','Recruiting'],['act','Active'],['end','Ended']];
+
+S('rp','c','Rights reports',function(m){var l=g('ais_ops_reports',[]);var b=box('Rights-infringement reports');
+ b.appendChild(note('Rule: hide at once → reply within 2 business days → owner may object within 7 days → physically delete within 30 days once final. Reports arrive by email for now; log them here.'));
+ b.appendChild(fld('rt','Item ID','text'));b.appendChild(fld('rr','Reason','text'));
+ b.appendChild(row(btn('Log report · hide now',function(){var a=val('rt'),r=val('rr');if(!a||!r)return say('Fill in the fields.');var n=Date.now();l.unshift({id:'R'+n,target:a,reason:r,st:'hidden',t:n,reply:addBiz(n,2),obj:n+7*864e5});s('ais_ops_reports',l);aud('report '+a);render()},true)));
+ var u=el('ul','plist');if(!l.length)li(u,'None');var N={hidden:'Hidden',upheld:'Removal final',restored:'Restored',objected:'Objection'};
+ l.forEach(function(x){var bt=[];if(x.st==='hidden'||x.st==='objected'){bt.push(['Confirm removal',function(){x.st='upheld';x.del=Date.now()+30*864e5;s('ais_ops_reports',l);aud('final '+x.target);render()}]);bt.push(['Restore',function(){x.st='restored';s('ais_ops_reports',l);aud('restore '+x.target);render()}])}if(x.st==='hidden')bt.push(['Log objection',function(){x.st='objected';s('ais_ops_reports',l);aud('objection '+x.target);render()}]);
+  li(u,N[x.st]+' · '+x.target+' — '+x.reason+' · Reply by '+fd(x.reply)+' · Objection until '+fd(x.obj)+(x.st==='upheld'?' · Delete by '+fd(x.del):''),bt)});b.appendChild(u);m.appendChild(b)});
+
+S('pg','c','Deletion requests',function(m){var l=g('ais_ops_purges',[]);var b=box('Deletion requests');
+ b.appendChild(note('Cancel within the 7-day grace period. A server script does the real deletion; this tracks requests and deadlines. Deleted data stays in backups up to 30 days; the auth-service account is removed separately within 30 days.'));
+ b.appendChild(fld('pc','Company or account','text'));b.appendChild(row(btn('Log request',function(){var c=val('pc');if(!c)return say('Fill in the field.');var n=Date.now();l.unshift({id:'P'+n.toString(36),c:c,st:'pending',t:n,grace:n+7*864e5});s('ais_ops_purges',l);aud('purge '+c);render()},true)));
+ var u=el('ul','plist');if(!l.length)li(u,'None');l.forEach(function(x){var ready=x.st==='pending'&&Date.now()>=x.grace,bt=[];if(x.st==='pending'&&!ready)bt.push(['Cancel',function(){x.st='cancelled';s('ais_ops_purges',l);aud('cancel '+x.c);render()}]);if(ready)bt.push(['Mark processed',function(){x.st='done';s('ais_ops_purges',l);aud('processed '+x.c);render()}]);
+  li(u,(x.st==='pending'?(ready?'Ready':'In grace'):x.st==='cancelled'?'Cancelled':'Processed')+' · '+x.c+' · Grace ends '+fd(x.grace)+' · ID '+x.id,bt)});b.appendChild(u);
+ b.appendChild(code('python scripts/purge_requests.py'));b.appendChild(code('python scripts/purge_requests.py --apply --confirm <request_id>'));m.appendChild(b)});
+
+var DOCS=[['draft','Draft'],['review','In legal review'],['pub','Published']];
+S('doc','c','Terms and consent',function(m){var seed=[['terms','Terms of service'],['privacy','Privacy policy'],['cookies','Cookie notice'],['ai-disclosure','AI disclosure']];var l=g('ais_ops_docs',null);if(!l){l=seed.map(function(x){return{id:x[0],name:x[1],ver:'0.1',eff:'2026-11-30',st:'draft'}});s('ais_ops_docs',l)}
+ var b=box('Document versions and status');var u=el('ul','plist');l.forEach(function(x){var bt=[];DOCS.forEach(function(o){if(o[0]!==x.st)bt.push([o[1],function(){x.st=o[0];s('ais_ops_docs',l);aud('doc '+x.id+' → '+o[0]);render()}])});bt.push(['Bump version',function(){var p=x.ver.split('.');p[p.length-1]=(+p[p.length-1]+1);x.ver=p.join('.');x.st='draft';s('ais_ops_docs',l);aud('doc '+x.id+' v'+x.ver);render()}]);li(u,x.name+' · v'+x.ver+' · Effective '+x.eff+' · '+stn(DOCS,x.st),bt)});b.appendChild(u);
+ b.appendChild(note('Do not switch legal documents to "Published" before legal review. Consent enforcement (LEGAL_REQUIRE_ACCEPTANCE) is turned on 11/29, after blanks such as effective date and contact are settled. A new published version requires users to accept again.'));m.appendChild(b);
+ var c=box('Consent enforcement');var cf=g('ais_ops_consent',{on:false});c.appendChild(fld('f_con','Block app use without acceptance','check',null,cf.on));c.appendChild(row(btn('Save',function(){s('ais_ops_consent',{on:val('f_con')});aud('consent '+val('f_con'));say('Saved.')})));m.appendChild(c)});
+
+S('site','d','Site information',settings('ais_site_info','Operator details and contact',[['op','Company','text',null,'Eugene Consulting Corporation'],['officer','Privacy officer name, title','text',null,'Lee Hakbeom'],['addr','Business address','text',null,'Unit 1005, Building 109, 113 Landmark-ro, Yeonsu-gu, Incheon, Republic of Korea (e-Pyeonhan Sesang)'],['addrv','Address shown','select',[['full','Full'],['gu','City and district only']],'full'],['phone','Phone','text',null,'010-5201-3121'],['email','Contact email','email',null,''],['hours','Hours','text',null,'Weekdays 10:00–18:00'],['url','Site URL','url',null,''],['app','Login URL','url',null,'']],'The footer, terms and policy use these values. If the address is a home (apartment unit), "city and district only" is recommended; confirm with counsel. Publishing is applied via AIS_API.site.publish once the server is connected.'));
+
+S('msg','d','Notices, banner, maintenance',settings('ais_site_cfg','Top band, notice, maintenance (applied live)',[['bon','Show the preview band','check',null,true],['btx','Band text (empty = default)','text',null,''],['non','Show a notice','check',null,false],['ntx','Notice text','text',null,''],['nun','Notice ends','date',null,''],['mon','Maintenance mode (shows a banner in workspaces)','check',null,false],['mtx','Maintenance text','text',null,'Under maintenance. Please try again shortly.']],'After saving it shows on the site in this browser right away. With the server connected it applies to all visitors (AIS_API.site).',function(){AIS.applySite&&AIS.applySite()}));
+
+S('cms','d','Home copy and FAQ',function(m){settings('ais_site_hero','Home hero copy (applied live)',[['h1','Headline','text',null,''],['lead','Lead','textarea',null,'']],'Leave empty for the default. Avoid wording that promises quality (accuracy, perfect, etc.).',function(){AIS.applySite&&AIS.applySite()})(m);
+ crud('ais_ops_faq','Edit FAQ',[['q','Question','text',null,'',1],['a','Answer','textarea',null,'',1]],function(x){return stn(PUB,x.st)+' · Q. '+x.q+' — '+x.a},PUB,'Only published items appear on the FAQ page (applied once the server is connected).')(m)});
+var PUB=[['draft','Draft'],['pub','Published']];
+
+var LIB=[['review','To review'],['pub','Published'],['hide','Hidden']];
+S('lib','d','Library assets',function(m){var key='ais_ops_lib';var l=g(key,[]);var b=box('Manage the built-in library (models, garments, backgrounds)');
+ b.appendChild(fld('l_n','Name','text'));b.appendChild(fld('l_k','Kind','select',[['model','Model'],['garment','Garment'],['bg','Background']]));b.appendChild(fld('l_s','Source and licence','text'));b.appendChild(fld('l_r','Usage rights verified','check'));b.appendChild(fld('l_ai','AI-generated (needs label)','check'));
+ b.appendChild(row(btn('Add',function(){var n=val('l_n');if(!n||!val('l_s'))return say('Enter a name and source.');l.unshift({id:'L'+Date.now().toString(36),n:n,k:val('l_k'),s:val('l_s'),r:val('l_r'),ai:val('l_ai'),st:'review',t:Date.now()});s(key,l);aud('lib add '+n);render()},true)));
+ var u=el('ul','plist');if(!l.length)li(u,'None');l.forEach(function(x,i){var bt=[];LIB.forEach(function(o){if(o[0]!==x.st)bt.push([o[1],function(){if(o[0]==='pub'&&!x.r)return say('Usage rights must be verified before publishing.');x.st=o[0];s(key,l);aud('lib '+x.n+' → '+o[0]);render()}])});bt.push(['Delete',function(){l.splice(i,1);s(key,l);render()}]);
+  li(u,stn(LIB,x.st)+' · '+x.n+' · '+x.k+' · '+x.s+(x.r?' · Rights ok':' · Rights unverified')+(x.ai?' · AI':''),bt)});b.appendChild(u);b.appendChild(note('Nothing is published without verified rights. People images are labelled as AI-generated on the site.'));m.appendChild(b)});
+
+S('mkt','d','Market review',function(m){var l=g('ais_market_local',[]);var b=box('Review market listings');var u=el('ul','plist');if(!l.length)li(u,'No listings to review.');l.forEach(function(x){var st=x.review||'wait';li(u,(st==='ok'?'Approved':st==='no'?'Rejected':'Pending')+' · '+(x.title||x.name||x.id),[['Approve',function(){x.review='ok';s('ais_market_local',l);aud('market ok '+(x.title||x.id));render()}],['Reject',function(){x.review='no';s('ais_market_local',l);aud('market no '+(x.title||x.id));render()}]])});b.appendChild(u);b.appendChild(note('Trading stays closed until sales, licensing, payout and refund rules are settled.'));m.appendChild(b)});
+
+var ENG=[['openai','ChatGPT (OpenAI)',0],['gemini','Gemini (Google)',0],['fashn','FASHN',0],['claude','Claude (Anthropic) text only',1],['extra1','More providers',0]];
+S('ai','e','AI providers and limits',function(m){var E=g('ais_ops_eng',{}),L=g('ais_ops_limits',{team:100,global:500,kill:false,usd:0});
+ var b=box('AI providers');var u=el('ul','plist');ENG.forEach(function(x){var e=E[x[0]]||{on:false,cap:0};li(u,x[1]+' · '+(e.on?'On':'Off')+' · Key '+OFF+' · Cap $'+(e.cap||0),[[e.on?'Turn off':'Turn on',function(){e.on=!e.on;E[x[0]]=e;s('ais_ops_eng',E);aud('engine '+x[0]+' '+e.on);render()}],['Set cap',function(){var v=+$('ecap').value;if(isNaN(v)||v<0)return say('Enter a number.');e.cap=v;E[x[0]]=e;s('ais_ops_eng',E);aud('cap '+x[0]+' '+v);render()}]])});b.appendChild(u);b.appendChild(fld('ecap','Cap (USD)','number'));
+ b.appendChild(note('API keys are registered on the server only, never in this screen. Real calls are enabled after providers, total cap and approval are settled. Turning one on sends photos to an external AI service.'));m.appendChild(b);
+ var d=el('div','dgrid');var b2=box('Monthly limits');b2.appendChild(fld('lt','Per team','number',null,L.team));b2.appendChild(fld('lg','All teams','number',null,L.global));b2.appendChild(fld('lu','Total provider cap (USD)','number',null,L.usd||0));b2.appendChild(row(btn('Save',function(){L.team=+val('lt')||0;L.global=+val('lg')||0;L.usd=+val('lu')||0;s('ais_ops_limits',L);aud('limits '+L.team+'/'+L.global+'/$'+L.usd);say('Saved.');render()},true)));b2.appendChild(bar(monthUse().length,L.global));b2.appendChild(note('Server settings (AI_JOB_LIMIT_*) are authoritative.'));
+ var b3=box('AI kill switch');var k=el('span','pill '+(L.kill?'wait':'ok'),L.kill?'On — new AI jobs refused':'Off');b3.appendChild(el('p')).appendChild(k);b3.appendChild(note('Press this first if costs spike. New AI jobs are refused and calls to providers stop.'));b3.appendChild(fld('kc','Type STOP','text'));
+ function kill(on){if(val('kc')!=='STOP')return say('Type STOP.');L.kill=on;s('ais_ops_limits',L);aud('kill '+on);render()}b3.appendChild(row(btn('Turn on',function(){kill(true)}),btn('Turn off',function(){kill(false)})));d.appendChild(b2);d.appendChild(b3);m.appendChild(d)});
+
+S('al','e','Alerts and backups',function(m){var d=el('div','dgrid');var b=box('Alerts');b.appendChild(fld('f_ch','Send to','select',[['email','Email (default)'],['webhook','Channel webhook']],'email'));b.appendChild(note('Never paste the webhook URL in chat; enter it here once the server is connected.'));var u=el('ul','plist');['Worker heartbeat lost — critical','Monthly limit 80% / reached','Stuck jobs, backlog — warning','Deletion grace expired — warning','Backup older than 36h — critical','Server not responding — critical'].forEach(function(x){li(u,x)});b.appendChild(u);
+ var b2=box('Backup and check commands');b2.appendChild(note('Daily, kept 30 days, copied off-box. Restore drills each quarter. Last-run times show once the server is connected.'));b2.appendChild(code('python scripts/backup.py --dest /backups'));b2.appendChild(code('python scripts/restore.py /backups/backup-<time>'));b2.appendChild(code('python scripts/ops_check.py'));d.appendChild(b);d.appendChild(b2);m.appendChild(d)});
+
+var OPR=[['lead','Lead operator'],['content','Content manager'],['cs','Support'],['legal','Legal and privacy'],['fin','Billing'],['mkt','Marketing']];
+S('opr','e','Operator roles',crud('ais_ops_staff','Operator accounts and areas',[['em','Email','email',null,'',1],['role','Area','select',OPR]],function(x){return stn(OPR,x.role)+' · '+x.em},null,'Access by area: lead = everything, content = site management, support = inquiries and accounts, legal = reports, deletions and terms, billing = usage and payments (payments after the market opens). Applied together with OPS_ADMIN_USER_IDS once the server is connected.'));
+
+var CK=[['auth','Auth and roles'],['iso','Data isolation'],['legal','Privacy and terms'],['bak','Backup and restore'],['mon','Monitoring'],['cost','AI cost cap'],['sup','Support channel'],['inc','Incident response']];
+var CKS=[['open','Open'],['part','Partial'],['done','Done (evidence)']];
+S('chk','e','Launch checklist',function(m){var c=g('ais_ops_chk',{});var b=box('Launch checklist');var u=el('ul','plist');CK.forEach(function(x){var v=c[x[0]]||{st:'open',ev:''};var bt=[];CKS.forEach(function(o){if(o[0]!==v.st)bt.push([o[1],function(){if(o[0]==='done'&&!$('ev').value.trim()&&!v.ev)return say('To mark Done, enter the evidence below.');if(o[0]==='done'&&$('ev').value.trim())v.ev=$('ev').value.trim();v.st=o[0];c[x[0]]=v;s('ais_ops_chk',c);aud('check '+x[0]+' → '+o[0]);render()}])});li(u,x[1]+' · '+stn(CKS,v.st)+(v.ev?' · '+v.ev:''),bt)});b.appendChild(u);b.appendChild(fld('ev','Evidence (CI result, test record)','text'));b.appendChild(note('Cannot be marked Done without evidence. Target: limited B2B pilot starting 2026-11-30.'));m.appendChild(b)});
+
+S('au','e','Operator log',function(m){var b=box('Operator log (who did what)');var u=el('ul','plist');var l=g('ais_ops_audit',[]);if(!l.length)li(u,'None');l.forEach(function(x){li(u,new Date(x.t).toLocaleString(KO?'ko-KR':'en-US')+' · '+x.by+' · '+x.a)});b.appendChild(u);b.appendChild(btn('Download log CSV',function(){var t='time,by,action\n'+l.map(function(x){return [new Date(x.t).toISOString(),x.by,String(x.a).replace(/"/g,'""')].map(function(v){return '"'+v+'"'}).join(',')}).join('\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='ops-log.csv';document.body.appendChild(a);a.click();a.remove()}));m.appendChild(b)});
+
+/* ---- usage and monitoring (ops) ---- */
+var PER=[['d','Day',1,'Last 24 hours, hourly'],['w','Week',7,'Last 7 days, daily'],['m','Month',30,'Last 30 days, daily'],['y','Year',365,'Last 12 months, monthly']];
+var SVN={photo:'Photo Studio',tryon:'Virtual try-on',character:'Character','3d':'3D',video:'Video',market:'Market'};
+var uPer=g('ais_ops_uper','w'),uDemo=g('ais_ops_udemo',false),uBy='company',uQ='';
+var COS=[['(주)한빛패션','hanbit.kr',['mina@hanbit.kr','joon@hanbit.kr','sora@hanbit.kr'],3],['모던룩 스튜디오','modernlook.co',['ken@modernlook.co','yuri@modernlook.co'],2],['레이어 마켓','layer.market',['a@layer.market','b@layer.market','c@layer.market','d@layer.market'],2],['노바 어패럴','novaap.com',['han@novaap.com'],1],['소소 브랜드','soso.kr',['lee@soso.kr','park@soso.kr'],1]];
+function seed(n){var x=n,r=function(){x=(x*9301+49297)%233280;return x/233280};return r}
+function demoRows(){var r=seed(7),out=[],now=Date.now(),SV=['photo','tryon','character','3d','video','market'],EN=['openai','gemini','fashn','local'],COST={photo:0.02,tryon:0.08,character:0.05,'3d':0.12,video:0.4,market:0};
+ for(var i=0;i<1400;i++){var c=COS[Math.floor(r()*r()*COS.length)],u=c[2][Math.floor(r()*c[2].length)],sv=SV[Math.floor(r()*r()*SV.length)],age=Math.pow(r(),1.6)*365*864e5,st=r()<.93?'success':(r()<.6?'failed':'blocked');
+  out.push({t:now-age,company:c[0],user:u,service:sv,engine:EN[Math.floor(r()*EN.length)],status:st,cost:st==='success'?COST[sv]*(0.8+r()*.5):0,ms:800+Math.round(r()*9000),bytes:Math.round((0.2+r()*5)*1e6)})}
+ return out}
+function usageRows(){if(uDemo)return demoRows();return g('ais_usage',[]).map(function(e){return {t:e.t,company:e.company||'-',user:e.user||'-',service:e.service||'?',engine:e.engine||'',status:e.status||'success',cost:e.cost||0,ms:e.ms||0,bytes:e.bytes||0}})}
+function pinfo(){for(var i=0;i<PER.length;i++)if(PER[i][0]===uPer)return PER[i];return PER[1]}
+function bucketKey(t){var d=new Date(t);if(uPer==='d')return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()+' '+d.getHours();if(uPer==='y')return d.getFullYear()+'-'+(d.getMonth()+1);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function buckets(){var now=new Date(),b=[],n=uPer==='d'?24:uPer==='w'?7:uPer==='m'?30:12;for(var i=n-1;i>=0;i--){var d=new Date(now);if(uPer==='d')d.setHours(now.getHours()-i);else if(uPer==='y'){d.setDate(1);d.setMonth(now.getMonth()-i)}else d.setDate(now.getDate()-i);
+  var lab=uPer==='d'?d.getHours()+'h':uPer==='y'?(d.getMonth()+1)+'/':(d.getMonth()+1)+'/'+d.getDate();b.push({k:bucketKey(d.getTime()),lab:lab,n:0,bad:0,cost:0})}return b}
+function inRange(t){var days=pinfo()[2];return t>=Date.now()-days*864e5}
+function sum(rows){var o={n:0,ok:0,bad:0,cost:0,ms:0,bytes:0,users:{},cos:{}};rows.forEach(function(e){o.n++;if(e.status==='success')o.ok++;else o.bad++;o.cost+=e.cost||0;o.ms+=e.ms||0;o.bytes+=e.bytes||0;o.users[e.user]=1;o.cos[e.company]=1});return o}
+function money(v){return '$'+v.toFixed(v<10?2:0)}
+function mb(v){return v>=1e9?(v/1e9).toFixed(1)+' GB':(v/1e6).toFixed(0)+' MB'}
+function tabs(fn){var w=el('div','row');w.style.cssText='gap:6px;flex-wrap:wrap;margin-bottom:12px';PER.forEach(function(p){var b=el('button','btn '+(uPer===p[0]?'btn-primary':'btn-ghost')+' sm',p[1]);b.type='button';if(uPer===p[0])b.style.color='var(--violet-ink)';b.onclick=function(){uPer=p[0];s('ais_ops_uper',uPer);fn()};w.appendChild(b)});
+ var dm=el('button','btn btn-ghost sm',uDemo?'Hide sample data':'Preview with sample data');dm.type='button';dm.onclick=function(){uDemo=!uDemo;s('ais_ops_udemo',uDemo);fn()};dm.style.marginLeft='auto';w.appendChild(dm);return w}
+function src(m){var p=el('p','fine');p.textContent=uDemo?'These numbers are sample data for layout review, not real usage.':'Not connected: only records kept in this browser. Once connected, AIS_API.ops.usage returns every company and user.';if(uDemo){p.style.cssText='color:#b45309;font-weight:600'}m.appendChild(p)}
+function spark(v){var n=v.length;if(n<2)return null;var mx=0;v.forEach(function(x){if(x>mx)mx=x});if(!mx)mx=1;var pts=v.map(function(x,i){return (i/(n-1)*100).toFixed(1)+','+(24-x/mx*22).toFixed(1)}).join(' ');var d=document.createElement('div');d.innerHTML='<svg viewBox="0 0 100 26" preserveAspectRatio="none" width="100" height="26" aria-hidden="true" style="display:block;width:100px;height:26px;color:var(--violet)"><polyline points="'+pts+'" fill="none" stroke="currentColor" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';return d}
+function kpi(parent,items){var d=el('div','kpis');items.forEach(function(x,i){var c=el('div','kpi'+(i===0?' main':''));c.appendChild(el('div','kl',x[0]));c.appendChild(el('div','kv',String(x[1])));if(x[2])c.appendChild(el('div','ks',x[2]));if(x[3]){var sp=spark(x[3]);if(sp){sp.className='ksp';c.appendChild(sp)}}d.appendChild(c)});parent.appendChild(d)}
+function series(rows,field){var bk=buckets(),ix={};bk.forEach(function(b,i){ix[b.k]=i});rows.forEach(function(e){var i=ix[bucketKey(e.t)];if(i==null)return;bk[i].n++;bk[i].cost+=e.cost||0});return bk.map(function(b){return field==='cost'?b.cost:b.n})}
+function trend(rows,field){var bk=buckets(),ix={};bk.forEach(function(b,i){ix[b.k]=i});rows.forEach(function(e){var i=ix[bucketKey(e.t)];if(i==null)return;bk[i].n++;if(e.status!=='success')bk[i].bad++;bk[i].cost+=e.cost||0});
+ var vals=bk.map(function(b){return field==='cost'?b.cost:b.n}),max=0;vals.forEach(function(v){if(v>max)max=v});if(!max)max=1;var n=bk.length,W=600,H=150,pad=6;
+ function X(i){return n>1?i/(n-1)*W:W/2}function Y(v){return pad+(1-v/max)*(H-pad*2)}
+ var line=vals.map(function(v,i){return (i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)}).join(' ');var area=line+' L'+W+' '+H+' L0 '+H+' Z';
+ var grid='';[0.25,0.5,0.75].forEach(function(f){var y=(pad+f*(H-pad*2)).toFixed(1);grid+='<line x1="0" x2="'+W+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/>'});
+ var hit='';bk.forEach(function(b,i){var w=W/n;hit+='<rect x="'+(i*w).toFixed(1)+'" y="0" width="'+w.toFixed(1)+'" height="'+H+'" fill="transparent"><title>'+b.lab+': '+(field==='cost'?money(b.cost):vals[i]+' jobs')+(b.bad?' ('+b.bad+' failed)':'')+'</title></rect>'});
+ var bad='';bk.forEach(function(b,i){if(b.bad>b.n*.2&&b.n>=10)bad+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(vals[i]).toFixed(1)+'" r="3.2" fill="#c0392b"/>'});
+ var w=el('div','tchart');w.innerHTML='<div class="tmax">'+(field==='cost'?money(max):max)+'</div><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" style="color:var(--violet)">'+grid+'<path d="'+area+'" fill="currentColor" fill-opacity="0.10"/><path d="'+line+'" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>'+bad+hit+'</svg>';
+ var ax=el('div','tax');bk.forEach(function(b,i){ax.appendChild(el('span',null,(n>14&&i%3)?'':b.lab))});var o=el('div');o.appendChild(w);o.appendChild(ax);return o}
+function groupBy(rows,key){var o={};rows.forEach(function(e){var k=e[key]||'-';var a=o[k]||(o[k]={k:k,n:0,bad:0,cost:0,bytes:0,last:0,users:{},sv:{}});a.n++;if(e.status!=='success')a.bad++;a.cost+=e.cost||0;a.bytes+=e.bytes||0;if(e.t>a.last)a.last=e.t;a.users[e.user]=1;a.sv[e.service]=(a.sv[e.service]||0)+1});return Object.keys(o).map(function(k){return o[k]}).sort(function(a,b){return b.n-a.n})}
+function tbl(heads,rows){var w=el('div','tablewrap');var t=el('table','utab');var h=el('tr');heads.forEach(function(x){h.appendChild(el('th',null,x))});t.appendChild(h);if(!rows.length){var r=el('tr');var c=el('td','fine','No records.');c.colSpan=heads.length;r.appendChild(c);t.appendChild(r)}rows.forEach(function(rw){var r=el('tr');rw.forEach(function(x){var c=el('td');if(x&&x.nodeType)c.appendChild(x);else{c.textContent=x;if(/^[$0-9][0-9,.$ ]*(MB|GB|KB|건|초|s)?$/.test(String(x)))c.className='num'}r.appendChild(c)});t.appendChild(r)});var rs=t.rows;if(rs.length>1){for(var ci=0;ci<heads.length;ci++){var all=true;for(var ri=1;ri<rs.length;ri++){var cc=rs[ri].cells[ci];if(!cc||cc.className!=='num'){all=false;break}}if(all)rs[0].cells[ci].className='num'}}w.appendChild(t);return w}
+function csvOut(name,heads,rows){var t=[heads].concat(rows).map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"'}).join(',')}).join('\n');var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('﻿'+t);a.download=name;document.body.appendChild(a);a.click();a.remove();aud('csv '+name)}
+function topSv(a){var best='',bn=0;Object.keys(a.sv).forEach(function(k){if(a.sv[k]>bn){bn=a.sv[k];best=k}});return SVN[best]||best||'-'}
+
+S('us','u','Usage overview',function(m){var rows=usageRows().filter(function(e){return inRange(e.t)}),o=sum(rows);
+ var rate=o.n?Math.round(o.ok/o.n*100):0,L=g('ais_ops_limits',{team:100,global:500});
+ m.appendChild(tabs(render));src(m);var b=box('Usage · '+pinfo()[3]);
+ kpi(b,[['Jobs',o.n,'',series(rows,'n')],['Success rate',o.n?rate+'%':'-',o.bad+' failed or blocked'],['Active companies',Object.keys(o.cos).length],['Active users',Object.keys(o.users).length],['Est. AI cost',money(o.cost),'',series(rows,'cost')],['Avg. time',o.n&&o.ms?(o.ms/o.n/1000).toFixed(1)+'s':'-']]);
+ b.appendChild(el('h3',null,'Jobs over time'));b.appendChild(trend(rows,'n'));
+ b.appendChild(el('h3',null,'Cost over time'));b.appendChild(trend(rows,'cost'));m.appendChild(b);
+ var d=el('div','dgrid');var s1=box('By service'),sg=groupBy(rows,'service'),mx=sg.length?sg[0].n:0;sg.forEach(function(x){var r=el('div');r.style.margin='6px 0';r.appendChild(el('div','fine',(SVN[x.k]||x.k)+' · '+x.n+' jobs · '+money(x.cost)));r.appendChild(bar(x.n,mx));s1.appendChild(r)});if(!sg.length)s1.appendChild(note('No records.'));
+ var s2=box('By provider'),pg=groupBy(rows,'engine'),pm=pg.length?pg[0].n:0;pg.forEach(function(x){var r=el('div');r.style.margin='6px 0';r.appendChild(el('div','fine',(x.k||'-')+' · '+x.n+' jobs · '+money(x.cost)));r.appendChild(bar(x.n,pm));s2.appendChild(r)});if(!pg.length)s2.appendChild(note('No records.'));
+ var s3=box('Against monthly limit');var mu=usageRows().filter(function(e){var x=new Date(e.t),n=new Date();return x.getFullYear()===n.getFullYear()&&x.getMonth()===n.getMonth()}).length;s3.appendChild(el('div','fine','All '+mu+' / '+L.global));s3.appendChild(bar(mu,L.global));s3.appendChild(note('Turns red above 80%. Change limits under AI providers and limits.'));
+ d.appendChild(s1);d.appendChild(s2);d.appendChild(s3);m.appendChild(d)});
+
+S('uc','u','Usage by company and user',function(m){var rows=usageRows().filter(function(e){return inRange(e.t)});
+ m.appendChild(tabs(render));src(m);var b=box('Usage by company and user'+' · '+pinfo()[3]);
+ var r=el('div','row');r.style.cssText='gap:6px;margin-bottom:10px;flex-wrap:wrap';[['company','By company'],['user','By user']].forEach(function(x){var bt=el('button','btn '+(uBy===x[0]?'btn-primary':'btn-ghost')+' sm',x[1]);bt.type='button';if(uBy===x[0])bt.style.color='var(--violet-ink)';bt.onclick=function(){uBy=x[0];render()};r.appendChild(bt)});
+ var q=el('input');q.type='search';q.placeholder='Search company or email';q.value=uQ;q.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--ink);font:inherit;min-width:200px';q.oninput=function(){uQ=q.value;draw()};r.appendChild(q);b.appendChild(r);
+ var host=el('div');b.appendChild(host);var L=g('ais_ops_limits',{team:100,global:500});
+ function draw(){host.innerHTML='';var rs=rows.filter(function(e){return !uQ||(e.company+' '+e.user).toLowerCase().indexOf(uQ.toLowerCase())>=0});var gr=groupBy(rs,uBy);var mx=gr.length?gr[0].n:0;
+  var heads=uBy==='company'?['Company','Users','Jobs','Failed','Est. cost','Stored','Top service','Last used','Monthly limit']:['User','Company','Jobs','Failed','Est. cost','Top service','Last used'];
+  var co={};rs.forEach(function(e){co[e.user]=e.company});
+  var trs=gr.map(function(a){var bs=bar(a.n,uBy==='company'?L.team:mx);return uBy==='company'?[a.k,Object.keys(a.users).length,a.n,a.bad,money(a.cost),mb(a.bytes),topSv(a),fd(a.last),bs]:[a.k,co[a.k]||'-',a.n,a.bad,money(a.cost),topSv(a),fd(a.last)]});
+  host.appendChild(tbl(heads,trs));host.appendChild(row(btn('Export CSV',function(){csvOut('usage-'+uBy+'-'+uPer+'.csv',heads.slice(0,uBy==='company'?8:7),gr.map(function(a){return uBy==='company'?[a.k,Object.keys(a.users).length,a.n,a.bad,a.cost.toFixed(2),a.bytes,topSv(a),fd(a.last)]:[a.k,co[a.k]||'-',a.n,a.bad,a.cost.toFixed(2),topSv(a),fd(a.last)]}))})))}
+ draw();b.appendChild(note('The bar uses the per-team monthly limit. Over-limit companies raise an alert; you can suspend them under Accounts.'));m.appendChild(b)});
+
+S('uo','u','AI cost and storage',function(m){var rows=usageRows().filter(function(e){return inRange(e.t)}),o=sum(rows);var E=g('ais_ops_eng',{}),L=g('ais_ops_limits',{usd:0});
+ m.appendChild(tabs(render));src(m);var b=box('Cost and storage'+' · '+pinfo()[3]);kpi(b,[['Est. AI cost',money(o.cost)],['Avg. cost per job',o.ok?money(o.cost/o.ok):'-'],['Monthly cap',L.usd?money(+L.usd):'Not set'],['Stored or sent',mb(o.bytes)]]);
+ b.appendChild(el('h3',null,'Cost by provider'));var pg=groupBy(rows,'engine');b.appendChild(tbl(['Provider','Jobs','Failed','Est. cost','Cap'],pg.map(function(a){var e=E[a.k]||{};return [a.k||'-',a.n,a.bad,money(a.cost),e.cap?'$'+e.cap:'-']})));
+ b.appendChild(note('Cost is an estimate from per-job unit prices; compare it with each provider bill (replaced by real values once connected).'));m.appendChild(b)});
+
+S('ue','u','Errors and performance',function(m){var rows=usageRows().filter(function(e){return inRange(e.t)});m.appendChild(tabs(render));src(m);var b=box('Failed and blocked jobs'+' · '+pinfo()[3]);var bad=rows.filter(function(e){return e.status!=='success'}).sort(function(a,b){return b.t-a.t});
+ var ST={failed:'Failed',blocked:'Blocked'};kpi(b,[['Failed or blocked',bad.length],['Rate',rows.length?Math.round(bad.length/rows.length*100)+'%':'-'],['Companies affected',Object.keys(sum(bad).cos).length]]);
+ b.appendChild(tbl(['Time','Company','User','Service','Provider','Status'],bad.slice(0,50).map(function(e){return [new Date(e.t).toLocaleString(KO?'ko-KR':'en-US'),e.company,e.user,SVN[e.service]||e.service,e.engine||'-',ST[e.status]||e.status]})));
+ b.appendChild(note('Shows the latest 50. Trend bars turn red when a window passes 15% failures.'));m.appendChild(b)});
+
+S('bil','b','Plans and billing',function(m){var b=box('Plans, billing and payouts');b.appendChild(note('Pricing, payment provider, market fee and refund rules are undecided; only the layout is prepared.'));
+ b.appendChild(tbl(['Company','Plan','This month','Status','Market payout'],[['-','TBD','-','-','-']]));
+ var d=el('div','dgrid');['Overdue','Refund requests','Payouts pending','Over plan limit'].forEach(function(x){var c=box(x);c.appendChild(el('p',null,'0'));c.appendChild(note(OFF));d.appendChild(c)});m.appendChild(b);m.appendChild(d)});
+
+S('sec','e','Security events',function(m){var b=box('Security events');b.appendChild(tbl(['Item','24 h','7 d','Note'],[['Failed sign-ins','-','-','Lock rule is server policy'],['New device or region','-','-','Operators need 2FA (pending decision)'],['Role changes','-','-','Cross-check the operator log'],['Bulk downloads','-','-','Monthly limit pending'],['Rights reports',String(g('ais_ops_reports',[]).length),'-','See Rights reports']]));b.appendChild(note(OFF+' · '+'Values fill in once the server is connected.'));m.appendChild(b)});
+
+S('exp','e','Exports and reports',function(m){var b=box('Export reports');b.appendChild(note('Pick a period and download CSV. The monthly report bundles per-company usage, cost and failures.'));
+ var rows=usageRows();b.appendChild(row(btn('All usage CSV',function(){csvOut('usage-all.csv',['time','company','user','service','provider','status','cost_usd','ms','bytes'],rows.map(function(e){return [new Date(e.t).toISOString(),e.company,e.user,e.service,e.engine,e.status,(e.cost||0).toFixed(3),e.ms,e.bytes]}))}),btn('Monthly per-company CSV',function(){var r=rows.filter(function(e){var x=new Date(e.t),n=new Date();return x.getFullYear()===n.getFullYear()&&x.getMonth()===n.getMonth()});csvOut('usage-monthly.csv',['company','users','jobs','failed','cost_usd'],groupBy(r,'company').map(function(a){return [a.k,Object.keys(a.users).length,a.n,a.bad,a.cost.toFixed(2)]}))})));m.appendChild(b)});
+
+
+/* ---- marketing and customer statistics (ops) ---- */
+var CHN=[['search','Search'],['social','Social'],['ads','Ads'],['referral','Referral site'],['email','Email'],['direct','Direct'],['event','Event'],['partner','Partner'],['intro','Word of mouth'],['other','Other']];
+var IND=[['brand','Fashion brand'],['shop','Online shop'],['studio','Studio or agency'],['free','Freelancer'],['mfg','Manufacturer'],['other','Other']];
+var PLN=[['pilot','Pilot'],['standard','Standard'],['pro','Pro']];
+function nmOf(a,k){for(var i=0;i<a.length;i++)if(a[i][0]===k)return a[i][1];return k||'-'}
+var DAY=864e5;
+function fmtD(t){if(!t)return '-';var d=new Date(t);return d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+('0'+d.getDate()).slice(-2)}
+function monthKey(t){var d=new Date(t);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)}
+function lastMonths(n){var o=[],d=new Date();d.setDate(1);d.setHours(0,0,0,0);for(var i=n-1;i>=0;i--){var x=new Date(d.getFullYear(),d.getMonth()-i,1);o.push(monthKey(x.getTime()))}return o}
+function demoCust(){var r=seed(11),now=Date.now(),out=[],NM=['한빛패션','모던룩 스튜디오','레이어 마켓','노바 어패럴','소소 브랜드','미로 스튜디오','아르케 의류','도담 상회','루나 샵','베이직하우스','시안 컴퍼니','포레 어패럴','하이웨이 스튜디오','온결 패션','다온 마켓','블루문 브랜드','세렌 스튜디오','오브 어패럴','리프 샵','까르페 스튜디오'];
+ var W=[['search',26],['social',22],['ads',14],['referral',8],['email',5],['direct',9],['event',6],['partner',5],['intro',5]],tot=0;W.forEach(function(x){tot+=x[1]});
+ function pick(arr){var v=r()*tot,a=0;for(var i=0;i<arr.length;i++){a+=arr[i][1];if(v<a)return arr[i][0]}return arr[0][0]}
+ var CAMP={search:['브랜드 검색','상품사진 키워드'],social:['인스타 릴스','유튜브 튜토리얼'],ads:['가을 프로모션','리타게팅'],email:['뉴스레터 11월'],event:['패션위크 부스'],partner:['에이전시 제휴']};
+ for(var i=0;i<56;i++){var ag=Math.pow(r(),1.3)*540,st=now-ag*DAY,ch=pick(W),churn=r()<(ag>120?.28:.06),en=null,pl=r()<.5?'pilot':(r()<.7?'standard':'pro');
+  var term=pl==='pilot'?90:365;if(churn){var life=(25+r()*Math.min(ag,300))*DAY;en=st+life;if(en>now)en=null}else if(pl!=='pilot'||ag>90){var k=Math.floor(ag/term);en=st+(k+1)*term*DAY;if(en<now)en=now+r()*30*DAY}
+  if(!churn&&!en)en=st+term*DAY;var ended=!!(en&&en<now);var cs=CAMP[ch]||[''];
+  out.push({company:(i<NM.length?NM[i]:'고객 '+(i+1)),start:st,end:en,ended:ended,plan:ended&&r()<.5?'pilot':pl,ch:ch,camp:cs[Math.floor(r()*cs.length)],ind:IND[Math.floor(r()*r()*IND.length)][0],size:['1','2-5','2-5','6-20','6-20','21-100','100+'][Math.floor(r()*7)],users:1+Math.floor(r()*r()*9),firstJob:Math.max(0,Math.round(r()*r()*14)),lastUse:ended?en-r()*10*DAY:now-r()*r()*60*DAY,survey:r()<.6?(r()<.8?ch:'other'):''})}
+ return out}
+function custRows(){if(uDemo)return demoCust();var a=g('ais_accounts',[]),by={},now=Date.now(),use=usageRows();
+ a.forEach(function(x){var k=x.company||'-';if(by[k]&&by[k].start<=(x.joined||now))return;var ac=x.acq||{},sv=x.survey||{};by[k]={company:k,start:x.joined||now,end:(x.contract&&x.contract.end)||null,ended:false,plan:x.plan||'pilot',ch:ac.ch||'direct',camp:ac.camp||'',ind:sv.industry||'',size:sv.size||'',users:0,firstJob:null,lastUse:0,survey:sv.found||''}});
+ var us={};use.forEach(function(e){var c=by[e.company];if(!c)return;(us[e.company]=us[e.company]||{}).x=1;if(e.t>c.lastUse)c.lastUse=e.t;if(c.firstJob==null||Math.round((e.t-c.start)/DAY)<c.firstJob)c.firstJob=Math.max(0,Math.round((e.t-c.start)/DAY));us[e.company][e.user]=1});
+ Object.keys(by).forEach(function(k){by[k].users=Math.max(1,Object.keys(us[k]||{}).length-1);by[k].ended=!!(by[k].end&&by[k].end<now)});return Object.keys(by).map(function(k){return by[k]})}
+function mkNote(m){var p=el('p','fine');p.textContent=uDemo?'These numbers are sample data for layout review, not real customers.':'Not connected: only accounts registered in this browser. Once connected, AIS_API.ops.customers returns all customers, contracts and sources.';if(uDemo)p.style.cssText='color:#b45309;font-weight:600';m.appendChild(p)}
+function mkTop(m,fn){var w=el('div','row');w.style.cssText='gap:6px;flex-wrap:wrap;margin-bottom:10px';var dm=el('button','btn btn-ghost sm',uDemo?'Hide sample data':'Preview with sample data');dm.type='button';dm.onclick=function(){uDemo=!uDemo;s('ais_ops_udemo',uDemo);fn()};dm.style.marginLeft='auto';w.appendChild(dm);m.appendChild(w);mkNote(m)}
+function pctOf(a,b){return b?Math.round(a/b*100)+'%':'-'}
+function hbars(items,total){var d=el('div');items.forEach(function(x){var r=el('div');r.style.margin='7px 0';var l=el('div','fine',x[0]+' · '+x[1]+(total?' ('+pctOf(x[1],total)+')':''));r.appendChild(l);r.appendChild(bar(x[1],items.length?Math.max.apply(null,items.map(function(y){return y[1]})):0));d.appendChild(r)});if(!items.length)d.appendChild(note('No records.'));return d}
+function pairBars(labs,a,b){var mx=1;a.concat(b).forEach(function(v){if(v>mx)mx=v});var w=el('div','pbars');labs.forEach(function(l,i){var c=el('div','pb');c.title=l+' · new '+a[i]+' · ended '+b[i];var x=el('i','pa');x.style.height=Math.max(2,Math.round(a[i]/mx*100))+'px';var y=el('i','pc');y.style.height=Math.max(2,Math.round(b[i]/mx*100))+'px';var bx=el('div','pbx');bx.appendChild(x);bx.appendChild(y);c.appendChild(bx);c.appendChild(el('span',null,l.slice(5)));w.appendChild(c)});return w}
+function monthly(c){var ms=lastMonths(12),ix={},nw=ms.map(function(){return 0}),en=ms.map(function(){return 0}),act=[];ms.forEach(function(k,i){ix[k]=i});c.forEach(function(x){var a=ix[monthKey(x.start)];if(a!=null)nw[a]++;if(x.end&&x.end<=Date.now()){var b=ix[monthKey(x.end)];if(b!=null)en[b]++}});
+ ms.forEach(function(k,i){var y=+k.slice(0,4),m=+k.slice(5)-1,endT=new Date(y,m+1,1).getTime();var n=0;c.forEach(function(x){if(x.start<endT&&!(x.end&&x.end<endT&&x.end<=Date.now()))n++});act.push(n)});return {ms:ms,nw:nw,en:en,act:act}}
+
+S('mk1','m','Sign-ups and churn',function(m){var c=custRows(),d=monthly(c),L=d.ms.length-1,now=Date.now();mkTop(m,render);var b=box('Monthly sign-ups and churn, last 12 months');
+ var activeNow=c.filter(function(x){return !x.ended}).length,prev=d.act[L-1]||0,churnRate=prev?(d.en[L]/prev*100).toFixed(1)+'%':'-';
+ kpi(b,[['Active customers',activeNow,'Total signed up '+c.length+'',d.act],['New this month',d.nw[L],'',d.nw],['Ended this month',d.en[L],'',d.en],['Net change',(d.nw[L]-d.en[L]>0?'+':'')+(d.nw[L]-d.en[L]),''],['Monthly churn',churnRate,'vs. last month active']]);
+ var lg=el('div','fine');lg.innerHTML='<span class="lgd pa"></span> New &nbsp; <span class="lgd pc"></span> Ended';b.appendChild(lg);b.appendChild(pairBars(d.ms,d.nw,d.en));
+ var rows=d.ms.map(function(k,i){return [k,d.nw[i],d.en[i],(d.nw[i]-d.en[i]>0?'+':'')+(d.nw[i]-d.en[i]),d.act[i]]}).reverse();var heads=['Month','New','Ended','Net','Active at month end'];b.appendChild(tbl(heads,rows));
+ var ex=el('button','btn btn-ghost sm','Export CSV');ex.type='button';ex.onclick=function(){csvOut('signups_churn.csv',heads,rows)};b.appendChild(ex);
+ b.appendChild(note('Ended means the contract end date has passed. Rejoins are told apart once the server is connected.'));m.appendChild(b)});
+
+S('mk2','m','Contracts',function(m){var c=custRows(),now=Date.now();mkTop(m,render);var f=g('ais_ops_ctf','all');var b=box('Contract start and end dates');
+ var F=[['all','All'],['on','Active'],['soon','Ends within 30 days'],['off','Ended']];var w=el('div','row');w.style.cssText='gap:6px;flex-wrap:wrap;margin-bottom:10px';F.forEach(function(x){var t=el('button','btn '+(f===x[0]?'btn-primary':'btn-ghost')+' sm',x[1]);t.type='button';if(f===x[0])t.style.color='var(--violet-ink)';t.onclick=function(){s('ais_ops_ctf',x[0]);render()};w.appendChild(t)});b.appendChild(w);
+ function st(x){if(x.ended)return 'off';if(x.end&&x.end-now<=30*DAY)return 'soon';return 'on'}
+ var SN={on:'Active',soon:'Ending soon',off:'Ended'};
+ var cnt={on:0,soon:0,off:0};c.forEach(function(x){cnt[st(x)]++});kpi(b,[['Active',cnt.on+cnt.soon],['Ends within 30 days',cnt.soon],['Ended',cnt.off],['Pilot',c.filter(function(x){return x.plan==='pilot'&&!x.ended}).length]]);
+ var rows=c.filter(function(x){return f==='all'||(f==='on'?st(x)!=='off':st(x)===f)}).sort(function(a,b){return (a.end||9e15)-(b.end||9e15)}).map(function(x){var left=x.end?Math.ceil((x.end-now)/DAY):'';return [x.company,nmOf(PLN,x.plan),fmtD(x.start),x.end?fmtD(x.end):'TBD',x.ended?'-':(left===''?'-':left+'d'),SN[st(x)]]});
+ var heads=['Company','Plan','Start','End','Remaining','Status'];b.appendChild(tbl(heads,rows));
+ var ex=el('button','btn btn-ghost sm','Export CSV');ex.type='button';ex.onclick=function(){csvOut('contracts.csv',heads,rows)};b.appendChild(ex);
+ b.appendChild(note('Pricing and renewal terms are not decided, so no amounts are shown. Support follows up with customers ending soon.'));m.appendChild(b)});
+
+S('mk3','m','Acquisition channels',function(m){var c=custRows();mkTop(m,render);var b=box('Sign-ups and conversion by channel');var by={};c.forEach(function(x){var k=x.ch||'direct';var a=by[k]||(by[k]={k:k,n:0,act:0,job:0,d:0,dn:0});a.n++;if(!x.ended)a.act++;if(x.firstJob!=null){a.job++;a.d+=x.firstJob;a.dn++}});
+ var arr=Object.keys(by).map(function(k){return by[k]}).sort(function(a,b){return b.n-a.n});
+ kpi(b,[['Total sign-ups',c.length],['Top channel',arr.length?nmOf(CHN,arr[0].k):'-',arr.length?pctOf(arr[0].n,c.length)+' share':''],['Sign-up to first job',pctOf(arr.reduce(function(a,x){return a+x.job},0),c.length)],['Still active',pctOf(arr.reduce(function(a,x){return a+x.act},0),c.length)]]);
+ b.appendChild(hbars(arr.map(function(x){return [nmOf(CHN,x.k),x.n]}),c.length));
+ var heads=['Channel','Sign-ups','Share','First-job rate','Avg days to first job','Active now','Retention'];
+ var rows=arr.map(function(x){return [nmOf(CHN,x.k),x.n,pctOf(x.n,c.length),pctOf(x.job,x.n),x.dn?(x.d/x.dn).toFixed(1)+'d':'-',x.act,pctOf(x.act,x.n)]});b.appendChild(tbl(heads,rows));
+ var ex=el('button','btn btn-ghost sm','Export CSV');ex.type='button';ex.onclick=function(){csvOut('acquisition.csv',heads,rows)};b.appendChild(ex);m.appendChild(b);
+ var cp={};c.forEach(function(x){if(!x.camp)return;var k=nmOf(CHN,x.ch)+' / '+x.camp;cp[k]=(cp[k]||0)+1});var ck=Object.keys(cp).sort(function(a,b){return cp[b]-cp[a]});var b2=box('By campaign (UTM)');b2.appendChild(hbars(ck.slice(0,8).map(function(k){return [k,cp[k]]}),c.length));b2.appendChild(note('Only visits through links carrying utm_source, utm_medium and utm_campaign are counted as campaigns.'));m.appendChild(b2);
+ var sv={},have=0;c.forEach(function(x){if(!x.survey)return;have++;sv[x.survey]=(sv[x.survey]||0)+1});var b3=box('Sign-up survey: how they heard of us');b3.appendChild(hbars(Object.keys(sv).sort(function(a,b){return sv[b]-sv[a]}).map(function(k){return [nmOf(CHN,k),sv[k]]}),have));b3.appendChild(note(''+have+' customers answered (optional). It can differ from the tracked source, so read both.'));m.appendChild(b3)});
+
+S('mk4','m','Customer mix and activity',function(m){var c=custRows().filter(function(x){return !x.ended}),now=Date.now();mkTop(m,render);var d=el('div','dgrid');
+ function grp(t,arr,fn){var o={};c.forEach(function(x){var k=fn(x)||'-';o[k]=(o[k]||0)+1});var f=box(t);f.appendChild(hbars(Object.keys(o).sort(function(a,b){return o[b]-o[a]}).map(function(k){return [nmOf(arr,k),o[k]]}),c.length));return f}
+ d.appendChild(grp('Business type',IND,function(x){return x.ind}));d.appendChild(grp('Team size',[],function(x){return x.size}));d.appendChild(grp('Plan',PLN,function(x){return x.plan}));m.appendChild(d);
+ var b=box('Activity');var a30=c.filter(function(x){return x.lastUse&&now-x.lastUse<=30*DAY}).length,a7=c.filter(function(x){return x.lastUse&&now-x.lastUse<=7*DAY}).length,dorm=c.filter(function(x){return !x.lastUse||now-x.lastUse>30*DAY});
+ kpi(b,[['Active customers',c.length],['Used in last 7 days',a7,pctOf(a7,c.length)],['Used in last 30 days',a30,pctOf(a30,c.length)],['Idle over 30 days',dorm.length,'Follow-up candidates']]);
+ var heads=['Company','Plan','Last used','Idle for','Contract end'];var rows=dorm.sort(function(a,b){return (a.lastUse||0)-(b.lastUse||0)}).slice(0,15).map(function(x){return [x.company,nmOf(PLN,x.plan),fmtD(x.lastUse),x.lastUse?Math.floor((now-x.lastUse)/DAY)+'d':'Never',fmtD(x.end)]});
+ b.appendChild(el('h3',null,'Idle customers to follow up'));b.appendChild(tbl(heads,rows));var ex=el('button','btn btn-ghost sm','Export CSV');ex.type='button';ex.onclick=function(){csvOut('idle_customers.csv',heads,rows)};b.appendChild(ex);
+ b.appendChild(note('These are company-level statistics. No personal contact details are shown. Only contact customers who have consented to marketing.'));m.appendChild(b)});
+
+/* ---- shell ---- */
+var ALLOW={content:['a','d'],cs:['a','b','u','m'],legal:['a','c'],fin:['a','u'],mkt:['a','m','u']};
+function role(){var se=AIS.ops.session();return se?se.role:'cs'}
+function can(x){var r=role();return r==='lead'||(ALLOW[r]||['a']).indexOf(x.grp)>=0}
+var cur='ov';
+function go(id){cur=id;say('');render()}
+var GO='aubmcde';function nav(){var n=$('opnav');n.innerHTML='';var last='';SECS.slice().sort(function(a,b){return GO.indexOf(a.grp)-GO.indexOf(b.grp)}).filter(can).forEach(function(x){if(x.grp!==last){n.appendChild(el('h4',null,G[x.grp]));last=x.grp}var b=el('button',null,x.name);b.type='button';if(x.id===cur)b.setAttribute('aria-current','true');b.onclick=function(){go(x.id)};n.appendChild(b)})}
+function render(){nav();var m=$('opbody');m.innerHTML='';SECS.filter(function(x){return x.id===cur})[0].fn(m)}
+function start(){if(!AIS.ops.session()){location.href='ops-login.html';return}var st=AIS.ops.staff().filter(function(x){return x.em===AIS.ops.session().email})[0];if(!st){AIS.ops.logout();return}if(!ALLOW[st.role]&&st.role!=='lead')st.role='cs';if(SECS.filter(function(x){return can(x)}).length&&!can(SECS.filter(function(x){return x.id===cur})[0]))cur='ov';render()}
+start();
+})();
+</script>
+</main>
+<footer><div class="wrap">
+<div class="cols">
+ <div><b style="color:var(--ink)">AI CREATOR STUDIO</b><p style="margin:8px 0 0">A team workspace for fashion image work.</p></div>
+ <div><h4>Site</h4><ul><li><a href="services.html">Services</a></li><li><a href="product.html">Product</a></li><li><a href="library.html">Library</a></li><li><a href="security.html">Security & data</a></li><li><a href="pilot.html">Pricing & launch</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+ <div><h4>Legal</h4><ul><li><a href="terms.html">Terms of service</a></li><li><a href="privacy.html">Privacy policy</a></li><li><a href="cookies.html">Cookies & storage</a></li><li><a href="ai-disclosure.html">AI-generated content notice</a></li></ul></div>
+ <div><h4>Operator</h4><a class="oplogo" href="index.html" aria-label="Eugene Consulting Corporation"><img src="../img/eugene-logo.png" alt="Eugene Consulting Corporation" width="226" height="61" loading="lazy"></a><ul><li>Eugene Consulting Corporation</li><li>justinhb.lee2@gmail.com</li><li>010-5201-3121</li></ul></div>
+</div>
+<p>People and character images are AI-generated. Terms and privacy policy are finalized after legal review.</p></div></footer>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>
