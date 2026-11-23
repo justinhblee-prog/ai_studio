@@ -30,6 +30,7 @@
 | `ONBOARDING.md` | 개발자 온보딩 — 10분 안에 로컬 API 띄우기 (B-21) | 목표: 저장소를 받은 사람이 **명령 몇 개로** 무료 mock 모드의 API를 띄우고 응답을 확인한다. 외부 AI 서비스·유료 호출·Supabase/Vercel·공유 DB는 **쓰지 않는다**(전… |
 | `OPS_READ_CONTRACT.md` | 운영자 읽기 계약표 (`AIS_API.ops.*`) — R-066 | 범위: 운영 화면이 **읽기만** 하는 경로. 쓰기(정지·설정·공지 등)는 R-052 결정 대기라 서버에 **없음**. |
 | `OPTION_IMAGES.md` | 옵션·도감 이미지 정적 자산 규칙 (R-051) | 홈페이지(설계 창 정적 사이트, 배포 위치 `public/site/` 예정 — R-025 결정 대기)의 선택 견본 그림을 **파일로만** 둔다. 서버 코드는 이 그림을 만들거나 전송하지 않는다. |
+| `PHOTO_BODY.md` | 사진 → 몸 치수 추정 → 3D 인물 (D-2, 경로 C: 자체 코드) — `app/photo_body.py` | 전신 사진 1장에서 own3d 마네킹의 치수(`height_cm, chest_cm, waist_cm, hips_cm`)를 **추정**한다. Pillow만 사용(새 의존성·토큰·모델 없음). `POS… |
 | `POSES.md` | 다섯 자세 — 관절 리그 + 스키닝 (M5) — `app/pose_rig.py` | 순수 파이썬(새 의존성 없음). 마네킹 몸과 **그 몸에 맞춘 옷**을 서기(standing)·걷기(walking)·손 허리(hand_on_hip)·앉기(sitting)·팔 들기(arms_raise… |
 | `POSTGRES_RACE_PRIMITIVES.md` | PostgreSQL 전환: 경합 보호 대체표 (B-05 · D-66c 1단계) | SQLite 전용 모듈 43개가 "확인 후 쓰기"를 지키는 방식과, PostgreSQL(기본 READ COMMITTED, 읽기는 막지 않음)에서 그것을 대체할 구성. **모든 행은 `tests/te… |
 | `PSD_ROUNDTRIP.md` | Photo PSD 주고받기 서버 (R-PSD-01) — `app/psd_io.py`, `app/photo_psd.py` | 도구에 묶이지 않고 **PSD 표준 파일**로 주고받는다(포토샵·PhotoCraft·Photopea 등). 새 의존성 없이 순수 파이썬 + Pillow로 PSD/PSB를 직접 쓰고 읽는다. |

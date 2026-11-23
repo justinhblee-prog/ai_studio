@@ -43,5 +43,5 @@ not counted (only the page's own scroll width is).
 
 `site_live_3d.mjs` (D-1, answer 73) runs the homepage copy's NEW live layer `site/assets/ais_api_live.js` against a REAL local backend with
 `RENDER3D_ENABLED=true`: unreachable/unconfigured -> every call answers `null` (the screen keeps its local behaviour); poses list, S/M/L fit
-check, a posed lit 5-angle render with two garments, save to the library, library -> video job, GLB export with its provenance block. It
-prints `SUMMARY 8/8 live 3D steps passed` and the render timings of the CI runner; the pictures go to `$E2E_OUT` (default: a temp folder).
+check, a posed lit 5-angle render with two garments, save to the library, library -> video job, GLB export with its provenance block, photo -> estimated body measurements (D-2). It
+prints `SUMMARY 9/9 live 3D steps passed` and the render timings of the CI runner; the pictures go to `$E2E_OUT` (default: a temp folder).

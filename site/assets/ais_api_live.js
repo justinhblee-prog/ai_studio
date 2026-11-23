@@ -11,6 +11,7 @@
                                                     → {job_id, images:[{angle,asset_id,url}], qc, ms} | null   (E-03 사진 렌더 job; url 은 이 브라우저의 blob 주소)
      AIS_API.studio3d.fitCheck({sex,kind,measurements?,nominal?}) → §15 응답 | null            (POST …/fit-check)
      AIS_API.studio3d.export({assetId, versionId?, format:'glb'}) → {blob,url,sha256,filename} | null   (§14 E-05)
+     AIS_API.studio3d.bodyFromPhoto({assetId, sex?|modelId, heightCm?}) → {estimated:true, measurements:{height_cm,chest_cm,waist_cm,hips_cm}, warnings[], …} | null   (D-2, POST …/photo-body)
      AIS_API.studio3d.saveToLibrary(images, {name?})→ [library item]                           (POST …/library/attach, kind=render)
      AIS_API.studio3d.toVideo({itemIds, aspect?, duration?, motion?}) → {job_id,status,…} | null (POST …/video-jobs, 라이브러리 항목 → 영상) */
 (function(){
@@ -122,6 +123,15 @@ var S3={
     var cd=x.response.headers.get('content-disposition')||'';
     var m=/filename="?([^";]+)"?/.exec(cd);
     return {blob:b,url:URL.createObjectURL(b),sha256:x.response.headers.get('x-content-sha256'),filename:m?m[1]:'model.glb',bytes:b.size};
+  },
+  /* D-2: 사진 모델(라이브러리 사진) → 추정 치수(3D 인물). 결과의 measurements 를 render({measurements}) 에 그대로 넘긴다. 항상 "추정". */
+  bodyFromPhoto:async function(o){
+    if(!ready())return null;
+    o=o||{};
+    var body={asset_id:o.assetId,sex:o.sex||sexOf(o)};
+    if(o.heightCm)body.height_cm=o.heightCm;
+    var x=await call('POST',wsUrl('/photo-body'),body);
+    return x.unavailable?null:x.json;
   },
   saveToLibrary:async function(images,o){
     if(!ready())return null;

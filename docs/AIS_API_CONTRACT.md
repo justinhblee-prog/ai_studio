@@ -219,3 +219,6 @@
 - 서버 변경: 렌더 작업 요청에 `pose`(기본 standing)·`renderer`(기본 soft) 추가, `GET …/render3d-jobs/poses`. 사진 렌더는 느리다(아래).
 - **시간(이 개발 PC, 컷 5각도·옷 2벌·360×640)**: 사진 렌더 15.6초 + 자세 적용 0.28초, 모의 렌더 2.4초. **8 GB급 PC 시간은 미측정.** 사진 렌더는 작업(job)이라 화면은 폴링한다.
 - 알려진 한계: 걷기 자세에서 허벅지 안쪽 살갗이 바지 밖으로 비침(`docs/POSES.md`), 옷은 내장 샘플만, 3D 미리보기(three.js)는 그대로(자세는 서버 컷에만 반영).
+
+## 21. 사진 → 몸 치수 추정 `POST /v1/workspaces/{id}/photo-body` (D-2)
+`{asset_id, sex: male|female, height_cm?(120~220)}` → `{estimated:true, label, measurements:{height_cm,chest_cm,waist_cm,hips_cm}, silhouette_px, warnings[], chest_from_prior, assumptions[]}`. 편집자 이상, own3d 플래그 뒤(닫힘 409 `RENDER3D_CLOSED`), 저장 없음. 오류 `PHOTO_BODY_NOT_FOUND|CLIPPED|POSE|UNREADABLE|SEX|HEIGHT`(422). 화면 함수 `AIS_API.studio3d.bodyFromPhoto`(§20). **합성 사진에서만 시험, 실제 사람 사진은 미실행**; 방법·한계는 `docs/PHOTO_BODY.md`.
