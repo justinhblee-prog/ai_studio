@@ -181,3 +181,21 @@ def test_the_job_records_the_render_check_but_it_does_not_decide_delivery(opened
     assert check["garments"][0]["colour_distance_max"] <= check["thresholds"]["max_colour_distance"] and all(v is None for v in check["not_judged"].values())
     none = poll(create({**FAST}).json()["job_id"])
     assert none["status"] == "succeeded" and none["qc"]["render_check"]["garments"] == [] and none["qc"]["render_check"]["passed"] is None, "no garment, nothing to judge"
+
+
+def test_a_posed_photo_render_job_makes_pictures_and_the_poses_are_listed(opened):
+    r = client.get(f"{BASE}/poses", headers=auth("c"))
+    assert r.status_code == 200 and [p["id"] for p in r.json()["poses"]] == ["standing", "walking", "hand_on_hip", "sitting", "arms_raised"]
+    made = create({**FAST, "garments": [{"kind": "top"}], "angles": [0, 90], "pose": "sitting", "renderer": "photo"})
+    assert made.status_code == 202, made.text
+    job = poll(made.json()["job_id"])
+    assert job["status"] == "succeeded", job
+    assert job["request"]["pose"] == "sitting" and job["request"]["renderer"] == "photo" and [i["angle"] for i in job["images"]] == [0, 90]
+    soft = create({**FAST, "garments": [{"kind": "top"}], "angles": [0]})
+    standing = poll(soft.json()["job_id"])
+    assert standing["status"] == "succeeded" and standing["request"]["pose"] == "standing" and standing["request"]["renderer"] == "soft"
+
+
+def test_pose_and_renderer_are_checked_and_the_poses_list_is_closed_with_the_flag(env):
+    assert client.get(f"{BASE}/poses", headers=auth("a")).json()["detail"]["code"] == "RENDER3D_CLOSED"
+    assert create({**FAST, "pose": "dancing"}).status_code in (409, 422)

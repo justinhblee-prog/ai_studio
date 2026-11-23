@@ -40,3 +40,8 @@ tests use) and the real provider path is not exercised.
 not counted (only the page's own scroll width is).
 
 `site_flow.mjs` (B-12 part 2) drives the **homepage copy in `/site`** (not the React app): the 3D studio (change model, clothes colour, accessories, background; save 5 angle images and one view into the library; pick a photo model) and the virtual try-on workroom (nothing picked, upload refused without the rights confirmation, library model + own garment → "Make try-on image" answers with the "server not linked" notice and logs `blocked`). It starts its own static server, seeds the site's own mock session in `localStorage`, blocks every request that leaves the machine, and needs no backend. **Not covered:** login, any server or AI model, and the catalog photos (`img/cat` and `/_blob/` are not in the copy, so the flow asserts behaviour, never that an image is non-blank). Run: `node e2e/site_flow.mjs` (Playwright required, software WebGL as in `render_flow.mjs`).
+
+`site_live_3d.mjs` (D-1, answer 73) runs the homepage copy's NEW live layer `site/assets/ais_api_live.js` against a REAL local backend with
+`RENDER3D_ENABLED=true`: unreachable/unconfigured -> every call answers `null` (the screen keeps its local behaviour); poses list, S/M/L fit
+check, a posed lit 5-angle render with two garments, save to the library, library -> video job, GLB export with its provenance block. It
+prints `SUMMARY 8/8 live 3D steps passed` and the render timings of the CI runner; the pictures go to `$E2E_OUT` (default: a temp folder).

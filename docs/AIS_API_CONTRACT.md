@@ -204,3 +204,18 @@
 
 ## 19. Photo PSD 주고받기 (R-PSD-01)
 `POST /v1/workspaces/{id}/photo-psd`(레이어 PSD 내려받기, 원본 해상도, 8·16비트, ICC) · `POST …/photo-psd/import`(고친 PSD 올리기 → 새 원본 자산 + 출처 기록 `asset.psd_import`). 레이어 구성·오류 코드(`PSD_*`)·한계는 `docs/PSD_ROUNDTRIP.md`. **포토샵·Photopea 등 실제 프로그램에서 열어 본 시험은 미실행.**
+
+## 20. 3D 작업실 실연결 `AIS_API.studio3d.*` (D-1, 답신 73) — `site/assets/ais_api_live.js`
+화면 HTML은 고치지 않고 이 파일 한 곳이 서버를 부른다. **서버 꺼짐·설정 없음·플래그(`RENDER3D_ENABLED`) 닫힘·로그인/권한 없음 → 조용히 `null`**(호출한 쪽이 지금의 로컬 동작을 그대로 쓴다). 서버가 거절한 것(잘못된 값)만 `{code,message}`로 던진다. 설정은 부트스트랩이 `AIS_LIVE.configure({base, token(문자열 또는 함수), workspaceId})`로 넣는다(파일에 키·주소 없음).
+| 함수 | 서버 | 반환 |
+|---|---|---|
+| `poses()` | `GET …/render3d-jobs/poses` | `[{id,label_ko,label_en}]`(standing·walking·hand_on_hip·sitting·arms_raised) |
+| `render({modelId\|sex, garments:[kind], pose, angles, measurements?, bg?, renderer?='photo'})` | `POST …/render3d-jobs`(요청에 **`pose`·`renderer:'soft'\|'photo'` 추가**) → 폴링 → `GET /v1/assets/{id}/preview` | `{job_id, images:[{angle,asset_id,url,blob}], qc, ms}` (`url`은 blob 주소) |
+| `fitCheck({sex,kind,measurements?,nominal?})` | `POST …/fit-check` (§15) | 응답 그대로 |
+| `export({assetId, versionId?, format:'glb'})` | `GET /v1/assets/{id}/versions/{v}/export` (§14) | `{blob,url,sha256,filename,bytes}` |
+| `saveToLibrary(images,{name?})` | `POST …/library/attach` (kind `render`) | 라이브러리 항목 배열 |
+| `toVideo({itemIds, aspect?, duration?, motion?})` | `POST …/video-jobs` → 폴링 | 영상 작업 |
+- `modelId`→성별: `mf*·cw*·f*`는 여성, 그 밖은 남성(화면이 `sex`를 직접 주면 그것). 옷 id는 아직 내장 샘플 종류(top·bottom·skirt·dress·jacket)만.
+- 서버 변경: 렌더 작업 요청에 `pose`(기본 standing)·`renderer`(기본 soft) 추가, `GET …/render3d-jobs/poses`. 사진 렌더는 느리다(아래).
+- **시간(이 개발 PC, 컷 5각도·옷 2벌·360×640)**: 사진 렌더 15.6초 + 자세 적용 0.28초, 모의 렌더 2.4초. **8 GB급 PC 시간은 미측정.** 사진 렌더는 작업(job)이라 화면은 폴링한다.
+- 알려진 한계: 걷기 자세에서 허벅지 안쪽 살갗이 바지 밖으로 비침(`docs/POSES.md`), 옷은 내장 샘플만, 3D 미리보기(three.js)는 그대로(자세는 서버 컷에만 반영).

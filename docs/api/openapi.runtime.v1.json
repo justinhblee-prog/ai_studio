@@ -7248,6 +7248,27 @@
             "title": "Mp4",
             "type": "boolean"
           },
+          "pose": {
+            "default": "standing",
+            "enum": [
+              "standing",
+              "walking",
+              "hand_on_hip",
+              "sitting",
+              "arms_raised"
+            ],
+            "title": "Pose",
+            "type": "string"
+          },
+          "renderer": {
+            "default": "soft",
+            "enum": [
+              "soft",
+              "photo"
+            ],
+            "title": "Renderer",
+            "type": "string"
+          },
           "sex": {
             "enum": [
               "male",
@@ -23080,6 +23101,67 @@
           }
         },
         "summary": "Create Render3D Job",
+        "tags": [
+          "render3d-jobs"
+        ]
+      }
+    },
+    "/v1/workspaces/{workspace_id}/render3d-jobs/poses": {
+      "get": {
+        "description": "D-1: the poses a render job accepts (M5, ``app/pose_rig.py``) and the renderers - what the 3D studio's pose picker lists.",
+        "operationId": "listRender3dPoses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Listrender3Dposes",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Poses",
         "tags": [
           "render3d-jobs"
         ]
